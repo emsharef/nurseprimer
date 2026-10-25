@@ -87,7 +87,7 @@ const { id, question, options, answer, lock = false } = Astro.props;
   .reveal { margin-top: 0.75rem; }
   .reveal :global(> :last-child) { margin-bottom: 0; }
   :global(.predict-locked) { position: relative; }
-  :global(.predict-locked > :not(.lock-note)) { opacity: 0.3; filter: grayscale(0.7); pointer-events: none; }
+  :global(.predict-locked > :not(.lock-note)) { opacity: 0.45; filter: blur(7px) grayscale(0.6); pointer-events: none; user-select: none; }
   :global(.lock-note) {
     position: sticky; top: 0.75rem; z-index: 2; margin: 0; padding: 0.75rem 1rem;
     background: var(--gold-wash); color: var(--ink); border-bottom: 1px solid var(--gold-ink);
