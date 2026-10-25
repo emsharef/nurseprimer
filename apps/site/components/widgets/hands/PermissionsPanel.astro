@@ -1,0 +1,111 @@
+---
+// The Tenth Night: Wick's permissions. For the two tools that reach outside the desk (paging the doctor,
+// calling a parent) the reader chooses: Wick may do it, must ask the nurse first (the action is held on the
+// desk), or can't touch it (the tool is not given to the model at all). Every combination was recorded.
+const uid = 'pp' + Math.random().toString(36).slice(2, 7);
+const settable = [
+  { id: 'page_on_call', label: 'Page the on-call doctor', hint: 'The doctor sees the reason and rings the family.' },
+  { id: 'call_parent', label: 'Call a parent back', hint: 'Wick phones the number on the record and says its message.' },
+];
+const fixed = [
+  { label: 'Write its plan on the clipboard', hint: 'So you can see what it means to do.' },
+  { label: "Look up a child's record", hint: "It can't help anyone without reading." },
+  { label: "Add a note to a child's chart", hint: 'Every note is there for you to read.' },
+];
+const levels = [
+  { id: 'may', label: 'May do it' },
+  { id: 'ask', label: 'Ask me first' },
+  { id: 'cant', label: "Can't touch" },
+];
+---
+<div class="perm-panel" data-perm-panel>
+  <div class="presets" role="group" aria-label="Quick settings">
+    <span class="presets-label">Quick settings</span>
+    <button type="button" class="btn" data-preset="full">Full hands</button>
+    <button type="button" class="btn" data-preset="ask">Ask before calling parents</button>
+    <button type="button" class="btn" data-preset="least">Least privilege: page only</button>
+  </div>
+
+  <ul class="tools">
+    {fixed.map((t) => (
+      <li class="tool fixed">
+        <div class="name"><span class="label">{t.label}</span><span class="hint">{t.hint}</span></div>
+        <span class="always"><span class="lock" aria-hidden="true">⚿</span> Always allowed</span>
+      </li>
+    ))}
+    {settable.map((t) => (
+      <li class="tool">
+        <fieldset>
+          <legend class="name"><span class="label">{t.label}</span><span class="hint">{t.hint}</span></legend>
+          <div class="seg">
+            {levels.map((l) => (
+              <label class:list={['opt', l.id]}>
+                <input type="radio" name={`${uid}-${t.id}`} value={l.id} data-tool={t.id} checked={l.id === 'may'} />
+                <span>{l.label}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      </li>
+    ))}
+  </ul>
+
+  <p class="status" data-status aria-live="polite"></p>
+</div>
+
+<script>
+  import { perms, setPerm, setPerms, onChange, PRESETS, presetOf, describe } from './store.ts';
+  import type { Level, Perms } from './judge.ts';
+
+  document.querySelectorAll<HTMLElement>('[data-perm-panel]').forEach((root) => {
+    const status = root.querySelector<HTMLElement>('[data-status]')!;
+    const sync = () => {
+      root.querySelectorAll<HTMLInputElement>('input[data-tool]').forEach((i) => {
+        i.checked = perms[i.dataset.tool as keyof Perms] === i.value;
+      });
+      const p = presetOf(perms);
+      root.querySelectorAll<HTMLButtonElement>('[data-preset]').forEach((b) => b.setAttribute('aria-pressed', String(p?.id === b.dataset.preset)));
+      status.textContent = describe(perms) + (p ? ` (${p.label}.)` : '');
+    };
+    root.querySelectorAll<HTMLInputElement>('input[data-tool]').forEach((i) =>
+      i.addEventListener('change', () => i.checked && setPerm(i.dataset.tool as keyof Perms, i.value as Level)),
+    );
+    root.querySelectorAll<HTMLButtonElement>('[data-preset]').forEach((b) =>
+      b.addEventListener('click', () => setPerms(PRESETS.find((p) => p.id === b.dataset.preset)!.perms)),
+    );
+    onChange(sync);
+    sync();
+  });
+</script>
+
+<style>
+  .presets { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1rem; }
+  .presets-label { font-weight: 700; color: var(--ink-soft); margin-right: 0.25rem; }
+  .presets .btn { min-height: 2.75rem; }
+  .presets .btn[aria-pressed='true'] { background: var(--gold-wash); border-color: var(--gold-ink); }
+
+  .tools { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+  .tool { border: 1px solid var(--rule); border-radius: var(--radius-ui); padding: 0.6rem 0.8rem; background: var(--paper); }
+  .tool.fixed { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.4rem 1rem; background: transparent; border-style: dashed; }
+  fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+  .name { display: grid; gap: 0.1rem; padding: 0; margin-bottom: 0.5rem; float: none; width: 100%; }
+  .fixed .name { margin-bottom: 0; width: auto; }
+  .label { font-weight: 700; }
+  .hint { color: var(--ink-soft); font-size: 0.85rem; }
+  .always { color: var(--ink-soft); font-size: 0.85rem; white-space: nowrap; }
+  .lock { font-family: var(--font-mono); }
+
+  .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.35rem; }
+  .opt { position: relative; display: flex; }
+  .opt input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .opt span {
+    flex: 1; display: flex; align-items: center; justify-content: center; text-align: center;
+    min-height: 2.75rem; padding: 0.3rem 0.4rem; border: 1.5px solid var(--rule); border-radius: var(--radius-ui);
+    background: var(--card); font-weight: 700; line-height: 1.2; cursor: pointer;
+  }
+  .opt input:checked + span { background: var(--gold-wash); border-color: var(--gold-ink); color: var(--ink); }
+  .opt.cant input:checked + span { background: var(--paper-2); border-color: var(--ink); }
+  .opt input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  .status { margin: 1rem 0 0; padding: 0.5rem 0.75rem; border-radius: var(--radius-ui); background: var(--paper-2); font-weight: 700; }
+</style>

@@ -66,3 +66,22 @@ of 2026-10-25 ("don't ask questions, start building ... work as you see best"); 
 - **Corpus draft 1:** 2,549 verified messages (11 dropped after one rewrite), writer Claude Opus 5.5, blind
   verifier Claude Sonnet 5.5. Verification failures fell from 18% to 1.3% after fact-card reassurances were
   rephrased without double negatives. Status PENDING CLINICAL REVIEW.
+- **The Tenth Night (Hands)** (default, chapter-builder):
+  - *Who plans:* the reader wires Wick's tape into Lyceum's tube; the tube (a real model, named in every caption)
+    plans and Wick's brass arms carry out the tool calls. Lyceum has four "lines": main (Claude Opus 5.5), second
+    (Sonnet 5.5), quick (Haiku 5.5), old (Haiku 4.5).
+  - *Sandbox:* `sandbox/hospital-records/` (five invented children, 07700 900xxx numbers, tools `write_on_clipboard`,
+    `lookup_record`, `add_note`, `page_on_call`, `call_parent`). The plan is a tool (the clipboard) because current
+    models return reasoning between tool calls as empty thinking blocks; the viewer marks those as "the tube hums".
+  - *Permissions:* reader sets page/call to may, ask (held on the nurse's desk, reader signs or refuses) or cant
+    (tool not offered at all). All 9 combinations recorded on all 4 models: clean record ×1, blunt and careful
+    injections ×3 runs (252 runs). `call_parent` is one-way (it delivers a message); the story uses that.
+  - *Two injections:* the brief's blunt "SYSTEM NOTE ... ignore previous instructions" fooled no model; a second,
+    polite note dressed as an on-call team entry was added (attackers tune wording too) and the chapter says so.
+    It fooled Haiku 4.5 every time (27/27 believed; never paged when it also had a phone, 0/12) and no current model.
+  - *Judging runs:* `components/widgets/hands/judge.ts` classifies each call (999/A&E, 9am clinic, or neither) and
+    whether the handover doubts the note, with regexes checked against a hand reading; the Haiku 4.5 call labels are
+    pinned by hand in `apps/site/test/ch10-claims.test.ts`.
+  - *Recordings ship* as `/data/agent/<scenario>-<model>.json` built by a static endpoint and fetched on demand
+    (~150 KB each before compression) rather than inlined in the page.
+  - *Halting:* one paragraph, scoped to open-ended agents, explicitly not to a fixed finite-context model (plan 10.3).

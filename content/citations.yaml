@@ -20,3 +20,19 @@ references:
     venue: Psychological Review 65(6), 386-408
     doi: 10.1037/h0042519
     verified: { by: Crossref metadata lookup (Claude), on: 2026-10-25, scope: metadata }
+  greshake2023:
+    authors: Greshake, K.; Abdelnabi, S.; Mishra, S.; Endres, C.; Holz, T.; Fritz, M.
+    year: 2023
+    title: "Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection"
+    venue: arXiv preprint 2302.12173 (v1 23 February 2023; v2 5 May 2023)
+    url: https://arxiv.org/abs/2302.12173
+    # Claim checked against the abstract: adversaries can inject prompts "into data likely to be retrieved", and
+    # LLM-integrated applications "blur the line between data and instructions".
+    verified: { by: arXiv abstract page read (Claude), on: 2026-10-25, scope: claim }
+  turing1936:
+    authors: Turing, A. M.
+    year: 1936
+    title: 'On Computable Numbers, with an Application to the Entscheidungsproblem'
+    venue: Proceedings of the London Mathematical Society s2-42(1), 230-265 (Crossref dates the issue 1937)
+    doi: 10.1112/plms/s2-42.1.230
+    verified: { by: Crossref metadata lookup (Claude), on: 2026-10-25, scope: metadata }

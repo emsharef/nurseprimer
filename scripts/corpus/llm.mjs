@@ -27,6 +27,24 @@ export async function complete({ model, system, user, maxTokens = 8000, temperat
   }
 }
 
+// One raw Messages API request (for tool-use loops): returns the whole response body. Retries on 429 and 5xx.
+export async function messagesRaw(body) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) return res.json();
+    const text = await res.text();
+    if ((res.status === 429 || res.status >= 500) && attempt < 6) {
+      await new Promise((r) => setTimeout(r, 2000 * 2 ** attempt));
+      continue;
+    }
+    throw new Error(`${res.status} ${text.slice(0, 400)}`);
+  }
+}
+
 export function parseJSONArray(text) {
   const start = text.indexOf('[');
   const end = text.lastIndexOf(']');

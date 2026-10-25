@@ -30,5 +30,13 @@
  "ch03-training": {
   "alt": "Wick sits alone on the desk while the knobs on its chest turn by themselves, a long strip of paper tape pouring out.",
   "aspect": "3:2"
+ },
+ "ch10-opener": {
+  "alt": "Wick sits on the desk fitted with two slender brass arms, one holding the desk phone's handset to its ear and the other a pager, while a strip of its paper tape runs back across the desk into Lyceum's speaking tube. You and Bea watch from your chairs.",
+  "aspect": "16:9"
+ },
+ "ch10-slip": {
+  "alt": "A fanned stack of paper records on the desk, one slip among them giving off a faint teal glow, while Wick's brass arm reaches toward it.",
+  "aspect": "3:2"
  }
 }
