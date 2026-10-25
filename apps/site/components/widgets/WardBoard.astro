@@ -175,5 +175,7 @@ const sets = [
     :global(.ward-board td) { border: 0; padding: 0; text-align: left; font-size: var(--step-0); font-weight: 700; }
     :global(.ward-board td::before) { content: attr(data-label); display: block; font-size: 0.72rem; font-weight: 400; color: var(--ink-soft); }
     :global(.ward-board td.loading::before) { content: none; }
+    /* With the calibration column (the Eleventh Night on), four numbers fit on one line. */
+    :global(.ward-board[data-calibration] tr) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   }
 </style>

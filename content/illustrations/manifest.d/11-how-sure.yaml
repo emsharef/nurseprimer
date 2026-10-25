@@ -1,0 +1,27 @@
+# The Eleventh Night
+images:
+  - id: ch11-opener
+    aspect: '16:9'
+    refs: [sheet-you, sheet-bea, sheet-wick]
+    alt: Under the desk lamp you lean in to read a small brass gauge newly fitted on Wick's chest, its needle caught mid-waver, while Bea points up at the clock on the wall.
+    prompt: >
+      Scene at the nurses' desk late at night under a warm desk lamp. A small round brass gauge with a single
+      thin needle has just been fitted on the chest of the little clockwork owl, like a pressure gauge on an
+      old steam boiler, with a plain unmarked dial face (no numbers, no letters, only a few blank tick marks).
+      The needle is caught mid-waver, with a faint blur either side of it. The young nurse leans in very close
+      under the lamp, studying the needle intently, a tiny screwdriver still in hand. Behind, the charge nurse
+      stands with a mug in one hand and points up with the other at a large round wall clock with plain hands
+      and no numerals. Paper message slips on the desk; the polished brass speaking tube in its lacquered
+      cabinet glows faintly teal in the background. Teal glow from the owl's eyes; dark blue corridor behind.
+
+  - id: ch11-slips
+    aspect: '3:2'
+    refs: [sheet-you, sheet-wick]
+    alt: At four in the morning a corkboard behind the desk is filling with dozens of small paper slips from Wick, more arriving, while you rub your eyes.
+    prompt: >
+      Four in the morning at the night desk. A large corkboard behind the desk is filling up with dozens of
+      small blank paper slips pinned in overlapping rows, and more slips are curling out of a slot in the
+      little clockwork owl's chest, which sits on the desk with its eyes glowing. The young nurse sits slumped
+      at the desk, rubbing their eyes with one hand, a cold cup of tea beside them. The slips are blank, with
+      only faint pencil scribble marks, no readable writing. Quiet, weary, slightly overwhelmed mood; lamplight
+      gold against deep midnight blue.

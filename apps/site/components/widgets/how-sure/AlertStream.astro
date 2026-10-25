@@ -1,0 +1,353 @@
+---
+// The Eleventh Night, third widget: four in the morning. The reader is charge nurse and signs off twenty-four
+// real slips, one arriving every four seconds, each with Wick's real call at the board's handover line. The
+// widget measures the reader, not Wick: seconds per slip, how often they agreed with Wick, and which urgent
+// children ended up waiting. It shows that back gently. Pausing is always allowed and nothing is timed out.
+import { STREAM } from './store.ts';
+---
+<div class="stream" data-stream>
+  <div class="intro" data-intro>
+    <p>
+      {STREAM.length} slips from the Night Shift and the 2 a.m. Set. A new one is pinned to the board every four
+      seconds. For each, read the message and Wick's call, then <strong>agree</strong> or <strong>overrule</strong>.
+      You can pause whenever you like.
+    </p>
+    <button type="button" class="btn primary" data-start disabled>Start the hour</button>
+    <span class="status" data-status aria-live="polite">Loading the night's messages…</span>
+  </div>
+
+  <div class="run" data-run hidden>
+    <div class="topbar">
+      <span class="clock" data-clock aria-hidden="true">0:00</span>
+      <span class="queue" data-queue aria-live="polite"></span>
+      <button type="button" class="btn" data-pause aria-pressed="false">Pause</button>
+    </div>
+    <div class="board" data-board aria-hidden="true"></div>
+
+    <article class="slip" data-slip aria-live="polite" aria-atomic="true">
+      <p class="slip-head" data-slip-head></p>
+      <p class="slip-text" data-slip-text></p>
+      <p class="call"><span class="face" data-face></span><span class="call-text machine" data-call></span></p>
+      <div class="choices">
+        <button type="button" class="btn primary choice" data-agree>Agree</button>
+        <button type="button" class="btn choice" data-overrule>Overrule</button>
+      </div>
+    </article>
+    <p class="paused-note" data-paused-note hidden>Paused. The clock has stopped and no slips arrive.</p>
+  </div>
+
+  <div class="done" data-done hidden tabindex="-1">
+    <h3 class="done-title">Your hour, in numbers</h3>
+    <p class="lead" data-lead></p>
+    <figure class="times">
+      <figcaption class="sub">Seconds you spent on each slip, in order <span class="key-note">(gold: slips where Wick was wrong)</span></figcaption>
+      <svg viewBox="0 0 600 200" role="img" aria-labelledby="times-title times-desc">
+        <title id="times-title">Your seconds per slip</title>
+        <desc id="times-desc" data-times-desc></desc>
+        <defs>
+          <pattern id="time-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="5" class="hatch-line" />
+          </pattern>
+        </defs>
+        <g data-bars></g>
+        <line x1="40" y1="160" x2="590" y2="160" class="axis" />
+        <text x="40" y="190" class="tick">slip 1</text>
+        <text x="590" y="190" class="tick" text-anchor="end" data-last-label></text>
+      </svg>
+    </figure>
+    <ul class="facts" data-facts></ul>
+    <div class="waited" data-waited></div>
+    <p class="gentle" data-gentle></p>
+    <button type="button" class="btn" data-again>Run the hour again</button>
+  </div>
+</div>
+
+<script>
+  import { wickReadings, STREAM, BOARD_RATIO, lineFor } from './store.ts';
+  import { wickFace } from '../wick.ts';
+
+  type Label = 'urgent' | 'can_wait';
+  interface Slip { id: string; text: string; label: Label; p: number; wick: Label; set: string; why?: string }
+  interface Decision { slip: Slip; agreed: boolean; final: Label; seconds: number }
+
+  const ARRIVE_MS = 4000;
+  const root = document.querySelector<HTMLElement>('[data-stream]')!;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector<T>(s)!;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const line = lineFor(BOARD_RATIO);
+  const pct = (p: number) => (p < 0.01 ? 'under 1%' : `${Math.round(p * 100)}%`);
+  const word = (l: Label) => (l === 'urgent' ? 'URGENT' : 'CAN WAIT');
+
+  let slips: Slip[] = [];
+  let decisions: Decision[] = [];
+  let arrived = 0;
+  let active = 0;          // active (unpaused) milliseconds since the start
+  let last = 0;            // performance.now() at the previous tick
+  let paused = false;
+  let running = false;
+  let currentSince = 0;    // active ms when the current slip became the one in front of you
+  let timer = 0;
+
+  function fmtClock(ms: number) {
+    const s = Math.floor(ms / 1000);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  }
+
+  function show() {
+    const i = decisions.length;
+    const waiting = arrived - i;
+    $('[data-queue]').textContent = i >= slips.length ? '' :
+      `Slip ${Math.min(i + 1, slips.length)} of ${slips.length} · ${waiting > 1 ? `${waiting - 1} more waiting on the board` : 'none waiting'}`;
+    const board = $('[data-board]');
+    board.replaceChildren(...Array.from({ length: Math.max(0, waiting - 1) }, () => {
+      const d = document.createElement('span');
+      d.className = 'pin';
+      return d;
+    }));
+    const slipEl = $('[data-slip]');
+    const has = i < arrived && i < slips.length;
+    // The slip box stays in place while the board is clear, so the page doesn't jump under your thumb.
+    slipEl.classList.toggle('empty', !has);
+    root.querySelectorAll<HTMLButtonElement>('.choice').forEach((b) => (b.disabled = !has || paused));
+    if (!has) {
+      if (slipEl.dataset.id !== '') {
+        slipEl.dataset.id = '';
+        $('[data-slip-head]').textContent = '';
+        $('[data-slip-text]').textContent = 'The board is clear. The next slip is on its way…';
+        $('[data-face]').innerHTML = wickFace('idle', 40);
+        $('[data-call]').textContent = '';
+      }
+      return;
+    }
+    const s = slips[i];
+    if (slipEl.dataset.id !== s.id) {
+      slipEl.dataset.id = s.id;
+      $('[data-slip-head]').textContent = `Slip ${i + 1} · ${s.set}`;
+      $('[data-slip-text]').textContent = s.text;
+      $('[data-face]').innerHTML = wickFace(s.wick, 40);
+      const call = $('[data-call]');
+      call.textContent = `Wick: ${word(s.wick)} · needle ${pct(s.p)}`;
+      call.className = `call-text machine ${s.wick}`;
+      if (!reduce) { slipEl.classList.remove('enter'); void slipEl.offsetWidth; slipEl.classList.add('enter'); }
+    }
+  }
+
+  function tick() {
+    const now = performance.now();
+    if (!paused) active += now - last;
+    last = now;
+    while (arrived < slips.length && active >= arrived * ARRIVE_MS) {
+      arrived++;
+      if (arrived === decisions.length + 1) currentSince = (arrived - 1) * ARRIVE_MS;
+    }
+    $('[data-clock]').textContent = fmtClock(active);
+    show();
+  }
+
+  function decide(agreed: boolean) {
+    if (!running || paused) return;
+    const i = decisions.length;
+    if (i >= arrived) return;
+    tick();
+    const s = slips[i];
+    const final: Label = agreed ? s.wick : s.wick === 'urgent' ? 'can_wait' : 'urgent';
+    decisions.push({ slip: s, agreed, final, seconds: Math.max(0.1, (active - currentSince) / 1000) });
+    currentSince = active;
+    if (decisions.length === slips.length) return finish();
+    show();
+  }
+
+  const median = (xs: number[]) => {
+    const s = [...xs].sort((a, b) => a - b);
+    const m = s.length >> 1;
+    return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+  };
+
+  function finish() {
+    running = false;
+    clearInterval(timer);
+    $('[data-run]').hidden = true;
+    const done = $('[data-done]');
+    done.hidden = false;
+    const n = decisions.length;
+    const agreed = decisions.filter((d) => d.agreed).length;
+    const secs = decisions.map((d) => d.seconds);
+    const k = Math.max(1, Math.floor(n / 3));
+    const first = median(secs.slice(0, k)), lastK = median(secs.slice(-k));
+    $('[data-lead]').textContent =
+      `You signed ${n} slips in ${fmtClock(active)}. You agreed with Wick on ${agreed} of them.`;
+
+    // Seconds per slip: one hatched bar per slip, gold for the slips where Wick was wrong.
+    const X0 = 40, X1 = 590, Y0 = 160, Y1 = 22;
+    const maxS = Math.max(5, Math.ceil(Math.max(...secs)));
+    const w = (X1 - X0) / n;
+    const g = root.querySelector('[data-bars]')!;
+    g.innerHTML = '';
+    const NS = 'http://www.w3.org/2000/svg';
+    decisions.forEach((d, i) => {
+      const h = ((Y0 - Y1) * Math.min(d.seconds, maxS)) / maxS;
+      const r = document.createElementNS(NS, 'rect');
+      r.setAttribute('x', (X0 + i * w + 2).toFixed(1));
+      r.setAttribute('width', Math.max(2, w - 4).toFixed(1));
+      r.setAttribute('y', (Y0 - h).toFixed(1));
+      r.setAttribute('height', h.toFixed(1));
+      r.setAttribute('class', d.slip.wick !== d.slip.label ? 'tbar wrong' : 'tbar');
+      g.append(r);
+    });
+    const top = document.createElementNS(NS, 'text');
+    top.setAttribute('x', String(X0 - 6)); top.setAttribute('y', String(Y1 + 8));
+    top.setAttribute('class', 'tick'); top.setAttribute('text-anchor', 'end');
+    top.textContent = `${maxS}s`;
+    g.append(top);
+    $('[data-last-label]').textContent = `slip ${n}`;
+    const fmtS = (x: number) => `${x.toFixed(1)} seconds`;
+    $('[data-times-desc]').textContent =
+      `Seconds per slip, from slip 1 to slip ${n}: ${secs.map((s) => s.toFixed(1)).join(', ')}. Median ${fmtS(first)} for the first ${k}, ${fmtS(lastK)} for the last ${k}.`;
+
+    const wrong = decisions.filter((d) => d.slip.wick !== d.slip.label);
+    const caught = wrong.filter((d) => !d.agreed).length;
+    const falseAlarms = decisions.filter((d) => d.slip.wick === 'urgent' && d.slip.label === 'can_wait');
+    const quietMisses = decisions.filter((d) => d.slip.wick === 'can_wait' && d.slip.label === 'urgent');
+    const overruledRight = decisions.filter((d) => !d.agreed && d.slip.wick === d.slip.label).length;
+    const facts: string[] = [
+      `Your first ${k} slips took a median ${fmtS(first)} each; your last ${k}, ${fmtS(lastK)}.`,
+      `Wick was wrong on ${wrong.length} slips: ${falseAlarms.length} needless alarms and ${quietMisses.length} children it said could wait who couldn't. You overruled ${caught} of those ${wrong.length}.`,
+      overruledRight
+        ? `You overruled Wick ${overruledRight} ${overruledRight === 1 ? 'time' : 'times'} when it had the call right.`
+        : 'You never overruled Wick when it had the call right.',
+    ];
+    $('[data-facts]').replaceChildren(...facts.map((f) => { const li = document.createElement('li'); li.textContent = f; return li; }));
+
+    const waited = decisions.filter((d) => d.slip.label === 'urgent' && d.final === 'can_wait');
+    const box = $('[data-waited]');
+    box.replaceChildren();
+    const h = document.createElement('p');
+    h.className = 'sub';
+    h.textContent = waited.length
+      ? `${waited.length === 1 ? 'One urgent child' : `${waited.length} urgent children`} ended the hour marked can wait:`
+      : 'No urgent child ended the hour marked can wait. Bea looks at the board for a long moment, then at you.';
+    box.append(h);
+    if (waited.length) {
+      const ul = document.createElement('ul');
+      ul.className = 'waited-list';
+      for (const d of waited) {
+        const li = document.createElement('li');
+        const q = document.createElement('p');
+        q.className = 'w-text';
+        q.textContent = d.slip.text.length > 220 ? d.slip.text.slice(0, 220) + '…' : d.slip.text;
+        const m = document.createElement('p');
+        m.className = 'w-meta';
+        m.textContent = `Slip ${decisions.indexOf(d) + 1}. Wick said ${word(d.slip.wick).toLowerCase()} (needle ${pct(d.slip.p)}); you ${d.agreed ? 'agreed' : 'overruled'}, in ${d.seconds.toFixed(1)} seconds. Bea: urgent. ${d.slip.why ?? ''}`;
+        li.append(q, m);
+        ul.append(li);
+      }
+      box.append(ul);
+    }
+    const slowed = lastK < first * 0.75;
+    $('[data-gentle]').textContent = slowed
+      ? `By the end you were giving each slip ${Math.round((1 - lastK / first) * 100)}% less time than at the start. Nobody reads slip ${n} the way they read slip one. That isn't carelessness. It's what an hour of alarms does to anyone.`
+      : `You kept your pace from the first slip to the last, which is more than most people manage. Now imagine slip four hundred, at the end of a twelve-hour night.`;
+    done.focus({ preventScroll: true });
+    root.dispatchEvent(new CustomEvent('primer:stream-done', { bubbles: true, detail: { agreed, n, first, last: lastK, waited: waited.length } }));
+  }
+
+  function start() {
+    decisions = [];
+    arrived = 0; active = 0; currentSince = 0;
+    paused = false; running = true;
+    last = performance.now();
+    $('[data-intro]').hidden = true;
+    $('[data-done]').hidden = true;
+    $('[data-run]').hidden = false;
+    const pause = $<HTMLButtonElement>('[data-pause]');
+    pause.setAttribute('aria-pressed', 'false');
+    pause.textContent = 'Pause';
+    $('[data-paused-note]').hidden = true;
+    $('[data-slip]').dataset.id = 'none';
+    clearInterval(timer);
+    timer = window.setInterval(tick, 200);
+    tick();
+    $<HTMLButtonElement>('[data-agree]').focus({ preventScroll: true });
+    const r = root.getBoundingClientRect();
+    if (r.top < 0 || r.top > innerHeight * 0.5) root.scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' });
+  }
+
+  $('[data-pause]').addEventListener('click', () => {
+    if (!running) return;
+    tick();
+    paused = !paused;
+    const b = $<HTMLButtonElement>('[data-pause]');
+    b.setAttribute('aria-pressed', String(paused));
+    b.textContent = paused ? 'Carry on' : 'Pause';
+    $('[data-paused-note]').hidden = !paused;
+    root.classList.toggle('is-paused', paused);
+    show();
+  });
+  $('[data-agree]').addEventListener('click', () => decide(true));
+  $('[data-overrule]').addEventListener('click', () => decide(false));
+  $('[data-start]').addEventListener('click', start);
+  $('[data-again]').addEventListener('click', start);
+  document.addEventListener('visibilitychange', () => {
+    // Leaving the page pauses the hour, so a phone call or another tab never counts against you.
+    if (document.hidden && running && !paused) $<HTMLButtonElement>('[data-pause]').click();
+  });
+
+  wickReadings().then(({ c, wick }) => {
+    const byId = new Map(c.messages.map((m) => [m.id, m]));
+    slips = STREAM.map(({ id, why }) => {
+      const m = byId.get(id);
+      if (!m) throw new Error(`Slip ${id} is missing from the corpus.`);
+      const p = wick.pUrgent(m.text);
+      return { id, text: m.text, label: m.label, p, wick: p >= line ? 'urgent' : 'can_wait', set: m.split === 'two_am' ? 'the 2 a.m. Set' : 'Night Shift', why } as Slip;
+    });
+    $<HTMLButtonElement>('[data-start]').disabled = false;
+    $('[data-status]').textContent = '';
+  }).catch((e) => ($('[data-status]').textContent = e.message));
+</script>
+
+<style>
+  .btn { min-height: 2.75rem; }
+  .btn[hidden] { display: none; }
+  .intro p { margin: 0 0 1rem; }
+  .status { margin-left: 0.75rem; color: var(--ink-soft); font-family: var(--font-mono); font-size: 0.85rem; }
+  .topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-bottom: 0.6rem; }
+  .clock { font-family: var(--font-mono); font-size: var(--step-1); font-variant-numeric: tabular-nums; }
+  .queue { flex: 1 1 10rem; color: var(--ink-soft); }
+  .board { display: flex; flex-wrap: wrap; gap: 4px; min-height: 18px; margin-bottom: 0.75rem; }
+  :global(.stream .pin) { width: 22px; height: 16px; background: var(--paper); border: 1px solid var(--ink-soft); border-top: 3px solid var(--gold); border-radius: 1px; }
+  .slip { border: 1px solid var(--ink); border-radius: var(--radius-ui); background: var(--paper); padding: 0.9rem 1rem; }
+  .slip[hidden] { display: none; }
+  :global(.stream .slip.enter) { animation: slip-in 260ms ease-out; }
+  @keyframes slip-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+  .is-paused .slip { opacity: 0.5; }
+  .slip-head { margin: 0 0 0.4rem; color: var(--ink-soft); font-size: 0.85rem; }
+  .slip-text { margin: 0 0 0.75rem; font-family: var(--font-read); font-size: 1.02rem; line-height: 1.5; }
+  .call { display: flex; align-items: center; gap: 0.6rem; margin: 0 0 0.9rem; }
+  .face { display: inline-flex; flex: none; }
+  .call-text { font-weight: 700; }
+  :global(.stream .call-text.urgent) { color: var(--alarm); }
+  :global(.stream .call-text.can_wait) { color: var(--calm); }
+  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+  .choice { min-height: 3rem; font-size: var(--step-0); justify-content: center; text-align: center; }
+  :global(.stream .slip.empty .slip-text) { color: var(--ink-soft); font-style: italic; }
+  .paused-note { color: var(--ink-soft); font-style: italic; margin: 0.75rem 0 0; }
+  .done { outline: none; }
+  .done-title { font-family: var(--font-ui); font-size: var(--step-1); margin: 0 0 0.5rem; }
+  .lead { font-weight: 700; margin: 0 0 1rem; }
+  .times { margin: 0 0 1rem; max-width: 38rem; }
+  .sub { font-weight: 700; margin: 0 0 0.4rem; }
+  .times svg { width: 100%; height: auto; display: block; }
+  .axis { stroke: var(--ink); stroke-width: 1; }
+  :global(.stream .tick) { font-family: var(--font-ui); font-size: 22px; fill: var(--ink-soft); }
+  .hatch-line { stroke: var(--ink); stroke-width: 1.2; opacity: 0.55; }
+  :global(.stream .tbar) { fill: url(#time-hatch); stroke: var(--ink); stroke-width: 1; }
+  :global(.stream .tbar.wrong) { fill: var(--gold); }
+  .facts { margin: 0 0 1rem; padding-left: 1.2rem; display: grid; gap: 0.35rem; }
+  :global(.stream .waited-list) { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: 0.5rem; }
+  :global(.stream .waited-list li) { border: 1px solid var(--alarm); border-left-width: 4px; border-radius: var(--radius-ui); padding: 0.5rem 0.75rem; background: var(--paper); }
+  :global(.stream .w-text) { margin: 0 0 0.3rem; font-family: var(--font-read); font-size: 0.95rem; }
+  :global(.stream .w-meta) { margin: 0; font-size: 0.85rem; color: var(--ink-soft); }
+  .key-note { font-weight: 400; color: var(--ink-soft); }
+  .gentle { font-style: italic; margin: 0 0 1rem; }
+  @media (prefers-reduced-motion: reduce) { :global(.stream .slip.enter) { animation: none; } }
+</style>

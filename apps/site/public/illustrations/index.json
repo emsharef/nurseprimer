@@ -54,5 +54,13 @@
  "ch04-ink": {
   "alt": "Wick sits among a drift of paper message slips. At the foot of many of the slips is the same small stamp in purple ink, and Wick's eyes are fixed on the stamps, not on the writing.",
   "aspect": "3:2"
+ },
+ "ch11-opener": {
+  "alt": "Under the desk lamp you lean in to read a small brass gauge newly fitted on Wick's chest, its needle caught mid-waver, while Bea points up at the clock on the wall.",
+  "aspect": "16:9"
+ },
+ "ch11-slips": {
+  "alt": "At four in the morning a corkboard behind the desk is filling with dozens of small paper slips from Wick, more arriving, while you rub your eyes.",
+  "aspect": "3:2"
  }
 }

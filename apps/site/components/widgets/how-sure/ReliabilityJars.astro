@@ -1,0 +1,308 @@
+---
+// The Eleventh Night, first widget: Bea's five jam jars. Every test message goes into the jar for its needle
+// reading (Wick's probability that it is urgent); then each jar shows how many of its messages really were
+// urgent. If the needle is honest, every bar reaches the dashed diagonal. A reliability diagram, drawn from data.
+import { SETS } from './store.ts';
+const BINS = 5;
+const X0 = 76, X1 = 584, Y0 = 296, Y1 = 40;
+const bw = (X1 - X0) / BINS;
+const y = (f: number) => Y0 - (Y0 - Y1) * f;
+---
+<div class="jars" data-jars>
+  <div class="sets" role="radiogroup" aria-label="Test set">
+    {SETS.map((s, i) => (
+      <button type="button" role="radio" aria-checked={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1} data-set={s.split}>{s.short}</button>
+    ))}
+  </div>
+
+  <div class="pour-row">
+    <button type="button" class="btn primary" data-pour>Pour the Day Shift into the jars</button>
+    <span class="status" data-status aria-live="polite">Loading the night's messages…</span>
+  </div>
+
+  <figure class="chart">
+    <figcaption class="chart-title">In each jar, how many were really urgent</figcaption>
+    <svg viewBox="0 0 600 352" role="img" aria-labelledby="jars-title jars-desc">
+      <title id="jars-title">Wick's needle against what happened</title>
+      <desc id="jars-desc" data-desc>Five empty jars. Pour a test set in to fill them.</desc>
+      <defs>
+        <pattern id="jar-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="6" class="hatch-line" />
+        </pattern>
+      </defs>
+      {[0, 0.25, 0.5, 0.75, 1].map((f) => (
+        <line x1={X0} x2={X1} y1={y(f)} y2={y(f)} class:list={['grid', { base: f === 0 }]} />
+      ))}
+      {[0, 0.5, 1].map((f) => (
+        <text x={X0 - 10} y={y(f) + 8} class="tick" text-anchor="end">{Math.round(f * 100)}%</text>
+      ))}
+      {Array.from({ length: BINS + 1 }, (_, b) => (
+        <text x={X0 + b * bw} y={Y0 + 30} class="tick" text-anchor={b === 0 ? 'start' : b === BINS ? 'end' : 'middle'}>{b * (100 / BINS)}{b === BINS ? '%' : ''}</text>
+      ))}
+      {Array.from({ length: BINS }, (_, b) => (
+        <g data-bin={b}>
+          <rect x={X0 + b * bw + 8} width={bw - 16} y={Y1} height={Y0 - Y1} class="jar" />
+          <rect x={X0 + b * bw + 8} width={bw - 16} y={Y0} height="0" class="fill" data-fill />
+          <line class="gap" data-gap x1="0" x2="0" y1="0" y2="0" />
+          <circle class="said" data-said r="6" cx="-20" cy="-20" />
+          <text class="count" data-count x={X0 + (b + 0.5) * bw} y={Y0 - 8} text-anchor="middle"></text>
+        </g>
+      ))}
+      <line x1={X0} y1={Y0} x2={X1} y2={Y1} class="honest" />
+      <line x1={X0 + 12} x2={X0 + 44} y1={Y1 + 18} y2={Y1 + 18} class="honest" />
+      <text x={X0 + 52} y={Y1 + 25} class="tick honest-label">honest needle</text>
+    </svg>
+    <p class="axis-x">Wick's needle: its chance that the message is urgent</p>
+  </figure>
+
+  <ul class="legend">
+    <li><span class="key hatch" aria-hidden="true"></span> share of the jar that was really urgent (number on top: messages in the jar)</li>
+    <li><span class="key said" aria-hidden="true"></span> what the needle said, on average, for that jar</li>
+    <li><span class="key dash" aria-hidden="true"></span> where the bars would reach if the needle were honest</li>
+  </ul>
+
+  <div class="inside-wrap">
+    <p class="sub" id="jar-pick">Look inside a jar</p>
+    <div class="jar-buttons" role="group" aria-labelledby="jar-pick">
+      {Array.from({ length: BINS }, (_, b) => (
+        <button type="button" class="jar-btn" data-jar={b} aria-pressed="false" disabled>{b * 20}–{(b + 1) * 20}%</button>
+      ))}
+    </div>
+    <div class="inside" data-inside aria-live="polite"></div>
+  </div>
+
+  <p class="readout" data-readout aria-live="polite"></p>
+</div>
+
+<script>
+  import { reliabilityBins, expectedCalibrationError, confidenceVsAccuracy, type ReliabilityBin } from '@primer/ward-board';
+  import { wickReadings, SETS, type TestSplit, type Reading } from './store.ts';
+
+  const BINS = 5, X0 = 76, X1 = 584, Y0 = 296, Y1 = 40;
+  const bw = (X1 - X0) / BINS;
+  const xOf = (f: number) => X0 + (X1 - X0) * f;
+  const yOf = (f: number) => Y0 - (Y0 - Y1) * f;
+  const pct = (f: number) => `${Math.round(f * 100)}%`;
+
+  const root = document.querySelector<HTMLElement>('[data-jars]')!;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const status = root.querySelector<HTMLElement>('[data-status]')!;
+  const pour = root.querySelector<HTMLButtonElement>('[data-pour]')!;
+  const setButtons = [...root.querySelectorAll<HTMLButtonElement>('[data-set]')];
+  const jarButtons = [...root.querySelectorAll<HTMLButtonElement>('[data-jar]')];
+  const poured = new Set<TestSplit>();
+  let split: TestSplit = 'day';
+  let readings: Record<TestSplit, Reading[]> | null = null;
+  let jar = -1;
+
+  const setName = (s: TestSplit) => SETS.find((x) => x.split === s)!.name;
+  const binsFor = (s: TestSplit) => reliabilityBins(readings![s], BINS);
+
+  function draw(bins: ReliabilityBin[] | null, grow = 1) {
+    root.querySelectorAll<SVGGElement>('[data-bin]').forEach((g, b) => {
+      const fill = g.querySelector<SVGRectElement>('[data-fill]')!;
+      const gap = g.querySelector<SVGLineElement>('[data-gap]')!;
+      const said = g.querySelector<SVGCircleElement>('[data-said]')!;
+      const count = g.querySelector<SVGTextElement>('[data-count]')!;
+      const bin = bins?.[b];
+      if (!bin || !bin.n) {
+        fill.setAttribute('y', String(Y0)); fill.setAttribute('height', '0');
+        gap.setAttribute('visibility', 'hidden'); said.setAttribute('visibility', 'hidden');
+        count.textContent = bins ? 'empty' : '';
+        count.setAttribute('y', String(Y0 - 8));
+        return;
+      }
+      const top = yOf(bin.freq * grow);
+      fill.setAttribute('y', top.toFixed(1));
+      fill.setAttribute('height', (Y0 - top).toFixed(1));
+      count.textContent = String(Math.round(bin.n * grow));
+      count.setAttribute('y', (Math.min(top, yOf(bin.meanP)) - 10).toFixed(1));
+      const show = grow >= 1 ? 'visible' : 'hidden';
+      said.setAttribute('cx', xOf(bin.meanP).toFixed(1));
+      said.setAttribute('cy', yOf(bin.meanP).toFixed(1));
+      said.setAttribute('visibility', show);
+      gap.setAttribute('x1', xOf(bin.meanP).toFixed(1));
+      gap.setAttribute('x2', xOf(bin.meanP).toFixed(1));
+      gap.setAttribute('y1', yOf(bin.meanP).toFixed(1));
+      gap.setAttribute('y2', top.toFixed(1));
+      // Alarm only where the jar held more urgent children than the needle admitted.
+      gap.setAttribute('class', `gap ${bin.freq - bin.meanP > 0.1 ? 'under' : ''}`);
+      gap.setAttribute('visibility', Math.abs(bin.freq - bin.meanP) > 0.05 ? show : 'hidden');
+    });
+  }
+
+  function describe(s: TestSplit) {
+    const bins = binsFor(s);
+    const items = readings![s];
+    const cva = confidenceVsAccuracy(items);
+    const parts = bins.filter((b) => b.n).map((b) =>
+      `${pct(b.lo)}–${pct(b.hi)}: ${b.n} messages, the needle said ${pct(b.meanP)}, ${pct(b.freq)} were urgent`);
+    const text = `${setName(s)}, ${items.length} messages. ${parts.join('; ')}. On average Wick is ${pct(cva.confidence)} sure of its calls and right ${pct(cva.accuracy)} of the time. Calibration error ${expectedCalibrationError(items).toFixed(2)}.`;
+    root.querySelector('[data-desc]')!.textContent = text;
+    root.querySelector('[data-readout]')!.textContent =
+      `${setName(s)}: Wick is, on average, ${pct(cva.confidence)} sure of its calls, and right ${pct(cva.accuracy)} of the time.`;
+  }
+
+  function showJar() {
+    const inside = root.querySelector<HTMLElement>('[data-inside]')!;
+    jarButtons.forEach((b, i) => b.setAttribute('aria-pressed', String(i === jar)));
+    inside.replaceChildren();
+    if (jar < 0 || !poured.has(split)) return;
+    const bin = binsFor(split)[jar];
+    const p = document.createElement('p');
+    p.className = 'inside-sum';
+    if (!bin.n) {
+      p.textContent = `Nothing from the ${setName(split).replace(/^The /, '')} landed in this jar.`;
+      inside.append(p);
+      return;
+    }
+    p.textContent = `${bin.n} message${bin.n === 1 ? '' : 's'} with the needle between ${pct(bin.lo)} and ${pct(bin.hi)}. It said ${pct(bin.meanP)} on average; ${bin.urgent} ${bin.urgent === 1 ? 'was' : 'were'} really urgent (${pct(bin.freq)}).`;
+    inside.append(p);
+    const inJar = readings![split].filter((r) => Math.min(BINS - 1, Math.floor(r.p * BINS)) === jar);
+    // One that was urgent and one that wasn't, when the jar has both: the ones the needle misjudged most.
+    const pick = [
+      inJar.filter((r) => r.y === 1).sort((a, b) => a.p - b.p)[0],
+      inJar.filter((r) => r.y === 0).sort((a, b) => b.p - a.p)[0],
+    ].filter(Boolean);
+    const ul = document.createElement('ul');
+    ul.className = 'samples';
+    for (const r of pick) {
+      const li = document.createElement('li');
+      const q = document.createElement('p');
+      q.className = 'sample-text';
+      q.textContent = r.m.text.length > 200 ? r.m.text.slice(0, 200) + '…' : r.m.text;
+      const meta = document.createElement('p');
+      meta.className = 'sample-meta';
+      meta.innerHTML = `<span class="machine"></span><span class="truth ${r.m.label}"></span>`;
+      meta.querySelector('.machine')!.textContent = `needle ${pct(r.p)}`;
+      meta.querySelector('.truth')!.textContent = `Bea: ${r.m.label === 'urgent' ? 'urgent' : 'can wait'}`;
+      li.append(q, meta);
+      ul.append(li);
+    }
+    inside.append(ul);
+  }
+
+  function select(s: TestSplit) {
+    split = s;
+    setButtons.forEach((b) => {
+      const on = b.dataset.set === s;
+      b.setAttribute('aria-checked', String(on));
+      b.tabIndex = on ? 0 : -1;
+    });
+    root.dataset.split = s;
+    if (!readings) return;
+    const done = poured.has(s);
+    pour.hidden = done;
+    pour.textContent = `Pour the ${setName(s).replace(/^The /, '')} into the jars`;
+    status.textContent = done ? '' : `${readings[s].length} messages, each with Wick's needle reading.`;
+    jarButtons.forEach((b) => (b.disabled = !done));
+    draw(done ? binsFor(s) : null);
+    if (done) describe(s);
+    else {
+      root.querySelector('[data-readout]')!.textContent = '';
+      root.querySelector('[data-desc]')!.textContent = 'Five empty jars. Pour a test set in to fill them.';
+    }
+    showJar();
+  }
+
+  setButtons.forEach((b, i) => {
+    b.addEventListener('click', () => select(b.dataset.set as TestSplit));
+    b.addEventListener('keydown', (e) => {
+      const d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      const next = setButtons[(i + d + setButtons.length) % setButtons.length];
+      next.focus();
+      select(next.dataset.set as TestSplit);
+    });
+  });
+  jarButtons.forEach((b, i) => b.addEventListener('click', () => { jar = jar === i ? -1 : i; showJar(); }));
+
+  pour.addEventListener('click', () => {
+    if (!readings || poured.has(split)) return;
+    const s = split;
+    const bins = binsFor(s);
+    pour.hidden = true;
+    status.textContent = 'Pouring…';
+    const finish = () => {
+      poured.add(s);
+      status.textContent = '';
+      if (split === s) select(s);
+      if (jar < 0) { jar = bins.findIndex((b) => b.n && b.lo >= 0.2 && b.hi <= 0.6); showJar(); }
+    };
+    if (reduce) return finish();
+    const t0 = performance.now();
+    const tick = (now: number) => {
+      const k = Math.min(1, (now - t0) / 900);
+      if (split === s) draw(bins, 1 - (1 - k) ** 3);
+      if (k < 1) requestAnimationFrame(tick);
+      else finish();
+    };
+    requestAnimationFrame(tick);
+  });
+
+  wickReadings()
+    .then((r) => {
+      readings = r.readings;
+      select(split);
+    })
+    .catch((e) => (status.textContent = e.message));
+</script>
+
+<style>
+  .btn { min-height: 2.75rem; }
+  .btn[hidden] { display: none; }
+  .sets { display: inline-flex; border: 1px solid var(--ink); border-radius: 999px; overflow: hidden; margin-bottom: 1rem; }
+  .sets button { border: 0; background: transparent; padding: 0.35rem 1rem; min-height: 2.75rem; cursor: pointer; font-size: var(--step--1); }
+  .sets button + button { border-left: 1px solid var(--ink); }
+  .sets button[aria-checked='true'] { background: var(--ink); color: var(--paper); font-weight: 700; }
+  .pour-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; min-height: 2.75rem; margin-bottom: 0.75rem; }
+  .status { color: var(--ink-soft); font-family: var(--font-mono); font-size: 0.85rem; }
+  .chart { margin: 0; max-width: 38rem; }
+  .chart-title { font-weight: 700; margin-bottom: 0.3rem; }
+  svg { width: 100%; height: auto; display: block; }
+  .grid { stroke: var(--rule); stroke-width: 1; }
+  .grid.base { stroke: var(--ink); }
+  .tick { font-family: var(--font-ui); font-size: 22px; fill: var(--ink-soft); }
+  .honest { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 7 6; }
+  .honest-label { fill: var(--ink); font-style: italic; }
+  .jar { fill: none; stroke: var(--rule); stroke-width: 1; stroke-dasharray: 3 4; }
+  .hatch-line { stroke: var(--ink); stroke-width: 1.4; opacity: 0.55; }
+  .fill { fill: url(#jar-hatch); stroke: var(--ink); stroke-width: 1.5; }
+  .said { fill: var(--phosphor); stroke: var(--card); stroke-width: 2; }
+  .gap { stroke: var(--gold-ink); stroke-width: 3; }
+  .gap.under { stroke: var(--alarm); }
+  .count { font-family: var(--font-ui); font-size: 22px; font-weight: 700; fill: var(--ink); font-variant-numeric: tabular-nums; paint-order: stroke; stroke: var(--card); stroke-width: 6px; stroke-linejoin: round; }
+  .axis-x { margin: 0.3rem 0 0; padding-left: 12%; color: var(--ink-soft); font-size: 0.85rem; }
+  .legend { list-style: none; margin: 0.9rem 0 0; padding: 0; display: grid; gap: 0.3rem; color: var(--ink-soft); font-size: 0.85rem; }
+  .legend li { display: flex; gap: 0.5rem; align-items: center; }
+  .key { flex: none; display: inline-block; width: 1.4rem; height: 0.9rem; }
+  .key.hatch { border: 1.5px solid var(--ink); background: repeating-linear-gradient(45deg, transparent 0 3px, color-mix(in srgb, var(--ink) 55%, transparent) 3px 4.4px); }
+  .key.said { width: 0.8rem; height: 0.8rem; margin-inline: 0.3rem; border-radius: 50%; background: var(--phosphor); }
+  .key.dash { height: 0; border-top: 2px dashed var(--ink); }
+  .inside-wrap { margin-top: 1.25rem; border-top: 1px solid var(--rule); padding-top: 1rem; }
+  .sub { margin: 0 0 0.5rem; font-weight: 700; }
+  .jar-buttons { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.4rem; }
+  .jar-btn {
+    min-height: 2.75rem; border: 1px solid var(--rule); background: var(--paper); border-radius: var(--radius-ui);
+    font-size: 0.85rem; cursor: pointer; padding: 0.2rem; font-variant-numeric: tabular-nums;
+  }
+  .jar-btn[aria-pressed='true'] { background: var(--gold-wash); border-color: var(--gold-ink); font-weight: 700; }
+  .jar-btn:disabled { opacity: 0.45; cursor: default; }
+  .inside { margin-top: 0.75rem; }
+  :global(.jars .inside-sum) { margin: 0 0 0.5rem; }
+  :global(.jars .samples) { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+  :global(.jars .samples li) { border: 1px solid var(--rule); border-left: 4px solid var(--rule); border-radius: var(--radius-ui); padding: 0.5rem 0.75rem; background: var(--paper); }
+  :global(.jars .sample-text) { margin: 0 0 0.3rem; font-family: var(--font-read); font-size: 0.95rem; }
+  :global(.jars .sample-meta) { margin: 0; display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; font-size: 0.8rem; }
+  :global(.jars .sample-meta .machine) { font-family: var(--font-mono); color: var(--phosphor-ink); }
+  :global(.jars .truth.urgent) { color: var(--alarm); font-weight: 700; }
+  :global(.jars .truth.can_wait) { color: var(--calm); font-weight: 700; }
+  .readout { margin: 1rem 0 0; font-weight: 700; }
+  .readout:empty { display: none; }
+  @media (max-width: 34rem) {
+    .sets { display: flex; width: 100%; }
+    .sets button { flex: 1; padding-inline: 0.4rem; }
+    .jar-buttons { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+</style>
