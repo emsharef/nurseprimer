@@ -1,0 +1,24 @@
+---
+// Frame for every interactive toy. `realSystems` is the one-line "what real systems do differently"
+// note (plan 12: keep the toy honest). `summary` is the text description for readers who can't see the widget.
+interface Props { title: string; realSystems?: string; summary?: string }
+const { title, realSystems, summary } = Astro.props;
+const id = 'w-' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+---
+<figure class="widget wide" aria-labelledby={id}>
+  <figcaption id={id} class="title">{title}</figcaption>
+  <div class="stage"><slot /></div>
+  {summary && <p class="summary">{summary}</p>}
+  {realSystems && <p class="real"><strong>What real systems do differently:</strong> {realSystems}</p>}
+</figure>
+
+<style>
+  .widget {
+    margin-block: 2.5rem; padding: clamp(1rem, 3vw, 1.75rem);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: var(--radius-ui);
+    font-family: var(--font-ui); font-size: var(--step--1); line-height: 1.5;
+  }
+  .title { font-weight: 700; font-size: var(--step-0); margin-bottom: 1rem; }
+  .summary { margin: 1rem 0 0; color: var(--ink-soft); }
+  .real { margin: 1rem 0 0; padding-top: 0.75rem; border-top: 1px dashed var(--rule); }
+</style>

@@ -1,0 +1,18 @@
+---
+interface Props { who: 'young' | 'charge' }
+const { who } = Astro.props;
+const name = who === 'young' ? 'You' : 'Charge nurse';
+---
+<div class={`line ${who}`}>
+  <span class="who">{name}</span>
+  <div class="said"><slot /></div>
+</div>
+
+<style>
+  .line { display: grid; grid-template-columns: 8.5rem 1fr; gap: 0.25rem 1rem; }
+  .who { font-family: var(--font-ui); font-size: var(--step--1); font-weight: 700; padding-top: 0.2em; color: var(--ink-soft); }
+  .charge .who { color: var(--lamp); }
+  .said :global(p:last-child) { margin-bottom: 0; }
+  .charge .said { font-style: italic; }
+  @media (max-width: 34rem) { .line { grid-template-columns: 1fr; } }
+</style>

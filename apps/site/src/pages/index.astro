@@ -1,0 +1,69 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import { LADDER } from '../lib/ladder.ts';
+
+const written = new Map((await getCollection('chapters')).map((c) => [c.data.number, c.id]));
+const base = import.meta.env.BASE_URL;
+---
+<Base title="A Young Nurse's Illustrated Primer">
+  <div class="column">
+    <section class="opening">
+      <p class="time" aria-hidden="true">02:07</p>
+      <h1>A Young Nurse's Illustrated Primer</h1>
+      <blockquote>
+        <p>hi sorry its late. my daughter is 3, she has a fever and some little purple spots on her legs. i pressed a glass on them like my mum said and they dont go away. should i wait for the morning?</p>
+      </blockquote>
+      <p class="lede">
+        A good night nurse reads that message and calls an ambulance. In this book you build a machine that tries
+        to do the same, one idea at a time, in your browser. Each version works, then breaks in a way you trigger
+        yourself, and the break is what the next chapter fixes.
+      </p>
+      <p class="todo"><code>TODO(review)</code> The opening message and the nurse's response have not yet been reviewed by a clinician.</p>
+    </section>
+
+    <nav aria-labelledby="ladder-title">
+      <h2 id="ladder-title">The chapters</h2>
+      <p class="hint">Linked chapters are ready to read. The others are still being written.</p>
+      <ol class="ladder">
+        {LADDER.map((r) => {
+          const id = written.get(r.n);
+          return (
+            <li class:list={{ open: id }}>
+              <span class="n">{r.n ?? 'Coda'}</span>
+              <span class="t">
+                {id ? <a href={`${base}chapters/${id}/`}>{r.title}</a> : <span>{r.title}</span>}
+                <span class="lesson">{r.lesson}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  </div>
+</Base>
+
+<style>
+  .opening { padding-block: clamp(2.5rem, 8vw, 5rem) 1rem; }
+  .time { font-family: var(--font-mono); font-size: var(--step-3); color: var(--lamp); margin: 0; letter-spacing: 0.04em; }
+  h1 { font-size: clamp(var(--step-3), 7vw, var(--step-4)); margin: 0.2em 0 1em; }
+  blockquote {
+    margin: 0 0 1.5rem; padding: 1rem 1.25rem; max-width: 34rem;
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 1rem 1rem 1rem 0.2rem;
+    font-family: var(--font-ui);
+  }
+  blockquote p { margin: 0; }
+  .hint { color: var(--ink-soft); font-family: var(--font-ui); font-size: var(--step--1); }
+  .todo { font-family: var(--font-ui); font-size: var(--step--1); border: 2px dashed var(--lamp); background: var(--lamp-bg); padding: 0.5rem 0.75rem; border-radius: var(--radius-ui); }
+  .lede { font-size: var(--step-1); line-height: 1.5; }
+  .ladder { list-style: none; padding: 0; margin: 0; }
+  .ladder li {
+    display: grid; grid-template-columns: 3.5rem 1fr; gap: 1rem; align-items: baseline;
+    padding-block: 0.6rem; border-bottom: 1px solid var(--rule);
+  }
+  .n { font-family: var(--font-mono); color: var(--ink-soft); text-align: right; }
+  .t { display: flex; flex-direction: column; font-family: var(--font-ui); }
+  .t > span:first-child { color: var(--ink-soft); }
+  .open .t a { font-weight: 700; }
+  .lesson { font-size: var(--step--1); color: var(--ink-soft); font-family: var(--font-read); }
+</style>

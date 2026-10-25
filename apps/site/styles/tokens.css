@@ -1,0 +1,81 @@
+/* Design tokens. Light is the ward by day: linen paper, navy chart ink. Dark is the same ward at 2 a.m.:
+   deep blue-green, lamp light. Amber is the lamp (interactive accent). Alarm red is reserved for urgency
+   and missed emergencies in data; never decoration. */
+
+:root {
+  --linen: #eef1ee;
+  --linen-2: #e3e8e4;
+  --paper: #f8faf7;
+  --ink: #1c2a3a;
+  --ink-soft: #46576a;
+  --rule: #c5cec8;
+  --lamp: #864e00;        /* amber, darkened for 4.5:1 on linen-2 */
+  --lamp-bg: #f6e6c8;
+  --alarm: #b3261e;
+  --alarm-bg: #f7dcd8;
+  --calm: #2f6b4f;        /* can_wait */
+  --calm-bg: #d9eadf;
+  --band: #ffffff;        /* the wristband */
+  --band-edge: #b9c6d6;
+  --focus: #1f5fbf;
+
+  --font-read: 'Literata Variable', 'Iowan Old Style', Georgia, serif;
+  --font-ui: 'Atkinson Hyperlegible Next Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Atkinson Hyperlegible Mono Variable', ui-monospace, Menlo, monospace;
+
+  /* Modular scale, ratio 1.25 from a 1.125rem body */
+  --step--1: 0.9rem;
+  --step-0: 1.125rem;
+  --step-1: 1.406rem;
+  --step-2: 1.758rem;
+  --step-3: 2.197rem;
+  --step-4: 2.747rem;
+
+  --measure: 66ch;
+  --wide: 60rem;
+  --gutter: clamp(1rem, 4vw, 2rem);
+  --radius-band: 0.9rem;
+  --radius-ui: 0.35rem;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --linen: #0f1c22;
+    --linen-2: #16262d;
+    --paper: #132228;
+    --ink: #dfe7e3;
+    --ink-soft: #9fb2ad;
+    --rule: #2c4148;
+    --lamp: #f0b45a;
+    --lamp-bg: #3a2c14;
+    --alarm: #ff8a7a;
+    --alarm-bg: #4a1f1b;
+    --calm: #8fd1ad;
+    --calm-bg: #173528;
+    --band: #e9eef2;
+    --band-edge: #6f8796;
+    --focus: #8cb8ff;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --linen: #0f1c22;
+  --linen-2: #16262d;
+  --paper: #132228;
+  --ink: #dfe7e3;
+  --ink-soft: #9fb2ad;
+  --rule: #2c4148;
+  --lamp: #f0b45a;
+  --lamp-bg: #3a2c14;
+  --alarm: #ff8a7a;
+  --alarm-bg: #4a1f1b;
+  --calm: #8fd1ad;
+  --calm-bg: #173528;
+  --band: #e9eef2;
+  --band-edge: #6f8796;
+  --focus: #8cb8ff;
+  color-scheme: dark;
+}

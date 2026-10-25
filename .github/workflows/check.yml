@@ -1,0 +1,27 @@
+name: check
+on:
+  push:
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Citation audit
+        run: npm run audit:citations
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npm run build
+        env:
+          ASTRO_TELEMETRY_DISABLED: 1
+      - name: Version stamp
+        run: npm run audit:version
+      - name: Accessibility lint
+        run: npm run lint:a11y

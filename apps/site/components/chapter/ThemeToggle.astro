@@ -1,0 +1,26 @@
+---
+---
+<button type="button" class="theme" data-theme-toggle aria-pressed="false">Night ward</button>
+
+<script>
+  const btn = document.querySelector<HTMLButtonElement>('[data-theme-toggle]')!;
+  const root = document.documentElement;
+  const isDark = () =>
+    root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  const sync = () => btn.setAttribute('aria-pressed', String(isDark()));
+  sync();
+  btn.addEventListener('click', () => {
+    const next = isDark() ? 'light' : 'dark';
+    root.dataset.theme = next;
+    try { localStorage.setItem('primer.theme', next); } catch {}
+    sync();
+  });
+</script>
+
+<style>
+  .theme {
+    border: 1px solid var(--rule); background: var(--paper); border-radius: 999px;
+    padding: 0.2rem 0.75rem; cursor: pointer; min-height: 2rem; font-size: var(--step--1);
+  }
+  .theme[aria-pressed='true'] { background: var(--lamp-bg); border-color: var(--lamp); }
+</style>

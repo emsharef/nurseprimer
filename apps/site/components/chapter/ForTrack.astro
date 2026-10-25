@@ -1,0 +1,6 @@
+---
+// Content for some reading tracks only. With no track chosen, everything shows.
+interface Props { track: string }
+const { track } = Astro.props;
+---
+<div data-for-track={track}><slot /></div>

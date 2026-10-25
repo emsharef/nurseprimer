@@ -1,0 +1,89 @@
+---
+// The Ward Board (plan 6.4): every model the reader has built, scored on the same three test sets.
+// Rendered on the client from the notebook, so it carries across chapters. `compact` is the chapter strip.
+interface Props { compact?: boolean }
+const { compact = false } = Astro.props;
+---
+<section class:list={['ward-board', 'wide', { compact }]} aria-labelledby="ward-board-title" data-ward-board>
+  <h2 id="ward-board-title">Ward Board</h2>
+  <p class="empty" data-empty>
+    Nothing on the board yet. The first model you build goes up here, scored on the Day Shift, the Night Shift
+    and the 2 a.m. Set.
+  </p>
+  <div class="scroll" data-table-wrap hidden>
+    <table>
+      <caption class="visually-hidden">Scores for every model you have built, per test set</caption>
+      <thead data-head></thead>
+      <tbody data-body></tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+  import { load, CHANGE_EVENT, type ModelRecord } from '@primer/notebook';
+  import { TEST_SETS, type SetScore } from '@primer/ward-board';
+
+  const pct = (x: number) => `${Math.round(x * 100)}%`;
+
+  function render(root: HTMLElement) {
+    const models = load().models as (ModelRecord & { scores: Record<string, SetScore> })[];
+    const empty = root.querySelector<HTMLElement>('[data-empty]')!;
+    const wrap = root.querySelector<HTMLElement>('[data-table-wrap]')!;
+    empty.hidden = models.length > 0;
+    wrap.hidden = models.length === 0;
+    if (!models.length) return;
+    const showCal = models.some((m) => Object.values(m.scores).some((s) => s?.calibrationError != null));
+    const head = root.querySelector('[data-head]')!;
+    const body = root.querySelector('[data-body]')!;
+    const cols = ['Accuracy', 'Missed emergencies', 'Unneeded escalations', ...(showCal ? ['Calibration error'] : [])];
+    head.innerHTML =
+      `<tr><th scope="col" rowspan="2">Model</th>${TEST_SETS.map((t) => `<th scope="colgroup" colspan="${cols.length}">${t.name}</th>`).join('')}</tr>` +
+      `<tr>${TEST_SETS.map(() => cols.map((c) => `<th scope="col">${c}</th>`).join('')).join('')}</tr>`;
+    body.replaceChildren(
+      ...models.map((m) => {
+        const tr = document.createElement('tr');
+        const th = document.createElement('th');
+        th.scope = 'row';
+        th.textContent = `${m.name} (ch. ${m.chapter})`;
+        tr.append(th);
+        for (const t of TEST_SETS) {
+          const s = m.scores[t.split];
+          const cells = s
+            ? [pct(s.accuracy), String(s.missedEmergencies), String(s.unnecessaryEscalations), ...(showCal ? [s.calibrationError == null ? 'n/a' : s.calibrationError.toFixed(2)] : [])]
+            : cols.map(() => 'n/a');
+          cells.forEach((c, i) => {
+            const td = document.createElement('td');
+            td.textContent = c;
+            if (i === 1 && s && s.missedEmergencies > 0) td.className = 'miss';
+            tr.append(td);
+          });
+        }
+        return tr;
+      }),
+    );
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-ward-board]').forEach((root) => {
+    render(root);
+    addEventListener(CHANGE_EVENT, () => render(root));
+    addEventListener('storage', () => render(root));
+  });
+</script>
+
+<style>
+  .ward-board {
+    margin-block: 3rem; padding: 1.25rem clamp(1rem, 3vw, 1.75rem);
+    background: var(--paper); border: 1px solid var(--rule); border-top: 6px solid var(--ink);
+    border-radius: var(--radius-ui);
+    font-family: var(--font-ui); font-size: var(--step--1);
+  }
+  h2 { margin: 0 0 0.75rem; font-size: var(--step-1); }
+  .compact h2 { font-size: var(--step-0); }
+  .empty { color: var(--ink-soft); margin: 0; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  :global(.ward-board th), :global(.ward-board td) { padding: 0.35rem 0.6rem; text-align: right; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+  :global(.ward-board th[scope='row']), :global(.ward-board thead th:first-child) { text-align: left; }
+  :global(.ward-board thead th) { font-weight: 700; vertical-align: bottom; }
+  :global(.ward-board td.miss) { color: var(--alarm); font-weight: 700; }
+</style>

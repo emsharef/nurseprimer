@@ -1,0 +1,24 @@
+---
+import type { Reference } from '../../src/lib/citations.ts';
+interface Props { refs: Reference[] }
+const { refs } = Astro.props;
+---
+{refs.length > 0 && (
+  <section class="references" aria-labelledby="refs-title">
+    <h2 id="refs-title">Sources</h2>
+    <ol>
+      {refs.map((r) => (
+        <li id={`ref-${r.key}`}>
+          {r.authors} ({r.year}). {r.url ? <a href={r.url}>{r.title}</a> : r.title}.{r.venue && <> <em>{r.venue}</em>.</>}
+          {r.doi && <> doi:{r.doi}</>}
+        </li>
+      ))}
+    </ol>
+  </section>
+)}
+
+<style>
+  .references { font-size: var(--step--1); }
+  ol { padding-left: 1.4rem; }
+  li { margin-bottom: 0.5rem; }
+</style>

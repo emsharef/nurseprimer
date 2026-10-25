@@ -1,0 +1,13 @@
+---
+// Marker in the text for a note. Every NoteRef needs a NoteDef with the same id, and vice versa (audited).
+interface Props { id: string }
+const { id } = Astro.props;
+const n = Astro.locals.noteNumbers?.get(id);
+if (n == null) throw new Error(`NoteRef: unnumbered note "${id}"`);
+---
+<sup class="noteref"><a href={`#note-${id}`} id={`noteref-${id}`} aria-label={`Note ${n}`}>{n}</a></sup>
+
+<style>
+  .noteref { font-family: var(--font-ui); font-size: 0.7em; line-height: 0; }
+  a { text-decoration: none; color: var(--ink-soft); }
+</style>

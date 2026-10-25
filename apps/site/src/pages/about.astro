@@ -1,0 +1,27 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="About: A Young Nurse's Illustrated Primer">
+  <div class="column">
+    <h1>About this book</h1>
+    <h2>What it is, and what it isn't</h2>
+    <p>
+      This book teaches how modern AI works by having you build a telephone-triage nurse, step by step. It is not
+      medical advice, and the machines you build in it are not safe to triage anyone. The messages in it are
+      made up. No real patient data is used anywhere.
+    </p>
+    <h2>How it was written</h2>
+    <p>
+      Drafts of the prose were written with AI help (Claude, made by Anthropic). Any chapter that has not yet had a
+      human edit says so at the top, as does any chapter whose medical content a clinician has not yet reviewed.
+    </p>
+    <p><code>TODO(review)</code> Name the human editor and the clinical reviewers here once they have signed off.</p>
+    <h2>Sources</h2>
+    <p>
+      Every chapter lists its sources at the end. The book cites primary sources only, and a check runs on every
+      build to make sure each source is cited and each citation has a source.
+    </p>
+    <h2>Edition</h2>
+    <p>This is edition <span data-version>{__PRIMER_VERSION__}</span>. Every page shows the same edition stamp.</p>
+  </div>
+</Base>

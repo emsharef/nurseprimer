@@ -1,0 +1,9 @@
+---
+interface Props { id: string }
+const { id } = Astro.props;
+const n = Astro.locals.noteNumbers?.get(id);
+if (n == null) throw new Error(`NoteDef "${id}" has no NoteRef in the text`);
+---
+<li id={`note-${id}`} value={n}>
+  <slot /> <a href={`#noteref-${id}`} aria-label={`Back to note ${n} in the text`}>↩</a>
+</li>

@@ -1,0 +1,12 @@
+---
+---
+<section class="notes" aria-labelledby="notes-title">
+  <h2 id="notes-title">Notes</h2>
+  <ol><slot /></ol>
+</section>
+
+<style>
+  .notes { font-size: var(--step--1); }
+  ol { padding-left: 1.4rem; }
+  :global(.notes li) { margin-bottom: 0.5rem; }
+</style>

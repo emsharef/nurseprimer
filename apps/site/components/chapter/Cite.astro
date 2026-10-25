@@ -1,0 +1,13 @@
+---
+// Inline citation. `k` must be a key in content/citations.yaml; the audit fails the build otherwise.
+interface Props { k: string; at?: string }
+const { k, at } = Astro.props;
+const n = Astro.locals.citeNumbers?.get(k);
+if (n == null) throw new Error(`Cite: unknown or unnumbered key "${k}"`);
+---
+<sup class="cite"><a href={`#ref-${k}`} id={`cite-${k}`} aria-label={`Source ${n}${at ? `, ${at}` : ''}`}>[{n}]</a></sup>
+
+<style>
+  .cite { font-family: var(--font-ui); font-size: 0.7em; line-height: 0; }
+  a { text-decoration: none; color: var(--lamp); }
+</style>

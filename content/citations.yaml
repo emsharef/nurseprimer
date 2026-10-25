@@ -1,0 +1,22 @@
+# The single source of truth for references (plan 10.2). Chapters cite with <Cite k="key" />.
+# scripts/citation-audit.mjs fails the build when a reference is never cited, a cited key is missing here,
+# a note has no anchor in the text, or a quoted figure lacks its page or table.
+#
+# Fields:
+#   authors, year, title       required
+#   venue, doi, url            as available; prefer doi
+#   verified:                  required. Who checked it, when, and how far:
+#     by, on                   name or tool, ISO date
+#     scope                    metadata (the reference exists as written) | claim (the passage cited says
+#                              what the book says it says). Release builds require claim for every entry.
+#   figures:                   every number the book quotes from this source
+#     - value, page | table    e.g. { value: "94.2%", table: "3" }
+
+references:
+  rosenblatt1958:
+    authors: Rosenblatt, F.
+    year: 1958
+    title: 'The perceptron: A probabilistic model for information storage and organization in the brain'
+    venue: Psychological Review 65(6), 386-408
+    doi: 10.1037/h0042519
+    verified: { by: Crossref metadata lookup (Claude), on: 2026-10-25, scope: metadata }
