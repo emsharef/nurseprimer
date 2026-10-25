@@ -1,0 +1,182 @@
+---
+// The Fifth Night, second widget: a Wick that reads places. Each message becomes the average place of its words;
+// Wick learns one knob per direction of the map by the Third Night's gradient descent, then faces the same three
+// test sets as the bag-of-words Wick. Lists the Night Shift emergencies only one of the two caught.
+---
+<div class="map-train" data-map-train>
+  <div class="controls">
+    <button type="button" class="btn primary" data-train>Teach Wick to read the map</button>
+    <span class="progress" data-progress aria-live="polite">Wick hasn't started.</span>
+  </div>
+
+  <figure class="chart">
+    <figcaption class="chart-title">Wick's average wrongness, pass by pass</figcaption>
+    <svg viewBox="0 0 560 182" role="img" aria-labelledby="mt-title mt-desc">
+      <title id="mt-title">Wrongness during training</title>
+      <desc id="mt-desc" data-desc>Empty chart. Press the button to start training.</desc>
+      <defs>
+        <pattern id="mt-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="5" stroke="var(--phosphor)" stroke-width="1" opacity="0.5" />
+        </pattern>
+      </defs>
+      <line x1="44" y1="24" x2="44" y2="170" class="axis" />
+      <line x1="44" y1="170" x2="548" y2="170" class="axis" />
+      <text x="38" y="34" class="tick" text-anchor="end">high</text>
+      <text x="38" y="174" class="tick" text-anchor="end">0</text>
+      <path d="" class="area" data-area />
+      <path d="" class="line" data-line />
+    </svg>
+    <p class="axis-x"><span>first pass</span><span>pass 300</span></p>
+  </figure>
+
+  <div class="after" data-after hidden>
+    <div class="scroll">
+      <table>
+        <caption>The Third Night's bag of words and tonight's map-reader, on the same three test sets</caption>
+        <thead>
+          <tr><th scope="col">Test set</th><th scope="col">Wick</th><th scope="col">Right</th><th scope="col">Missed emergencies</th><th scope="col">Needless alarms</th></tr>
+        </thead>
+        <tbody data-rows></tbody>
+      </table>
+    </div>
+
+    <h3 class="sub">Night Shift emergencies only one of them caught</h3>
+    <details class="list">
+      <summary><span data-only-map-n></span> caught by the map-reader, missed by the bag of words</summary>
+      <ul data-only-map></ul>
+    </details>
+    <details class="list">
+      <summary><span data-only-bow-n></span> caught by the bag of words, missed by the map-reader</summary>
+      <ul data-only-bow></ul>
+    </details>
+
+    <div class="actions">
+      <button type="button" class="btn primary" data-save>Put the map-reader on the Ward Board</button>
+      <span class="saved" data-saved aria-live="polite"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { MAP_TRAIN, corpus, ensureBow, newTrainer, setReader, getReader, scoreSplit, saveReader } from './store.ts';
+  import { bySplit } from '../../../src/lib/corpus.ts';
+
+  const root = document.querySelector<HTMLElement>('[data-map-train]')!;
+  const btn = root.querySelector<HTMLButtonElement>('[data-train]')!;
+  const progress = root.querySelector<HTMLElement>('[data-progress]')!;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const X0 = 44, X1 = 548, Y0 = 170, Y1 = 24;
+  let yMax = 0.7;
+  const pct = (x: number) => `${Math.round(x * 100)}%`;
+
+  function draw(losses: number[]) {
+    const pts = losses.map((l, i) => [X0 + ((X1 - X0) * i) / (MAP_TRAIN.epochs - 1), Y0 - ((Y0 - Y1) * Math.min(l, yMax)) / yMax]);
+    if (!pts.length) return;
+    const line = 'M' + pts.map((p) => p.map((v) => v.toFixed(1)).join(' ')).join(' L');
+    root.querySelector('[data-line]')!.setAttribute('d', line);
+    root.querySelector('[data-area]')!.setAttribute('d', `${line} L${pts.at(-1)![0].toFixed(1)} ${Y0} L${X0} ${Y0} Z`);
+  }
+
+  function item(text: string) {
+    const li = document.createElement('li');
+    li.textContent = text;
+    return li;
+  }
+
+  let running = false;
+  async function run() {
+    if (running) return;
+    running = true;
+    btn.setAttribute('aria-disabled', 'true');
+    progress.textContent = 'Reading every training message onto the map…';
+    root.querySelector<HTMLElement>('[data-after]')!.hidden = true;
+    await new Promise((r) => setTimeout(r, 30));
+    const [c, bow, t] = await Promise.all([corpus(), ensureBow(), newTrainer()]);
+    const chart = root.querySelector('.chart')!;
+    const r = chart.getBoundingClientRect();
+    if (r.top < 0 || r.bottom > innerHeight) chart.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+    const losses: number[] = [];
+    const perFrame = reduce ? MAP_TRAIN.epochs : 3;
+    await new Promise<void>((done) => {
+      const tick = () => {
+        for (let k = 0; k < perFrame && t.epoch < MAP_TRAIN.epochs; k++) losses.push(t.step());
+        if (t.epoch <= 3) yMax = Math.max(0.1, Math.ceil(losses[0] * 10) / 10);
+        draw(losses);
+        progress.textContent = `Pass ${t.epoch} of ${MAP_TRAIN.epochs}`;
+        if (t.epoch < MAP_TRAIN.epochs) requestAnimationFrame(tick);
+        else done();
+      };
+      requestAnimationFrame(tick);
+    });
+    const m = t.model();
+    setReader(m);
+    progress.textContent = `Done: ${MAP_TRAIN.epochs} passes, ${m.weights.length} knobs (one per direction of the map) and a starting lean.`;
+    root.querySelector('[data-desc]')!.textContent =
+      `Wrongness fell from ${losses[0].toFixed(2)} to ${losses.at(-1)!.toFixed(2)} over ${MAP_TRAIN.epochs} passes.`;
+
+    const rows = root.querySelector('[data-rows]')!;
+    rows.replaceChildren();
+    for (const [split, name] of [['day', 'Day Shift'], ['night', 'Night Shift'], ['two_am', '2 a.m. Set']] as const) {
+      for (const [who, f] of [['Bag of words', (x: string) => bow.predict(x)], ['Map-reader', (x: string) => m.predict(x)]] as const) {
+        const s = scoreSplit(c, split, f);
+        const tr = document.createElement('tr');
+        if (who.startsWith('Map')) tr.className = 'mine';
+        tr.innerHTML = `<th scope="row">${who.startsWith('Bag') ? name : ''}</th><td>${who}</td><td>${pct(s.accuracy)}</td><td class="miss">${s.missedEmergencies}</td><td>${s.unnecessaryEscalations}</td>`;
+        rows.append(tr);
+      }
+    }
+    const urgent = bySplit(c, 'night').filter((x) => x.label === 'urgent');
+    const onlyMap = urgent.filter((x) => m.predict(x.text).label === 'urgent' && bow.predict(x.text).label !== 'urgent');
+    const onlyBow = urgent.filter((x) => m.predict(x.text).label !== 'urgent' && bow.predict(x.text).label === 'urgent');
+    root.querySelector('[data-only-map-n]')!.textContent = String(onlyMap.length);
+    root.querySelector('[data-only-bow-n]')!.textContent = String(onlyBow.length);
+    root.querySelector('[data-only-map]')!.replaceChildren(...onlyMap.map((x) => item(x.text)));
+    root.querySelector('[data-only-bow]')!.replaceChildren(...onlyBow.map((x) => item(x.text)));
+    root.querySelector<HTMLElement>('[data-after]')!.hidden = false;
+    btn.removeAttribute('aria-disabled');
+    btn.textContent = 'Watch it again';
+    running = false;
+  }
+
+  btn.addEventListener('click', () => run().catch((e) => { progress.textContent = e.message; running = false; }));
+  root.querySelector('[data-save]')!.addEventListener('click', async () => {
+    const m = getReader();
+    if (!m) return;
+    saveReader(await corpus(), m, await ensureBow());
+    root.querySelector('[data-saved]')!.textContent = 'On the board, next to the Third Night\'s bag of words.';
+  });
+</script>
+
+<style>
+  .controls { display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; align-items: center; margin-bottom: 1rem; }
+  .progress { color: var(--ink-soft); font-family: var(--font-mono); font-size: 0.85rem; }
+  .chart { margin: 0; }
+  svg { width: 100%; height: auto; overflow: visible; }
+  .axis { stroke: var(--ink); stroke-width: 1; }
+  .tick { font-family: var(--font-ui); font-size: 22px; fill: var(--ink-soft); }
+  .chart-title { font-weight: 700; margin-bottom: 0.3rem; }
+  .axis-x { display: flex; justify-content: space-between; margin: 0.2rem 0 0 8%; color: var(--ink-soft); font-size: 0.8rem; }
+  .line { fill: none; stroke: var(--phosphor-ink); stroke-width: 2; }
+  .area { fill: url(#mt-hatch); }
+  .after { margin-top: 1.5rem; border-top: 1px solid var(--rule); padding-top: 1rem; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  caption { text-align: left; font-weight: 700; margin-bottom: 0.4rem; }
+  th, td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  thead th { font-size: 0.8rem; color: var(--ink-soft); font-weight: 700; }
+  :global(.map-train tr.mine td) { font-weight: 700; }
+  :global(.map-train tr.mine) { background: var(--gold-wash); }
+  :global(.map-train td.miss) { color: var(--alarm); }
+  @media (max-width: 30rem) {
+    thead th:nth-child(1) { width: 4.5rem; }
+    th, td { padding: 0.35rem 0.3rem; font-size: 0.85rem; }
+  }
+  .sub { font-family: var(--font-ui); font-size: var(--step-0); margin: 1.25rem 0 0.5rem; }
+  .list { border: 1px solid var(--rule); border-radius: var(--radius-ui); margin-bottom: 0.5rem; background: var(--paper); }
+  .list summary { cursor: pointer; padding: 0.6rem 0.8rem; min-height: 2.75rem; display: flex; align-items: center; gap: 0.35rem; font-weight: 700; }
+  .list summary span { font-variant-numeric: tabular-nums; }
+  .list ul { margin: 0; padding: 0 0.8rem 0.6rem 1.8rem; font-family: var(--font-read); }
+  :global(.map-train .list li) { margin: 0.45rem 0; }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 1.25rem; }
+  .saved { color: var(--calm); font-weight: 700; }
+</style>

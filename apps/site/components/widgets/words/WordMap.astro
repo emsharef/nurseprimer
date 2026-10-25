@@ -1,0 +1,309 @@
+---
+// The Fifth Night, first widget: the word map. Every word Wick has met at least three times has a place, built
+// from nothing but the company it keeps (scripts/wordmap.mjs). The picture shows a few hundred of them squashed
+// flat; the neighbour list is measured in the full map. Find a word, tap one, or walk from neighbour to neighbour.
+const suggestions = ['speckles', 'felt', 'purple', 'myriverside', 'ki', 'dark', 'petechiae'];
+---
+<div class="word-map" data-word-map>
+  <div class="find">
+    <label for="map-find">Find a word</label>
+    <div class="find-row">
+      <input id="map-find" type="search" list="map-words" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. speckles" data-find />
+      <button type="button" class="btn" data-go>Find</button>
+    </div>
+    <datalist id="map-words" data-list></datalist>
+    <div class="suggest" role="group" aria-label="Words to try">
+      {suggestions.map((w) => <button type="button" class="chip-btn" data-word={w}>{w}</button>)}
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="map-wrap">
+      <svg class="map" data-svg role="img" aria-labelledby="map-svg-title map-svg-desc">
+        <title id="map-svg-title">The word map</title>
+        <desc id="map-svg-desc" data-desc>Loading the map…</desc>
+        <g data-links></g>
+        <g data-dots></g>
+        <g data-labels></g>
+      </svg>
+      <div class="zoom" role="group" aria-label="Zoom the map">
+        <button type="button" class="btn icon" data-zoom="in" aria-label="Zoom in">+</button>
+        <button type="button" class="btn icon" data-zoom="out" aria-label="Zoom out">−</button>
+        <button type="button" class="btn" data-zoom="reset">Whole map</button>
+      </div>
+      <p class="hint" data-hint>Tap a dot to see its word and its neighbours. Zoom in to see more names; drag to move around when zoomed.</p>
+    </div>
+
+    <div class="panel">
+      <p class="panel-title" aria-live="polite" data-title>Choose a word</p>
+      <p class="panel-sub" data-sub></p>
+      <ol class="nbrs" data-nbrs></ol>
+      <p class="note">Closeness is measured in all <span data-dims>200</span> of the map's directions. The flat picture is only a
+        shadow of it, so a few true neighbours can look further away than they are.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { loadMap } from './store.ts';
+
+  const root = document.querySelector<HTMLElement>('[data-word-map]')!;
+  const svg = root.querySelector<SVGSVGElement>('[data-svg]')!;
+  const NS = 'http://www.w3.org/2000/svg';
+  const findIn = root.querySelector<HTMLInputElement>('[data-find]')!;
+  const norm = (s: string) => s.trim().toLowerCase().replace(/[’']/g, '').replace(/[^\p{L}\p{N}]+/gu, '');
+
+  loadMap().then(({ file, map }) => {
+    const { words, counts, xy } = file.picture;
+    const at = new Map(words.map((w, i) => [w, i]));
+    root.querySelector('[data-dims]')!.textContent = String(map.dims);
+    const list = root.querySelector('[data-list]')!;
+    list.replaceChildren(...[...map.vocab].sort().map((w) => Object.assign(document.createElement('option'), { value: w })));
+    // Priority for labels when they collide: commoner words first.
+    const order = words.map((_, i) => i).sort((a, b) => counts[b] - counts[a]);
+
+    let W = 0, H = 0, scale = 1, cx = 500, cy = 500, base = 1;
+    let selected: string | null = null;
+    let nbrs: { word: string; similarity: number }[] = [];
+    const xs = xy.map((p) => p[0]), ys = xy.map((p) => p[1]);
+    const bx = [Math.min(...xs), Math.max(...xs)], by = [Math.min(...ys), Math.max(...ys)];
+    const mid = [(bx[0] + bx[1]) / 2, (by[0] + by[1]) / 2];
+
+    function size() {
+      W = svg.parentElement!.clientWidth;
+      H = Math.round(Math.min(560, Math.max(320, W * 0.85)));
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      svg.setAttribute('width', String(W));
+      svg.setAttribute('height', String(H));
+      base = Math.min((W - 70) / (bx[1] - bx[0]), (H - 30) / (by[1] - by[0]));
+    }
+    const sx = (x: number) => W / 2 - 25 + (x - cx) * base * scale;
+    const sy = (y: number) => H / 2 + (y - cy) * base * scale;
+
+    function render() {
+      const dots = root.querySelector('[data-dots]')!, labels = root.querySelector('[data-labels]')!, links = root.querySelector('[data-links]')!;
+      const near = new Set(nbrs.map((n) => n.word));
+      const sel = selected != null ? at.get(selected) : undefined;
+      links.replaceChildren();
+      if (sel != null) {
+        for (const n of nbrs) {
+          const j = at.get(n.word);
+          if (j == null) continue;
+          const l = document.createElementNS(NS, 'line');
+          l.setAttribute('x1', sx(xy[sel][0]).toFixed(1)); l.setAttribute('y1', sy(xy[sel][1]).toFixed(1));
+          l.setAttribute('x2', sx(xy[j][0]).toFixed(1)); l.setAttribute('y2', sy(xy[j][1]).toFixed(1));
+          l.setAttribute('class', 'link');
+          links.append(l);
+        }
+      }
+      dots.replaceChildren(...words.map((w, i) => {
+        const c = document.createElementNS(NS, 'circle');
+        c.setAttribute('cx', sx(xy[i][0]).toFixed(1)); c.setAttribute('cy', sy(xy[i][1]).toFixed(1));
+        const cls = w === selected ? 'dot sel' : near.has(w) ? 'dot near' : 'dot';
+        c.setAttribute('r', w === selected ? '6' : near.has(w) ? '4.5' : '2.6');
+        c.setAttribute('class', cls);
+        return c;
+      }));
+      // Greedy labels: selected first, then its neighbours, then commoner words, skipping any that would overlap.
+      const placed: [number, number, number, number][] = [];
+      const fits = (r: [number, number, number, number]) =>
+        r[0] >= 0 && r[2] <= W && r[1] >= 0 && r[3] <= H && !placed.some((p) => r[0] < p[2] && r[2] > p[0] && r[1] < p[3] && r[3] > p[1]);
+      const out: SVGTextElement[] = [];
+      const want = [...(sel != null ? [sel] : []), ...nbrs.map((n) => at.get(n.word)).filter((j): j is number => j != null), ...order];
+      const done = new Set<number>();
+      for (const i of want) {
+        if (done.has(i)) continue;
+        done.add(i);
+        const w = words[i];
+        const strong = i === sel || near.has(w);
+        const fs = strong ? 14 : 12;
+        const wpx = w.length * fs * 0.6 + 4;
+        const px = sx(xy[i][0]), py = sy(xy[i][1]);
+        // Try right, left, above and below the dot; the chosen word is drawn even if it has to overlap.
+        const spots: [number, number, string][] = [[px + 6, py + fs * 0.35, 'start'], [px - 6, py + fs * 0.35, 'end'], [px, py - 8, 'middle'], [px, py + fs + 6, 'middle']];
+        const rect = ([x, y, an]: [number, number, string]): [number, number, number, number] => {
+          const x0 = an === 'start' ? x - 2 : an === 'end' ? x - wpx : x - wpx / 2;
+          return [x0, y - fs, x0 + wpx + 2, y + 3];
+        };
+        let pick = spots.find((c) => fits(rect(c)));
+        if (!pick && i === sel) pick = spots[px + wpx + 8 > W ? 1 : 0];
+        if (!pick) continue;
+        placed.push(rect(pick));
+        const t = document.createElementNS(NS, 'text');
+        t.setAttribute('x', pick[0].toFixed(1));
+        t.setAttribute('y', pick[1].toFixed(1));
+        t.setAttribute('text-anchor', pick[2]);
+        t.setAttribute('class', i === sel ? 'lbl sel' : strong ? 'lbl near' : 'lbl');
+        t.textContent = w;
+        out.push(t);
+      }
+      labels.replaceChildren(...out);
+      const desc = selected
+        ? `"${selected}" is ${sel != null ? 'drawn on the map' : 'on the map but too rare to draw'}. Its nearest words: ${nbrs.map((n) => n.word).join(', ')}.`
+        : `${words.length} of the map's ${map.vocab.length} words drawn as dots; words used in similar company sit close together.`;
+      root.querySelector('[data-desc]')!.textContent = desc;
+      svg.style.touchAction = scale > 1.01 ? 'none' : 'pan-y';
+    }
+
+    function choose(raw: string, centre = true) {
+      const w = norm(raw);
+      const title = root.querySelector('[data-title]')!, sub = root.querySelector('[data-sub]')!;
+      const ol = root.querySelector('[data-nbrs]')!;
+      if (!w) return;
+      if (!map.has(w)) {
+        selected = null;
+        nbrs = [];
+        title.textContent = `"${w}" isn't on the map`;
+        sub.textContent = 'Wick only gives a place to words it has read at least three times, in any of the messages.';
+        ol.replaceChildren();
+        render();
+        return;
+      }
+      selected = w;
+      nbrs = map.neighbours(w, 8);
+      title.textContent = `Nearest to "${w}"`;
+      sub.textContent = at.has(w) ? '' : 'Too rare to draw on the picture, but it has a place on the map.';
+      ol.replaceChildren(...nbrs.map((n) => {
+        const li = document.createElement('li');
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'nb';
+        b.innerHTML = `<span class="nw"></span><span class="bar" aria-hidden="true"><span style="width:${Math.max(2, n.similarity * 100).toFixed(0)}%"></span></span><span class="ns">${n.similarity.toFixed(2)}</span>`;
+        b.querySelector('.nw')!.textContent = n.word;
+        b.setAttribute('aria-label', `${n.word}, closeness ${n.similarity.toFixed(2)}. Go to ${n.word}.`);
+        b.addEventListener('click', () => { choose(n.word); findIn.value = n.word; });
+        li.append(b);
+        return li;
+      }));
+      const i = at.get(w);
+      if (centre && i != null) { scale = Math.max(scale, 3); cx = xy[i][0]; cy = xy[i][1]; }
+      render();
+    }
+
+    function zoom(f: number, px = W / 2 - 25, py = H / 2) {
+      const ns = Math.max(1, Math.min(8, scale * f));
+      // Keep the point under (px, py) still.
+      const wx = cx + (px - (W / 2 - 25)) / (base * scale), wy = cy + (py - H / 2) / (base * scale);
+      scale = ns;
+      cx = wx - (px - (W / 2 - 25)) / (base * scale);
+      cy = wy - (py - H / 2) / (base * scale);
+      if (scale <= 1.01) { cx = mid[0]; cy = mid[1]; }
+      render();
+    }
+
+    root.querySelectorAll<HTMLButtonElement>('[data-zoom]').forEach((b) => b.addEventListener('click', () => {
+      const z = b.dataset.zoom;
+      if (z === 'reset') { scale = 1; cx = mid[0]; cy = mid[1]; render(); }
+      else if (z === 'in') {
+        const i = selected != null ? at.get(selected) : undefined;
+        if (i != null && scale <= 1.01) { scale = 2; cx = xy[i][0]; cy = xy[i][1]; render(); }
+        else zoom(1.6);
+      } else zoom(1 / 1.6);
+    }));
+
+    // Pointer: tap to choose the nearest dot; drag to pan (when zoomed); two fingers to pinch.
+    const pts = new Map<number, { x: number; y: number }>();
+    let moved = 0, pinch = 0;
+    const local = (e: PointerEvent) => {
+      const r = svg.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    };
+    svg.addEventListener('pointerdown', (e) => {
+      pts.set(e.pointerId, local(e));
+      moved = 0;
+      if (scale > 1.01 || pts.size > 1) svg.setPointerCapture(e.pointerId);
+      if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); }
+    });
+    svg.addEventListener('pointermove', (e) => {
+      const prev = pts.get(e.pointerId);
+      if (!prev) return;
+      const p = local(e);
+      if (pts.size === 2) {
+        pts.set(e.pointerId, p);
+        const [a, b] = [...pts.values()];
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (pinch > 0) zoom(d / pinch, (a.x + b.x) / 2, (a.y + b.y) / 2);
+        pinch = d;
+        moved += 10;
+        return;
+      }
+      moved += Math.abs(p.x - prev.x) + Math.abs(p.y - prev.y);
+      pts.set(e.pointerId, p);
+      if (scale > 1.01) {
+        cx -= (p.x - prev.x) / (base * scale);
+        cy -= (p.y - prev.y) / (base * scale);
+        render();
+      }
+    });
+    const end = (e: PointerEvent) => {
+      const p = pts.get(e.pointerId);
+      pts.delete(e.pointerId);
+      if (!p || moved > 8 || pts.size) return;
+      let best = -1, bd = 24 * 24;
+      xy.forEach(([x, y], i) => {
+        const d = (sx(x) - p.x) ** 2 + (sy(y) - p.y) ** 2;
+        if (d < bd) { bd = d; best = i; }
+      });
+      if (best >= 0) { choose(words[best], false); findIn.value = words[best]; }
+    };
+    svg.addEventListener('pointerup', end);
+    svg.addEventListener('pointercancel', (e) => pts.delete(e.pointerId));
+
+    root.querySelector('[data-go]')!.addEventListener('click', () => choose(findIn.value));
+    findIn.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); choose(findIn.value); } });
+    findIn.addEventListener('change', () => { if (map.has(norm(findIn.value))) choose(findIn.value); });
+    root.querySelectorAll<HTMLButtonElement>('[data-word]').forEach((b) =>
+      b.addEventListener('click', () => { findIn.value = b.dataset.word!; choose(b.dataset.word!); }),
+    );
+
+    size();
+    cx = mid[0]; cy = mid[1];
+    choose('spots', false);
+    new ResizeObserver(() => { const w = W; size(); if (w !== W) render(); }).observe(svg.parentElement!);
+  }).catch((e) => (root.querySelector('[data-title]')!.textContent = e.message));
+</script>
+
+<style>
+  .find label { display: block; font-weight: 700; margin-bottom: 0.3rem; }
+  .find-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .find input {
+    font: inherit; font-size: 16px; font-family: var(--font-mono); min-height: 2.75rem; padding: 0.4rem 0.6rem;
+    border: 1px solid var(--ink); border-radius: var(--radius-ui); background: var(--paper); color: var(--ink);
+    flex: 1 1 10rem; min-width: 0; max-width: 18rem;
+  }
+  .suggest { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.7rem 0 1rem; }
+  .chip-btn {
+    border: 1px solid var(--rule); background: var(--paper); color: var(--ink); border-radius: 999px; padding: 0.3rem 0.8rem;
+    cursor: pointer; min-height: 2.75rem; font-family: var(--font-mono); font-size: 0.85rem;
+  }
+  .chip-btn:hover { background: var(--gold-wash); }
+  .layout { display: grid; gap: 1rem; }
+  @media (min-width: 52rem) { .layout { grid-template-columns: minmax(0, 1fr) 15rem; } }
+  .map-wrap { min-width: 0; }
+  .map { display: block; width: 100%; background: var(--paper); border: 1px solid var(--rule); border-radius: var(--radius-ui); user-select: none; -webkit-user-select: none; }
+  :global(.word-map .dot) { fill: var(--ink-soft); opacity: 0.55; }
+  :global(.word-map .dot.near) { fill: var(--gold); stroke: var(--gold-ink); stroke-width: 1; opacity: 1; }
+  :global(.word-map .dot.sel) { fill: var(--gold); stroke: var(--ink); stroke-width: 1.6; opacity: 1; }
+  :global(.word-map .link) { stroke: var(--gold-ink); stroke-width: 1; opacity: 0.7; }
+  :global(.word-map .lbl) { font-family: var(--font-mono); font-size: 12px; fill: var(--ink-soft); pointer-events: none; }
+  :global(.word-map .lbl.near) { font-size: 14px; fill: var(--ink); font-weight: 700; paint-order: stroke; stroke: var(--paper); stroke-width: 3px; }
+  :global(.word-map .lbl.sel) { font-size: 14px; fill: var(--ink); font-weight: 700; paint-order: stroke; stroke: var(--gold-wash); stroke-width: 4px; }
+  .zoom { display: flex; gap: 0.5rem; margin-top: 0.6rem; flex-wrap: wrap; }
+  .btn.icon { min-width: 2.75rem; font-size: 1.2rem; line-height: 1; padding-inline: 0.6rem; }
+  .hint { color: var(--ink-soft); margin: 0.5rem 0 0; font-size: 0.85rem; }
+  .panel-title { font-weight: 700; margin: 0 0 0.2rem; }
+  .panel-sub { margin: 0 0 0.4rem; color: var(--ink-soft); }
+  .panel-sub:empty { display: none; }
+  .nbrs { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.25rem; }
+  :global(.word-map .nb) {
+    display: grid; grid-template-columns: minmax(5.5rem, 1fr) 4rem 2.4rem; gap: 0.5rem; align-items: center; width: 100%;
+    min-height: 2.75rem; padding: 0.25rem 0.6rem; border: 1px solid var(--rule); border-radius: var(--radius-ui);
+    background: var(--paper); color: var(--ink); cursor: pointer; text-align: left;
+  }
+  :global(.word-map .nb:hover) { background: var(--gold-wash); }
+  :global(.word-map .nw) { font-family: var(--font-mono); font-size: 0.9rem; overflow-wrap: anywhere; }
+  :global(.word-map .bar) { height: 0.45rem; background: var(--paper-2); border-radius: 2px; overflow: hidden; }
+  :global(.word-map .bar span) { display: block; height: 100%; background: var(--gold); }
+  :global(.word-map .ns) { font-variant-numeric: tabular-nums; color: var(--ink-soft); font-size: 0.8rem; text-align: right; }
+  .note { color: var(--ink-soft); font-size: 0.8rem; margin: 0.6rem 0 0; }
+</style>

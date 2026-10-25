@@ -1,0 +1,125 @@
+---
+// The Fifth Night, third widget: the map-reader's reading glass. A message's place is the average of its words'
+// places; the glass shows where it lands (its nearest words), how hard each word's place pushes, the verdict,
+// and, for comparison, what the Third Night's bag of words says.
+interface Props { presets?: { label: string; text: string }[]; start?: string }
+const { presets = [], start = '' } = Astro.props;
+const uid = `mglass-${Math.random().toString(36).slice(2, 8)}`;
+---
+<div class="mglass" data-map-glass>
+  {presets.length > 0 && (
+    <div class="presets" role="group" aria-label="Try a message">
+      {presets.map((p) => <button type="button" class="chip-btn" data-preset={p.text}>{p.label}</button>)}
+    </div>
+  )}
+  <label class="lbl" for={uid}>A message for Wick</label>
+  <textarea id={uid} rows="3" data-input placeholder="Type a message a parent might send…">{start}</textarea>
+
+  <div class="result" aria-live="polite">
+    <div class="verdict">
+      <span class="face" data-face></span>
+      <div>
+        <p class="v-text" data-verdict>Wick is getting ready…</p>
+        <p class="v-sub" data-sub></p>
+        <p class="v-bow" data-bow></p>
+      </div>
+    </div>
+    <p class="lands"><strong>It lands nearest:</strong> <span class="machine" data-lands></span></p>
+    <p class="words-title">How hard each word's place pushes</p>
+    <p class="words" data-words></p>
+  </div>
+</div>
+
+<script>
+  import { ensureReader, ensureBow, getReader, onChange } from './store.ts';
+  import { tokenize } from '@primer/ml-core';
+  import { wickFace, verdictText } from '../wick.ts';
+
+  const bowPromise = ensureBow();
+  const sure = (p: number) => (p > 0.995 ? 'over 99%' : p < 0.005 ? 'under 1%' : `${Math.round(p * 100)}%`);
+  document.querySelectorAll<HTMLElement>('[data-map-glass]').forEach((root) => {
+    const input = root.querySelector<HTMLTextAreaElement>('[data-input]')!;
+    root.querySelector('[data-face]')!.innerHTML = wickFace('thinking', 52);
+
+    async function render() {
+      const m = getReader();
+      if (!m) return;
+      const bow = await bowPromise;
+      const text = input.value.trim();
+      const words = root.querySelector('[data-words]')!;
+      const set = (sel: string, s: string) => (root.querySelector(sel)!.textContent = s);
+      if (!text) {
+        set('[data-verdict]', 'Wick is waiting for a message.');
+        set('[data-sub]', ''); set('[data-bow]', ''); set('[data-lands]', '–');
+        root.querySelector('[data-face]')!.innerHTML = wickFace('idle', 52);
+        words.replaceChildren();
+        return;
+      }
+      const { label, pUrgent } = m.predict(text);
+      const place = m.map.embed(text);
+      root.querySelector('[data-face]')!.innerHTML = wickFace(label, 52);
+      set('[data-verdict]', `Map-reader says: ${verdictText(label)}`);
+      set('[data-sub]', place.known.length
+        ? `${sure(pUrgent)} sure it's urgent, from ${place.known.length} word${place.known.length === 1 ? '' : 's'} on the map.`
+        : 'None of these words is on the map, so Wick has only its starting lean.');
+      const b = bow.predict(text);
+      set('[data-bow]', `Third Night's bag of words: ${verdictText(b.label)} (${sure(b.pUrgent)} sure it's urgent).`);
+      set('[data-lands]', place.known.length ? m.map.nearest(place.vector, 6).map((n) => n.word).join(', ') : '–');
+      const pushes = new Map(m.explain(text).map((e) => [e.word, e.push]));
+      const seen = new Set<string>();
+      words.replaceChildren(...tokenize(text).map((w) => {
+        const span = document.createElement('span');
+        const dup = seen.has(w);
+        seen.add(w);
+        const v = pushes.get(w) ?? null;
+        span.className = `wchip ${dup ? 'dup' : v == null ? 'unknown' : v > 0.05 ? 'u' : v < -0.05 ? 'c' : 'z'}`;
+        span.style.setProperty('--strength', String(Math.min(1, Math.abs(v ?? 0) / 4)));
+        span.textContent = w;
+        const sub = document.createElement('small');
+        sub.textContent = dup ? 'again: counted once' : v == null ? 'not on the map' : `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(2)}`;
+        span.append(sub);
+        return span;
+      }));
+    }
+
+    const grow = () => { input.style.height = 'auto'; input.style.height = `${input.scrollHeight + 2}px`; };
+    input.addEventListener('input', () => { grow(); render(); });
+    root.querySelectorAll<HTMLButtonElement>('[data-preset]').forEach((b) =>
+      b.addEventListener('click', () => { input.value = b.dataset.preset!; grow(); render(); }),
+    );
+    onChange(render);
+    ensureReader().then(render).catch((e) => (root.querySelector('[data-verdict]')!.textContent = e.message));
+  });
+</script>
+
+<style>
+  .presets { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.9rem; }
+  .chip-btn {
+    border: 1px solid var(--ink); background: var(--paper); color: var(--ink); border-radius: 999px; padding: 0.3rem 0.8rem;
+    cursor: pointer; min-height: 2.75rem; font-size: var(--step--1); text-align: left;
+  }
+  .chip-btn:hover { background: var(--gold-wash); }
+  .lbl { display: block; font-weight: 700; margin-bottom: 0.3rem; }
+  textarea {
+    width: 100%; font: inherit; font-family: var(--font-read); font-size: 1rem; line-height: 1.5;
+    padding: 0.6rem 0.75rem; border: 1px solid var(--ink); border-radius: var(--radius-ui);
+    background: var(--paper); color: var(--ink); resize: vertical;
+  }
+  .result { margin-top: 1rem; }
+  .verdict { display: flex; gap: 0.9rem; align-items: center; }
+  .face { flex: none; display: inline-flex; }
+  .v-text { margin: 0; font-weight: 700; font-size: var(--step-0); }
+  .v-sub, .v-bow { margin: 0.1rem 0 0; color: var(--ink-soft); }
+  .lands { margin: 1rem 0 0.75rem; }
+  .words-title { margin: 0 0 0.4rem; font-weight: 700; }
+  .words { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0; }
+  :global(.mglass .wchip) {
+    display: inline-flex; flex-direction: column; align-items: center; line-height: 1.15;
+    padding: 0.2rem 0.45rem; border-radius: var(--radius-ui); border: 1px solid var(--rule);
+    font-family: var(--font-mono); font-size: 0.85rem; background: var(--paper);
+  }
+  :global(.mglass .wchip small) { font-family: var(--font-ui); font-size: 0.68rem; color: var(--ink-soft); }
+  :global(.mglass .wchip.u) { border-color: var(--alarm); background: color-mix(in srgb, var(--alarm-wash) calc(var(--strength) * 100%), var(--paper)); }
+  :global(.mglass .wchip.c) { border-color: var(--calm); background: color-mix(in srgb, var(--calm-wash) calc(var(--strength) * 100%), var(--paper)); }
+  :global(.mglass .wchip.dup), :global(.mglass .wchip.unknown) { opacity: 0.6; border-style: dashed; }
+</style>
