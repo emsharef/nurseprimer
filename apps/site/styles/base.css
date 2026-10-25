@@ -117,3 +117,10 @@ blockquote p:last-child { margin-bottom: 0; }
     radial-gradient(farthest-side at 0 50%, rgb(0 0 0 / 0.18), transparent) left / 0.6rem 100% no-repeat scroll,
     radial-gradient(farthest-side at 100% 50%, rgb(0 0 0 / 0.18), transparent) right / 0.6rem 100% no-repeat scroll;
 }
+
+/* Rogues' Gallery report (src/lib/rogues.ts). */
+.rogues-report { margin-top: 1rem; padding: 0.75rem 1rem; border: 1px dashed var(--gold-ink); border-radius: var(--radius-ui); font-family: var(--font-ui); font-size: var(--step--1); }
+.rogues-report .rogues-title { margin: 0; font-weight: 700; }
+.rogues-report ul { margin: 0.5rem 0 0; padding-left: 1.1rem; }
+.rogues-report li.ok span { color: var(--calm); font-weight: 700; }
+.rogues-report li.still span { color: var(--alarm); font-weight: 700; }

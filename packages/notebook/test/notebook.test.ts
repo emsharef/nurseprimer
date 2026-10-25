@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { load, saveModel, setTrack, reset } from '../src/index.ts';
+import { load, saveModel, setTrack, reset, saveRogue, removeRogue } from '../src/index.ts';
 
 describe('notebook', () => {
   beforeEach(() => {
@@ -34,5 +34,14 @@ describe('notebook', () => {
     saveModel({ id: 'm', name: 'first', chapter: 5, scores: {} });
     saveModel({ id: 'm', name: 'second', chapter: 5, scores: {} });
     expect(load().models.map((m) => m.name)).toEqual(['second']);
+  });
+
+  it('keeps rogues once each and can remove them', () => {
+    saveRogue({ text: 'she stopped breathing but is fine now', truth: 'urgent', fooled: 'Wick (night 3)' });
+    saveRogue({ text: 'she stopped breathing but is fine now ', truth: 'urgent', fooled: 'Wick (night 3)' });
+    const nb = load();
+    expect(nb.rogues).toHaveLength(1);
+    removeRogue(nb.rogues![0].id);
+    expect(load().rogues).toHaveLength(0);
   });
 });

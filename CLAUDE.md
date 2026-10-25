@@ -53,6 +53,8 @@ npm run deploy              # runs checks, builds with base /nurseprimer/, rsync
   question (Is it about the world? Whose goal? Does it know when to stop? Who signs?) and pulls toward the next night.
 - **Keep toys honest:** every `<Widget title summary realSystems>`; `realSystems` is one line on how real systems differ.
 - **Ward Board:** place `<WardBoard />` where the story puts models on the board.
+- **Rogues' Gallery:** messages the reader kept because they fooled the Third Night's Wick. When a night builds a
+  new classifier, re-test it on them with `mountRogues(el, predict, name)` from `apps/site/src/lib/rogues.ts`.
 - **Pictures:** `<Plate id size="wide|column|small" />` and frontmatter `plate:` for the opener. Add prompts in
   `content/illustrations/manifest.d/NN-slug.yaml` (refs: `sheet-you`, `sheet-bea`, `sheet-wick` for
   consistency), generate 2 candidates, LOOK at them, pick, publish. Never an image model for anything with

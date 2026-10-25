@@ -15,10 +15,22 @@ export interface ModelRecord {
   scores: Record<string, unknown>;
 }
 
+/** A message the reader wrote that fooled a Wick: kept and re-run against every later Wick. */
+export interface Rogue {
+  id: string;
+  text: string;
+  /** What the reader says the right call is. */
+  truth: 'urgent' | 'can_wait';
+  /** Which Wick it fooled first, e.g. "Wick, self-tuned (night 3)". */
+  fooled: string;
+  savedAt: string;
+}
+
 export interface Notebook {
   schema: 1;
   track: Track | null;
   models: ModelRecord[];
+  rogues?: Rogue[];
 }
 
 const KEY = 'primer.notebook.v1';
@@ -52,6 +64,22 @@ export function saveModel(model: Omit<ModelRecord, 'savedAt'>): Notebook {
   const record: ModelRecord = { ...model, savedAt: new Date().toISOString() };
   const models = nb.models.filter((m) => m.id !== model.id).concat(record);
   const next = { ...nb, models };
+  save(next);
+  return next;
+}
+
+export function saveRogue(r: Omit<Rogue, 'id' | 'savedAt'>): Notebook {
+  const nb = load();
+  const rogues = nb.rogues ?? [];
+  if (rogues.some((x) => x.text.trim() === r.text.trim())) return nb;
+  const next = { ...nb, rogues: [...rogues, { ...r, id: `r${Date.now().toString(36)}`, savedAt: new Date().toISOString() }] };
+  save(next);
+  return next;
+}
+
+export function removeRogue(id: string): Notebook {
+  const nb = load();
+  const next = { ...nb, rogues: (nb.rogues ?? []).filter((r) => r.id !== id) };
   save(next);
   return next;
 }

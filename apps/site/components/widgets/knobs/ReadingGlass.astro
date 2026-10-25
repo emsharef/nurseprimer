@@ -1,12 +1,14 @@
 ---
 // The Third Night, third widget: hold any message under Wick's reading glass and see every word's knob,
 // the total, and the verdict. Used for the "do fade / don't fade" test and the break-it challenge.
-interface Props { presets?: { label: string; text: string }[]; start?: string }
-const { presets = [], start = '' } = Astro.props;
+// `rogue` adds the Rogues' Gallery: if Wick gets the reader's message wrong, they can keep it (notebook), and
+// every later Wick is re-tested on it.
+interface Props { presets?: { label: string; text: string }[]; start?: string; rogue?: boolean }
+const { presets = [], start = '', rogue = false } = Astro.props;
 // Each reading glass on a page needs its own input id.
 const uid = `glass-${Math.random().toString(36).slice(2, 8)}`;
 ---
-<div class="glass" data-reading-glass>
+<div class="glass" data-reading-glass data-rogue={rogue ? '' : undefined}>
   {presets.length > 0 && (
     <div class="presets" role="group" aria-label="Try a message">
       {presets.map((p) => <button type="button" class="chip-btn" data-preset={p.text}>{p.label}</button>)}
@@ -31,12 +33,23 @@ const uid = `glass-${Math.random().toString(36).slice(2, 8)}`;
     <p class="words-title">How hard each word pushes</p>
     <p class="words" data-words></p>
   </div>
+  {rogue && (
+    <div class="rogue" data-rogue-box>
+      <p class="rogue-q">What should the call have been?</p>
+      <div class="rogue-btns" role="group" aria-label="The right call for your message">
+        <button type="button" class="btn" data-truth="urgent">Urgent</button>
+        <button type="button" class="btn" data-truth="can_wait">Can wait</button>
+      </div>
+      <p class="rogue-msg" data-rogue-msg aria-live="polite"></p>
+    </div>
+  )}
 </div>
 
 <script>
   import { ensureTrained, getTrained, onChange } from './store.ts';
   import { tokenize } from '@primer/ml-core';
   import { wickFace, verdictText } from '../wick.ts';
+  import { saveRogue } from '@primer/notebook';
 
   document.querySelectorAll<HTMLElement>('[data-reading-glass]').forEach((root) => {
     const input = root.querySelector<HTMLTextAreaElement>('[data-input]')!;
@@ -82,7 +95,22 @@ const uid = `glass-${Math.random().toString(36).slice(2, 8)}`;
     }
 
     const grow = () => { input.style.height = 'auto'; input.style.height = `${input.scrollHeight + 2}px`; };
-    input.addEventListener('input', () => { grow(); render(); });
+    input.addEventListener('input', () => { grow(); render(); root.querySelector('[data-rogue-msg]') && (root.querySelector('[data-rogue-msg]')!.textContent = ''); });
+    root.querySelectorAll<HTMLButtonElement>('[data-truth]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const m = getTrained();
+        const text = input.value.trim();
+        const msg = root.querySelector('[data-rogue-msg]')!;
+        if (!m || !text) { msg.textContent = 'Write a message first.'; return; }
+        const truth = b.dataset.truth as 'urgent' | 'can_wait';
+        if (m.predict(text).label === truth) {
+          msg.textContent = 'Wick agrees with you on that one. Not a rogue; try again.';
+          return;
+        }
+        const nb = saveRogue({ text, truth, fooled: 'Wick, self-tuned (the Third Night)' });
+        msg.textContent = `You broke it. Kept for your Rogues' Gallery (${nb.rogues?.length ?? 1} so far): every Wick you build from now on gets tested on it.`;
+      }),
+    );
     root.querySelectorAll<HTMLButtonElement>('[data-preset]').forEach((b) =>
       b.addEventListener('click', () => { input.value = b.dataset.preset!; grow(); render(); }),
     );
@@ -118,6 +146,11 @@ const uid = `glass-${Math.random().toString(36).slice(2, 8)}`;
   :global(.glass .needle.urgent) { background: var(--alarm); }
   :global(.glass .needle.can_wait) { background: var(--calm); }
   .words-title { margin: 0 0 0.4rem; font-weight: 700; }
+  .rogue { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px dashed var(--rule); }
+  .rogue-q { margin: 0 0 0.5rem; font-weight: 700; }
+  .rogue-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .rogue-msg { margin: 0.6rem 0 0; font-weight: 700; color: var(--gold-ink); }
+  .rogue-msg:empty { display: none; }
   .words { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0; }
   :global(.glass .wchip) {
     display: inline-flex; flex-direction: column; align-items: center; line-height: 1.15;

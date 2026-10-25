@@ -9,3 +9,4 @@ dist-deploy/
 *.log
 .worktrees/
 content/illustrations/raw/
+.claude/worktrees/
