@@ -66,3 +66,16 @@ of 2026-10-25 ("don't ask questions, start building ... work as you see best"); 
 - **Corpus draft 1:** 2,549 verified messages (11 dropped after one rewrite), writer Claude Opus 5.5, blind
   verifier Claude Sonnet 5.5. Verification failures fell from 18% to 1.3% after fact-card reassurances were
   rephrased without double negatives. Status PENDING CLINICAL REVIEW.
+- **Fourth Night (The Purple Ink), measured, not a "collapse"** (default, chapter-builder). On this corpus a
+  one-hidden-layer network over a bag of words (8 tanh units, plain full-batch gradient descent, eta 0.5, L2 0.001,
+  300 steps, seed 1) gets the training pile perfect but the Day Shift exactly like the Third Night's knobs (95%, 14
+  missed), and the Night Shift only drops to 93% (25 of 133 missed). The arc's "collapse" is not true here, so the
+  chapter makes the shortcut vivid honestly instead: the wager is on *missed emergencies* (14 -> 25, nearly double);
+  striking the app line off single slips flips them (a 4-month-old at 39.7: 94% -> 30%; a first fit 80% -> 9%; the
+  line alone is 93% urgent); deleting it from the Day Shift raises misses 14 -> 20; adding it to calm Night Shift
+  messages raises needless alarms 1 -> 26; and a network trained with the line deleted misses 16 instead of 25 on the
+  Night Shift while looking slightly worse on the Day Shift (Goodhart, named once). All pinned in
+  `apps/site/test/ch04-claims.test.ts`. The corpus was not changed. The overfitting-curves picture was left out: on
+  this corpus Day Shift accuracy does not fall with longer training, so it would not serve the story.
+- **`--violet` token** (default): Bea's purple ink, used only to mark the app line on the Fourth Night.
+- **`aside.sidebar`** in base.css for short asides outside the story (first used for synthetic-data fingerprints).

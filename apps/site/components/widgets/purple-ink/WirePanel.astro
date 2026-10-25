@@ -1,0 +1,264 @@
+---
+// The Fourth Night: training Wick's wires (a one-hidden-layer network) by plain gradient descent, animated
+// pass by pass. kind="wired" trains on the pile as it is and shows the words Wick listens to most as it
+// learns; kind="clean" deletes the app line from every training message first and compares the two Wicks.
+interface Props { kind?: 'wired' | 'clean' }
+const { kind = 'wired' } = Astro.props;
+const label = kind === 'wired' ? 'Wire Wick up and train it' : 'Delete the line from the pile and train again';
+---
+<div class="wire-panel" data-wire-panel data-kind={kind}>
+  <div class="controls">
+    <button type="button" class="btn primary" data-train>{label}</button>
+    <span class="progress" data-progress aria-live="polite">Wick hasn't started.</span>
+  </div>
+
+  <div class="grid">
+    <figure class="chart">
+      <figcaption class="chart-title">Wick's average wrongness, pass by pass</figcaption>
+      <svg viewBox="-14 0 574 182" role="img" aria-labelledby={`loss-t-${kind} loss-d-${kind}`}>
+        <title id={`loss-t-${kind}`}>Wrongness during training</title>
+        <desc id={`loss-d-${kind}`} data-chart-desc>Empty chart. Press the button to start training.</desc>
+        <defs>
+          <pattern id={`hatch-${kind}`} width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="5" stroke="var(--phosphor)" stroke-width="1" opacity="0.5" />
+          </pattern>
+        </defs>
+        <line x1="44" y1="24" x2="44" y2="170" class="axis" />
+        <line x1="44" y1="170" x2="548" y2="170" class="axis" />
+        <text x="38" y="34" class="tick" text-anchor="end">high</text>
+        <text x="38" y="174" class="tick" text-anchor="end">0</text>
+        <path d="" class="area" style={`fill: url(#hatch-${kind})`} data-area />
+        <path d="" class="line" data-line />
+      </svg>
+      <p class="axis-x"><span>first pass</span><span>pass 300</span></p>
+    </figure>
+
+    {kind === 'wired' && (
+      <div class="loud">
+        <p class="sub">The five words pushing hardest toward <span class="u">urgent</span>, right now</p>
+        <ol class="top" data-loud><li class="empty">Nothing yet: every knob starts near zero.</li></ol>
+        <p class="key"><span class="ink">purple</span> = a word from the app line</p>
+        <div class="snap" data-snap-wrap hidden>
+          <p class="sub" data-snap-title></p>
+          <ol class="top" data-snap></ol>
+        </div>
+      </div>
+    )}
+  </div>
+
+  <div class="after" data-after hidden>
+    {kind === 'wired' ? (
+      <div class="score">
+        <p><strong>Training pile:</strong> <span data-train-score></span></p>
+        <p><strong>Day Shift:</strong> <span data-day></span></p>
+        <p class="compare" data-compare></p>
+        <p class="compare" data-sig-rank></p>
+      </div>
+    ) : (
+      <div class="scroll">
+        <table class="cmp">
+          <caption>Missed emergencies and needless alarms for the two Wicks</caption>
+          <thead><tr><th scope="col">Test set</th><th scope="col">Trained on the pile as it is</th><th scope="col">App line deleted</th></tr></thead>
+          <tbody data-cmp></tbody>
+        </table>
+      </div>
+    )}
+    {kind === 'clean' && (
+      <div class="actions">
+        <button type="button" class="btn primary" data-save>Put both Wicks on the Ward Board</button>
+        <span class="saved" data-saved aria-live="polite"></span>
+      </div>
+    )}
+  </div>
+</div>
+
+<script>
+  import { Trainer } from '@primer/ml-core';
+  import { scoreSet } from '@primer/ward-board';
+  import { NET, corpus, newTrainer, setNet, ensureNet, getNet, score, saveToBoard, trainingPile, type Kind } from './store.ts';
+  import { bySplit } from '../../../src/lib/corpus.ts';
+  import { TRAIN } from '../knobs/store.ts';
+
+  const ord = (n: number) => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
+  const SIG_WORDS = new Set(['sent', 'from', 'myriverside', 'health', 'app']);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const X0 = 44, X1 = 548, Y0 = 170, Y1 = 24;
+
+  document.querySelectorAll<HTMLElement>('[data-wire-panel]').forEach((root) => {
+    const kind = root.dataset.kind as Kind;
+    const btn = root.querySelector<HTMLButtonElement>('[data-train]')!;
+    const progress = root.querySelector<HTMLElement>('[data-progress]')!;
+    const q = <T extends Element = HTMLElement>(s: string) => root.querySelector<T>(s)!;
+    let yMax = 0.8;
+
+    function drawCurve(losses: number[]) {
+      if (!losses.length) return;
+      const pts = losses.map((l, i) => [X0 + ((X1 - X0) * i) / (NET.epochs - 1), Y0 - ((Y0 - Y1) * Math.min(l, yMax)) / yMax]);
+      const line = 'M' + pts.map((p) => p.map((v) => v.toFixed(1)).join(' ')).join(' L');
+      q('[data-line]').setAttribute('d', line);
+      q('[data-area]').setAttribute('d', `${line} L${pts.at(-1)![0].toFixed(1)} ${Y0} L${X0} ${Y0} Z`);
+    }
+
+    type Loud = { word: string; push: number }[];
+    const loudest = (net: import('@primer/ml-core').MLP): Loud => net.wordPushes().sort((a, b) => b.push - a.push).slice(0, 5);
+    const sigCount = (top: Loud) => top.filter((x) => SIG_WORDS.has(x.word)).length;
+
+    function drawLoud(top: Loud, sel = '[data-loud]') {
+      const ol = root.querySelector(sel);
+      if (!ol) return;
+      ol.replaceChildren(...top.map(({ word, push }) => {
+        const li = document.createElement('li');
+        if (SIG_WORDS.has(word)) li.className = 'sig';
+        li.innerHTML = '<span class="tw"></span><span class="tv"></span>';
+        li.querySelector('.tw')!.textContent = word;
+        li.querySelector('.tv')!.textContent = `+${push.toFixed(2)}`;
+        return li;
+      }));
+    }
+
+    corpus().then((c) => {
+      const day = bySplit(c, 'day'), night = bySplit(c, 'night'), twoAm = bySplit(c, 'two_am');
+      let running = false;
+
+      async function run() {
+        if (running) return;
+        running = true;
+        btn.setAttribute('aria-disabled', 'true');
+        const chart = q('.chart');
+        const r = chart.getBoundingClientRect();
+        if (r.top < 0 || r.bottom > innerHeight) chart.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+        q('[data-after]').hidden = true;
+        const t = newTrainer(c, kind);
+        const losses: number[] = [];
+        // The moment the app line was loudest, kept so the reader can see it after the fact.
+        let snap: { epoch: number; top: Loud } | null = null;
+        let frame = 0;
+        await new Promise<void>((done) => {
+          const tick = () => {
+            const t0 = performance.now();
+            frame++;
+            // The first passes go slowly (one every third frame), so the reader can watch which words Wick grabs
+            // first; after that, at most three passes a frame, so even a fast desktop shows the walk downhill.
+            const slow = !reduce && t.epoch < 60;
+            let k = 0;
+            while (t.epoch < NET.epochs && (reduce ? performance.now() - t0 < 30 : slow ? k < 1 && frame % 3 === 0 : k < 3 && performance.now() - t0 < 14)) {
+              losses.push(t.step());
+              k++;
+              if (kind === 'wired' && t.epoch <= 60) {
+                const top = loudest(t.net);
+                if (!snap || sigCount(top) > sigCount(snap.top)) snap = { epoch: t.epoch, top };
+              }
+            }
+            if (!losses.length) { requestAnimationFrame(tick); return; }
+            yMax = Math.max(0.1, Math.ceil(losses[0] * 10) / 10);
+            // With reduced motion, draw only the finished picture.
+            if (k && (!reduce || t.epoch === NET.epochs)) {
+              drawCurve(losses);
+              if (t.epoch >= 3 && kind === 'wired') drawLoud(loudest(t.net));
+            }
+            progress.textContent = `Pass ${t.epoch} of ${NET.epochs}`;
+            if (t.epoch < NET.epochs) requestAnimationFrame(tick);
+            else done();
+          };
+          requestAnimationFrame(tick);
+        });
+        const net = t.net;
+        setNet(kind, net);
+        progress.textContent = `Done: ${NET.epochs} passes over ${c.messages.filter((m) => m.split === 'train').length} messages.`;
+        q('[data-chart-desc]').textContent =
+          `Wrongness fell from ${losses[0].toFixed(2)} to ${losses.at(-1)!.toFixed(2)} over ${NET.epochs} passes.`;
+
+        if (kind === 'wired') {
+          const pile = trainingPile(c, 'wired');
+          const tr = score(pile, net);
+          q('[data-train-score]').textContent = `${tr.correct.toLocaleString('en-GB')} of ${tr.n.toLocaleString('en-GB')} right.`;
+          const s = score(day, net);
+          q('[data-day]').textContent =
+            `${Math.round(s.accuracy * 100)}% right, ${s.missedEmergencies} missed emergencies, ${s.unnecessaryEscalations} needless alarms.`;
+          const ranked = net.wordPushes().sort((a, b) => b.push - a.push).map((p) => p.word);
+          const rk = (w: string) => ranked.indexOf(w) + 1;
+          q('[data-sig-rank]').textContent =
+            `Where the app line's words ended up: "sent" ${ord(rk('sent'))}, "app" ${ord(rk('app'))}, "myriverside" ${ord(rk('myriverside'))} of ${ranked.length.toLocaleString('en-GB')}.`;
+          if (snap) {
+            q('[data-snap-title]').textContent = `And at pass ${snap.epoch}, when the app line was loudest:`;
+            drawLoud(snap.top, '[data-snap]');
+            q('[data-snap-wrap]').hidden = false;
+          }
+          q('[data-compare]').textContent = 'The Third Night\'s knobs, for comparison: working it out…';
+          setTimeout(() => {
+            const lr = new Trainer(pile, TRAIN);
+            for (let i = 0; i < TRAIN.epochs; i++) lr.step();
+            const m = lr.model();
+            const kt = scoreSet(pile, (x) => m.predict(x.text));
+            const kd = scoreSet(day, (x) => m.predict(x.text));
+            q('[data-compare]').textContent =
+              `The Third Night's knobs, for comparison: ${kt.correct.toLocaleString('en-GB')} of ${kt.n.toLocaleString('en-GB')} on the training pile; on the Day Shift ${Math.round(kd.accuracy * 100)}% right, ${kd.missedEmergencies} missed.`;
+          }, 30);
+        } else {
+          const wired = await ensureNet('wired');
+          const row = (name: string, set: typeof day) => {
+            const a = score(set, wired), b = score(set, net);
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<th scope="row"></th><td></td><td></td>';
+            tr.querySelector('th')!.textContent = name;
+            tr.querySelectorAll('td')[0].innerHTML = `${a.missedEmergencies} missed<br><small>${a.unnecessaryEscalations} needless alarms</small>`;
+            tr.querySelectorAll('td')[1].innerHTML = `${b.missedEmergencies} missed<br><small>${b.unnecessaryEscalations} needless alarms</small>`;
+            if (b.missedEmergencies < a.missedEmergencies) tr.querySelectorAll('td')[1].classList.add('better');
+            return tr;
+          };
+          q('[data-cmp]').replaceChildren(row('Day Shift', day), row('Night Shift', night), row('2 a.m. Set', twoAm));
+        }
+        q('[data-after]').hidden = false;
+        btn.removeAttribute('aria-disabled');
+        btn.textContent = 'Watch it again';
+        running = false;
+      }
+
+      btn.addEventListener('click', run);
+      root.querySelector('[data-save]')?.addEventListener('click', async () => {
+        const clean = getNet('clean');
+        if (!clean) return;
+        saveToBoard(c, await ensureNet('wired'), 'wired');
+        saveToBoard(c, clean, 'clean');
+        q('[data-saved]').textContent = 'Both on the board.';
+      });
+    }).catch((e) => (progress.textContent = e.message));
+  });
+</script>
+
+<style>
+  .controls { display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; align-items: center; margin-bottom: 1rem; }
+  .progress { color: var(--ink-soft); font-family: var(--font-mono); font-size: 0.85rem; }
+  .grid { display: grid; gap: 1.25rem; }
+  @media (min-width: 46rem) { .grid:has(.loud) { grid-template-columns: 3fr 2fr; align-items: start; } }
+  .chart { margin: 0; }
+  svg { width: 100%; height: auto; overflow: visible; }
+  .axis { stroke: var(--ink); stroke-width: 1; }
+  .tick { font-family: var(--font-ui); font-size: 22px; fill: var(--ink-soft); }
+  .chart-title { font-weight: 700; margin-bottom: 0.3rem; }
+  .axis-x { display: flex; justify-content: space-between; margin: 0.2rem 0 0 8%; color: var(--ink-soft); font-size: 0.8rem; }
+  .line { fill: none; stroke: var(--phosphor-ink); stroke-width: 2; }
+  .sub { margin: 0 0 0.4rem; font-weight: 700; }
+  .u { color: var(--alarm); }
+  .top { margin: 0; padding-left: 1.4rem; font-family: var(--font-mono); font-size: 0.9rem; min-height: 8.2rem; }
+  :global(.wire-panel .top li) { display: flex; justify-content: space-between; gap: 1rem; padding: 0.1rem 0.3rem; border-radius: 2px; }
+  :global(.wire-panel .top li.empty) { font-family: var(--font-ui); color: var(--ink-soft); font-size: 0.85rem; }
+  :global(.wire-panel .top li.sig) { color: var(--violet); background: var(--violet-wash); font-weight: 700; }
+  :global(.wire-panel .tv) { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  .snap { margin-top: 1rem; }
+  .snap .top { min-height: 0; }
+  .key { margin: 0.5rem 0 0; font-size: 0.8rem; color: var(--ink-soft); }
+  .ink { color: var(--violet); background: var(--violet-wash); font-family: var(--font-mono); font-weight: 700; padding: 0 0.3rem; }
+  .after { margin-top: 1.5rem; border-top: 1px solid var(--rule); padding-top: 1rem; }
+  .score p { margin: 0 0 0.3rem; }
+  .compare { color: var(--ink-soft); }
+  .scroll { overflow-x: auto; }
+  .cmp { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  .cmp caption { text-align: left; font-weight: 700; margin-bottom: 0.4rem; }
+  :global(.wire-panel .cmp th), :global(.wire-panel .cmp td) { text-align: left; padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  :global(.wire-panel .cmp small) { color: var(--ink-soft); font-size: 0.8rem; }
+  .cmp thead th { font-size: 0.8rem; color: var(--ink-soft); }
+  :global(.wire-panel .cmp td.better) { font-weight: 700; }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 1.25rem; }
+  .saved { color: var(--calm); font-weight: 700; }
+</style>

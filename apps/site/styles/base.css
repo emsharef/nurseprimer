@@ -117,3 +117,12 @@ blockquote p:last-child { margin-bottom: 0; }
     radial-gradient(farthest-side at 0 50%, rgb(0 0 0 / 0.18), transparent) left / 0.6rem 100% no-repeat scroll,
     radial-gradient(farthest-side at 100% 50%, rgb(0 0 0 / 0.18), transparent) right / 0.6rem 100% no-repeat scroll;
 }
+
+/* A sidebar: an aside from the story, set off like a note pinned beside the page. */
+aside.sidebar {
+  margin: 2.25rem 0; padding: 1rem 1.25rem; border: 1px solid var(--ink); border-radius: var(--radius-ui);
+  background: var(--paper-2); font-size: 0.95em;
+}
+aside.sidebar > :first-child { margin-top: 0; }
+aside.sidebar > :last-child { margin-bottom: 0; }
+aside.sidebar h2, aside.sidebar h3 { font-size: var(--step-1); margin-bottom: 0.5rem; }

@@ -1,0 +1,141 @@
+---
+// The Fourth Night's set piece: one line, every message. Delete the app line from every Day Shift message that
+// has it, or add it to every calm Night Shift message, and watch each message's urgency (Wick's confidence)
+// move. A dot per message, from its old position to its new one.
+---
+<div class="one-line" data-one-line>
+  <div class="modes" role="group" aria-label="What to do with the app line">
+    <button type="button" class="btn primary" data-mode="delete">Delete the line from the Day Shift</button>
+    <button type="button" class="btn" data-mode="add">Add the line to the Night Shift</button>
+  </div>
+  <p class="what" data-what aria-live="polite">Pick one.</p>
+
+  <figure class="chart">
+    <svg viewBox="0 0 560 250" role="img" aria-labelledby="ol-t ol-d">
+      <title id="ol-t">How sure Wick is that each message is urgent, before and after</title>
+      <desc id="ol-d" data-desc>No messages yet.</desc>
+      <defs>
+        <pattern id="ol-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="6" stroke="var(--alarm)" stroke-width="1" opacity="0.25" />
+        </pattern>
+      </defs>
+      <rect x="280" y="34" width="260" height="142" fill="url(#ol-hatch)" />
+      <line x1="280" y1="30" x2="280" y2="200" class="thresh" />
+      <text x="20" y="24" class="row-l" data-row-a>before</text>
+      <text x="540" y="24" class="row-r" text-anchor="end">urgent ▶</text>
+      <line x1="20" y1="55" x2="540" y2="55" class="rail" />
+      <line x1="20" y1="155" x2="540" y2="155" class="rail" />
+      <text x="20" y="192" class="row-l" data-row-b>after</text>
+      <text x="20" y="232" class="ax">0%</text>
+      <text x="280" y="232" class="ax" text-anchor="middle">50%</text>
+      <text x="540" y="232" class="ax" text-anchor="end">100%</text>
+      <text x="280" y="250" class="ax small" text-anchor="middle">how sure Wick is that the message is urgent</text>
+      <g data-links></g>
+      <g data-dots></g>
+    </svg>
+    <p class="legend"><span><span class="dot u"></span>Bea: urgent</span><span><span class="dot c"></span>Bea: can wait</span></p>
+  </figure>
+
+  <div class="scroll">
+    <table class="tally" data-tally hidden>
+      <thead><tr><th scope="col" data-set-name></th><th scope="col">Before</th><th scope="col">After</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Missed emergencies</th><td data-m0></td><td data-m1></td></tr>
+        <tr><th scope="row">Needless alarms</th><td data-a0></td><td data-a1></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  import { corpus, ensureNet, score, hasLine, stripLine, addLine } from './store.ts';
+  import { bySplit } from '../../../src/lib/corpus.ts';
+
+  const root = document.querySelector<HTMLElement>('[data-one-line]')!;
+  const NS = 'http://www.w3.org/2000/svg';
+  const X = (p: number) => 20 + p * 520;
+  const q = (s: string) => root.querySelector<HTMLElement>(s)!;
+
+  corpus().then(async (c) => {
+    const net = await ensureNet('wired');
+    const day = bySplit(c, 'day'), night = bySplit(c, 'night');
+
+    function show(mode: 'delete' | 'add') {
+      root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => {
+        b.classList.toggle('primary', b.dataset.mode === mode);
+        b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
+      });
+      const set = mode === 'delete' ? day : night;
+      const change = mode === 'delete' ? stripLine : addLine;
+      const moved = mode === 'delete' ? day.filter((m) => hasLine(m.text)) : night.filter((m) => m.label === 'can_wait');
+      const after = set.map((m) => ({ ...m, text: change(m.text) }));
+      const s0 = score(set, net), s1 = score(after, net);
+
+      q('[data-row-a]').textContent = mode === 'delete' ? 'with the line' : 'as written';
+      q('[data-row-b]').textContent = mode === 'delete' ? 'line deleted' : 'line added';
+      const links = q('[data-links]'), dots = q('[data-dots]');
+      links.replaceChildren(); dots.replaceChildren();
+      let crossed = 0;
+      moved.forEach((m, i) => {
+        const a = net.pUrgent(m.text), b = net.pUrgent(change(m.text));
+        if ((a >= 0.5) !== (b >= 0.5)) crossed++;
+        const cls = m.label === 'urgent' ? 'u' : 'c';
+        const jitter = ((i * 37) % 17) - 8;
+        const l = document.createElementNS(NS, 'line');
+        l.setAttribute('x1', X(a).toFixed(1)); l.setAttribute('y1', String(55 + jitter * 0.6));
+        l.setAttribute('x2', X(b).toFixed(1)); l.setAttribute('y2', String(155 + jitter * 0.6));
+        l.setAttribute('class', `link ${cls}${(a >= 0.5) !== (b >= 0.5) ? ' cross' : ''}`);
+        links.append(l);
+        const d = document.createElementNS(NS, 'circle');
+        d.setAttribute('cx', X(a).toFixed(1)); d.setAttribute('cy', String(55 + jitter * 0.6)); d.setAttribute('r', '5.5');
+        d.setAttribute('class', `pt ${cls}`);
+        dots.append(d);
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          d.style.transform = `translate(${(X(b) - X(a)).toFixed(1)}px, 100px)`;
+          l.classList.add('on');
+        }));
+      });
+      const name = mode === 'delete' ? 'Day Shift' : 'Night Shift';
+      q('[data-what]').textContent = mode === 'delete'
+        ? `The ${moved.length} Day Shift messages that came through the Riverside app, with and without their last line. ${crossed} cross Wick's line.`
+        : `The ${moved.length} calm Night Shift messages, as written and with the app line added to the bottom. ${crossed} cross Wick's line.`;
+      q('[data-desc]').textContent = `${q('[data-what]').textContent} ${name}: missed emergencies ${s0.missedEmergencies} before, ${s1.missedEmergencies} after; needless alarms ${s0.unnecessaryEscalations} before, ${s1.unnecessaryEscalations} after.`;
+      q('[data-set-name]').textContent = name;
+      q('[data-m0]').textContent = String(s0.missedEmergencies);
+      q('[data-m1]').textContent = String(s1.missedEmergencies);
+      q('[data-a0]').textContent = String(s0.unnecessaryEscalations);
+      q('[data-a1]').textContent = String(s1.unnecessaryEscalations);
+      q('[data-tally]').hidden = false;
+    }
+    root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => b.addEventListener('click', () => show(b.dataset.mode as 'delete' | 'add')));
+  }).catch((e) => (q('[data-what]').textContent = e.message));
+</script>
+
+<style>
+  .modes { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+  .what { margin: 0.8rem 0 0.5rem; }
+  .chart { margin: 0; }
+  svg { width: 100%; max-width: 38rem; height: auto; overflow: visible; display: block; margin-inline: auto; }
+  .thresh { stroke: var(--ink); stroke-width: 1.2; stroke-dasharray: 4 3; }
+  .rail { stroke: var(--rule); stroke-width: 1; }
+  .row-l { font-family: var(--font-ui); font-size: 21px; font-weight: 700; fill: var(--ink); }
+  .row-r { font-family: var(--font-ui); font-size: 20px; fill: var(--alarm); }
+  .ax { font-family: var(--font-ui); font-size: 20px; fill: var(--ink-soft); }
+  .ax.small { font-size: 17px; }
+  :global(.one-line .link) { stroke-width: 0.8; opacity: 0; transition: opacity 600ms 300ms; }
+  :global(.one-line .link.on) { opacity: 0.35; }
+  :global(.one-line .link.cross.on) { opacity: 0.9; stroke-width: 1.4; }
+  :global(.one-line .link.u) { stroke: var(--alarm); }
+  :global(.one-line .link.c) { stroke: var(--calm); }
+  :global(.one-line .pt) { stroke: var(--card); stroke-width: 1; transition: transform 1100ms cubic-bezier(.4, 0, .2, 1); }
+  :global(.one-line .pt.u) { fill: var(--alarm); }
+  :global(.one-line .pt.c) { fill: var(--calm); }
+  .legend { display: flex; gap: 1rem; justify-content: center; margin: 0.3rem 0 0; font-size: 0.8rem; color: var(--ink-soft); }
+  .dot { display: inline-block; width: 0.6rem; height: 0.6rem; border-radius: 50%; margin-right: 0.3rem; vertical-align: middle; }
+  .dot.u { background: var(--alarm); }
+  .dot.c { background: var(--calm); }
+  .scroll { overflow-x: auto; margin-top: 0.8rem; }
+  .tally { border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 16rem; }
+  .tally th, .tally td { text-align: left; padding: 0.4rem 0.8rem 0.4rem 0; border-bottom: 1px solid var(--rule); }
+  .tally td { font-weight: 700; }
+</style>

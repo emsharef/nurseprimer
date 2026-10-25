@@ -2,3 +2,4 @@
 // with no ML library, so every number can be shown.
 export * from './text.ts';
 export * from './bow.ts';
+export * from './mlp.ts';

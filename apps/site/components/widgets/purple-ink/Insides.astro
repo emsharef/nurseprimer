@@ -1,0 +1,165 @@
+---
+// The Fourth Night: Wick opened up. One message slip, Wick's eight listeners (hidden units) and what each one
+// tells Wick about it, and a button that strikes the app line off the slip so the reader can watch what changes.
+interface Props { presets: { label: string; id: string }[] }
+const { presets } = Astro.props;
+---
+<div class="insides" data-insides data-presets={JSON.stringify(presets)}>
+  <div class="presets" role="group" aria-label="Choose a message slip">
+    {presets.map((p, i) => <button type="button" class="chip-btn" data-preset={p.id} aria-pressed={i === 0 ? 'true' : 'false'}>{p.label}</button>)}
+  </div>
+
+  <div class="slip" data-slip aria-live="polite">
+    <p class="slip-text" data-slip-text>Loading the slip…</p>
+    <p class="slip-line" data-slip-line></p>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn primary" data-strike aria-pressed="false">Strike out the app line</button>
+  </div>
+
+  <div class="verdict" aria-live="polite">
+    <span class="face" data-face></span>
+    <div>
+      <p class="v-text" data-verdict></p>
+      <p class="v-sub" data-sub></p>
+    </div>
+  </div>
+
+  <p class="l-title">Wick's eight listeners: what each one tells Wick about this slip</p>
+  <ul class="listeners" data-listeners></ul>
+  <p class="l-key"><span class="c">◀ can wait</span><span class="ghost-key" data-ghost-key hidden><span class="tick-sw"></span> with the line</span><span class="u">urgent ▶</span></p>
+</div>
+
+<script>
+  import { corpus, ensureNet, hasLine, stripLine, SIGNATURE } from './store.ts';
+  import { wickFace, verdictText } from '../wick.ts';
+  import type { MLP } from '@primer/ml-core';
+
+  const root = document.querySelector<HTMLElement>('[data-insides]')!;
+  const presets: { label: string; id: string }[] = JSON.parse(root.dataset.presets!);
+  const strikeBtn = root.querySelector<HTMLButtonElement>('[data-strike]')!;
+  let text = '';
+  let struck = false;
+
+  function listensFor(net: MLP, j: number): string {
+    const V = net.vocab.length, s = Math.sign(net.v[j]);
+    const idx = Array.from({ length: V }, (_, i) => i).sort((a, b) => s * net.U[j * V + b] - s * net.U[j * V + a]);
+    return idx.slice(0, 3).map((i) => net.vocab[i]).join(', ');
+  }
+
+  function contributions(net: MLP, t: string): number[] {
+    const h = net.hiddenOf(net.ids(t));
+    return Array.from(h, (x, j) => net.v[j] * x);
+  }
+
+  corpus().then(async (c) => {
+    const net = await ensureNet('wired');
+    const byId = new Map(c.messages.map((m) => [m.id, m]));
+    const vmax = Math.max(...Array.from(net.v, Math.abs));
+    const list = root.querySelector('[data-listeners]')!;
+    list.replaceChildren(...Array.from({ length: net.hidden }, (_, j) => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="who"><strong>${j + 1}</strong> <small>perks up at: <span class="lw"></span></small></span>
+        <span class="track"><span class="mid"></span><span class="fill" data-fill="${j}"></span><span class="ghost" data-ghost="${j}" hidden></span></span>
+        <span class="num" data-num="${j}"></span>`;
+      li.querySelector('.lw')!.textContent = listensFor(net, j);
+      return li;
+    }));
+
+    const pos = (x: number) => 50 + (x / vmax) * 50;
+    function render() {
+      const shown = struck ? stripLine(text) : text;
+      const body = stripLine(text);
+      root.querySelector('[data-slip-text]')!.textContent = body || '(nothing but the app line)';
+      const lineEl = root.querySelector<HTMLElement>('[data-slip-line]')!;
+      lineEl.hidden = !hasLine(text);
+      lineEl.textContent = SIGNATURE;
+      lineEl.classList.toggle('struck', struck);
+      strikeBtn.disabled = !hasLine(text);
+      strikeBtn.setAttribute('aria-pressed', String(struck));
+      strikeBtn.textContent = struck ? 'Put the line back' : 'Strike out the app line';
+
+      const p = net.pUrgent(shown), label = p >= 0.5 ? 'urgent' : 'can_wait';
+      const p0 = net.pUrgent(text);
+      root.querySelector('[data-face]')!.innerHTML = wickFace(label, 52);
+      root.querySelector('[data-verdict]')!.textContent = `Wick says: ${verdictText(label)} (${Math.round(p * 100)}% sure it's urgent).`;
+      root.querySelector('[data-sub]')!.textContent = struck
+        ? `With the app line it said ${verdictText(p0 >= 0.5 ? 'urgent' : 'can_wait').toLowerCase()}, ${Math.round(p0 * 100)}%. Nothing about the child has changed.`
+        : hasLine(text) ? 'Strike out the last line and see what Wick says.' : '';
+
+      const now = contributions(net, shown), before = contributions(net, text);
+      now.forEach((x, j) => {
+        const f = root.querySelector<HTMLElement>(`[data-fill="${j}"]`)!;
+        const a = pos(x);
+        f.style.left = `${Math.min(50, a)}%`;
+        f.style.width = `${Math.abs(a - 50)}%`;
+        f.className = `fill ${x >= 0 ? 'u' : 'c'}`;
+        root.querySelector(`[data-num="${j}"]`)!.textContent = (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(1);
+        const g = root.querySelector<HTMLElement>(`[data-ghost="${j}"]`)!;
+        g.hidden = !struck;
+        g.style.left = `${pos(before[j])}%`;
+      });
+      root.querySelector<HTMLElement>('[data-ghost-key]')!.hidden = !struck;
+    }
+
+    function choose(id: string) {
+      text = id === 'line-only' ? SIGNATURE : byId.get(id)!.text;
+      struck = false;
+      root.querySelectorAll('[data-preset]').forEach((b) => b.setAttribute('aria-pressed', String((b as HTMLElement).dataset.preset === id)));
+      render();
+    }
+    root.querySelectorAll<HTMLButtonElement>('[data-preset]').forEach((b) => b.addEventListener('click', () => choose(b.dataset.preset!)));
+    strikeBtn.addEventListener('click', () => { struck = !struck; render(); });
+    choose(presets[0].id);
+  }).catch((e) => (root.querySelector('[data-slip-text]')!.textContent = e.message));
+</script>
+
+<style>
+  .presets { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.9rem; }
+  .chip-btn {
+    border: 1px solid var(--ink); background: var(--paper); color: var(--ink); border-radius: 999px; padding: 0.3rem 0.8rem;
+    cursor: pointer; min-height: 2.75rem; font-size: var(--step--1); font-family: var(--font-ui);
+  }
+  .chip-btn:hover { background: var(--gold-wash); }
+  .chip-btn[aria-pressed='true'] { background: var(--gold-wash); border-color: var(--gold-ink); font-weight: 700; }
+  .slip {
+    background: var(--paper); border: 1px solid var(--rule); border-radius: var(--radius-ui);
+    padding: 0.8rem 1rem; box-shadow: 0 1px 0 var(--rule);
+  }
+  .slip-text { margin: 0; font-family: var(--font-read); font-size: 0.95rem; white-space: pre-line; }
+  .slip-line {
+    margin: 0.7rem 0 0; display: inline-block; font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700;
+    color: var(--violet); background: var(--violet-wash); border: 1.5px solid var(--violet); border-radius: 3px;
+    padding: 0.1rem 0.45rem; transform: rotate(-1deg);
+  }
+  :global(.insides .slip-line.struck) { text-decoration: line-through 2.5px; opacity: 0.45; }
+  .slip-line[hidden] { display: none; }
+  .actions { margin: 0.8rem 0 1rem; }
+  .verdict { display: flex; gap: 0.9rem; align-items: center; margin-bottom: 1rem; }
+  .face { flex: none; display: inline-flex; }
+  .v-text { margin: 0; font-weight: 700; font-size: var(--step-0); }
+  .v-sub { margin: 0.1rem 0 0; color: var(--ink-soft); }
+  .v-sub:empty { display: none; }
+  .l-title { font-weight: 700; margin: 0 0 0.5rem; }
+  .listeners { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.45rem; }
+  :global(.insides .listeners li) { display: grid; grid-template-columns: minmax(0, 15rem) 1fr 2.4rem; gap: 0.6rem; align-items: center; }
+  @media (max-width: 30rem) {
+    :global(.insides .listeners li) { grid-template-columns: 1fr 2.4rem; }
+    :global(.insides .listeners .who) { grid-column: 1 / -1; }
+  }
+  :global(.insides .who) { font-size: 0.85rem; line-height: 1.2; }
+  :global(.insides .who small) { color: var(--ink-soft); font-size: 0.78rem; }
+  :global(.insides .lw) { font-family: var(--font-mono); }
+  :global(.insides .track) { position: relative; height: 0.8rem; background: var(--paper-2); border-radius: 2px; }
+  :global(.insides .mid) { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--ink); }
+  :global(.insides .fill) { position: absolute; top: 0; bottom: 0; border-radius: 2px; transition: left 300ms, width 300ms; }
+  :global(.insides .fill.u) { background: var(--alarm); }
+  :global(.insides .fill.c) { background: var(--calm); }
+  :global(.insides .ghost) { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1.5px; background: var(--violet); }
+  :global(.insides .num) { font-variant-numeric: tabular-nums; text-align: right; color: var(--ink-soft); font-size: 0.8rem; }
+  .l-key { display: flex; justify-content: space-between; gap: 0.5rem; margin: 0.5rem 0 0; font-size: 0.8rem; flex-wrap: wrap; }
+  .l-key .c { color: var(--calm); }
+  .l-key .u { color: var(--alarm); }
+  .ghost-key { color: var(--ink-soft); }
+  .tick-sw { display: inline-block; width: 3px; height: 0.9rem; background: var(--violet); vertical-align: middle; margin-right: 0.3rem; }
+</style>

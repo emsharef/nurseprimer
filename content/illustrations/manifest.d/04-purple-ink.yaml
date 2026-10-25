@@ -1,0 +1,26 @@
+# The Fourth Night: The Purple Ink
+images:
+  - id: ch04-opener
+    aspect: '16:9'
+    refs: [sheet-you, sheet-bea, sheet-wick]
+    alt: Under the desk lamp, Wick's chest panel hangs open on a hinge, showing a tangle of fine copper wires behind the row of brass knobs. You lean in with a soldering iron, a thin curl of smoke rising; Bea watches over your shoulder, mug in hand.
+    prompt: >
+      Night scene at the nurses' desk under a warm desk lamp. The little clockwork owl sits on the desk with
+      the brass panel of its chest swung open on a tiny hinge, like a pocket-watch case. Behind the row of
+      small brass knobs is a dense, delicate tangle of very fine copper and silver wires, criss-crossing between
+      the knobs and a second, smaller row of brass studs deeper inside, catching the lamplight. The young nurse
+      leans in close with a slim soldering iron, a thin curl of smoke rising, a magnifying lamp on an arm beside
+      them, a spool of fine wire on the desk. The charge nurse stands just behind, looking over their shoulder
+      with a mug, intent and a little sceptical. The owl's eyes glow faint teal. Dark blue corridor behind.
+
+  - id: ch04-ink
+    aspect: '3:2'
+    refs: [sheet-wick]
+    alt: Wick sits among a drift of paper message slips. At the foot of many of the slips is the same small stamp in purple ink, and Wick's eyes are fixed on the stamps, not on the writing.
+    prompt: >
+      The little clockwork owl alone on the desk late at night, surrounded by a loose drift of small paper
+      message slips covered in faint, illegible handwriting lines (scribble only, no readable letters). At
+      the bottom of many of the slips is the same small round stamp in vivid violet-purple ink, a simple
+      abstract emblem like a tiny wax seal or postmark with no letters or numbers. The owl leans over the
+      slips, its glowing teal eyes fixed on the purple stamps rather than the writing. Quiet, slightly comic,
+      a touch uncanny. Warm lamplight, deep blue shadows.
