@@ -46,5 +46,13 @@
  "ch03-training": {
   "alt": "Wick sits alone on the desk while the knobs on its chest turn by themselves, a long strip of paper tape pouring out.",
   "aspect": "3:2"
+ },
+ "ch04-opener": {
+  "alt": "Under the desk lamp, Wick's chest panel hangs open on a hinge, showing a tangle of fine copper wires behind the row of brass knobs. You lean in with a soldering iron, a thin curl of smoke rising; Bea watches over your shoulder, mug in hand.",
+  "aspect": "16:9"
+ },
+ "ch04-ink": {
+  "alt": "Wick sits among a drift of paper message slips. At the foot of many of the slips is the same small stamp in purple ink, and Wick's eyes are fixed on the stamps, not on the writing.",
+  "aspect": "3:2"
  }
 }

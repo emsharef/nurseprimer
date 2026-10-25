@@ -4,3 +4,4 @@ export * from './text.ts';
 export * from './bow.ts';
 export * from './tape.ts';
 export * from './rules.ts';
+export * from './mlp.ts';

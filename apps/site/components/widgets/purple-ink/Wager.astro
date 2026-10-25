@@ -1,0 +1,181 @@
+---
+// The Night Shift wager: the reader sets a brass dial to how many Night Shift emergencies they think Wick with
+// wires will miss, locks it in, and then watches Wick read the Night Shift while a red needle counts its misses.
+const CX = 160, CY = 160, R = 128, MAX = 60;
+const ang = (v: number) => Math.PI * (1 - v / MAX);
+const pt = (v: number, r: number) => [CX + r * Math.cos(ang(v)), CY - r * Math.sin(ang(v))];
+const ticks = Array.from({ length: MAX / 5 + 1 }, (_, i) => i * 5);
+---
+<div class="wager" data-wager data-max={MAX}>
+  <div class="dial-wrap">
+    <svg viewBox="0 0 320 196" class="dial" role="img" aria-labelledby="dial-t dial-d" data-dial>
+      <title id="dial-t">The brass dial</title>
+      <desc id="dial-d" data-dial-desc>A dial from 0 to 60 missed emergencies. A mark at 14 shows Wick's Day Shift misses.</desc>
+      <defs>
+        <pattern id="dial-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="5" stroke="var(--gold-ink)" stroke-width="1" opacity="0.35" />
+        </pattern>
+      </defs>
+      <path d={`M${CX - R - 16} ${CY} A ${R + 16} ${R + 16} 0 0 1 ${CX + R + 16} ${CY} Z`} class="face" />
+      <path d={`M${CX - R - 16} ${CY} A ${R + 16} ${R + 16} 0 0 1 ${CX + R + 16} ${CY} Z`} fill="url(#dial-hatch)" />
+      <path d={`M${CX - R} ${CY} A ${R} ${R} 0 0 1 ${CX + R} ${CY}`} class="arc" />
+      {ticks.map((v) => {
+        const [x1, y1] = pt(v, R); const [x2, y2] = pt(v, v % 10 ? R - 7 : R - 13); const [tx, ty] = pt(v, R - 26);
+        return <g><line x1={x1} y1={y1} x2={x2} y2={y2} class="tick" />{v % 10 === 0 && <text x={tx} y={ty + (v === 0 || v === MAX ? -4 : 6)} class="num" text-anchor="middle">{v}</text>}</g>;
+      })}
+      <g data-day-mark>
+        <line x1={pt(14, R + 3)[0]} y1={pt(14, R + 3)[1]} x2={pt(14, R + 15)[0]} y2={pt(14, R + 15)[1]} class="day-mark" />
+      </g>
+      <line x1={CX} y1={CY} x2={CX} y2={CY - R + 18} class="needle actual" data-actual style="display: none" />
+      <line x1={CX} y1={CY} x2={CX} y2={CY - R + 10} class="needle guess" data-guess />
+      <circle cx={CX} cy={CY} r="9" class="hub" />
+    </svg>
+    <p class="legend">
+      <span><span class="sw day"></span>Day Shift: 14 missed</span>
+      <span><span class="sw guess"></span>your wager</span>
+      <span data-actual-key hidden><span class="sw actual"></span>Night Shift, for real</span>
+    </p>
+  </div>
+
+  <div class="set">
+    <label for="wager-range">Your wager: how many of the Night Shift's 133 emergencies will Wick miss?</label>
+    <div class="row">
+      <input id="wager-range" type="range" min="0" max={MAX} step="1" value="10" data-range />
+      <output for="wager-range" class="val" data-val>10</output>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn primary" data-lock>Lock in my wager</button>
+      <span class="status" data-status aria-live="polite"></span>
+    </div>
+  </div>
+
+  <div class="after" data-after hidden>
+    <p class="big" data-result></p>
+    <p data-remark></p>
+    <div class="actions">
+      <button type="button" class="btn" data-save>Put Wick with wires on the Ward Board</button>
+      <span class="saved" data-saved aria-live="polite"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { corpus, ensureNet, saveToBoard } from './store.ts';
+  import { bySplit } from '../../../src/lib/corpus.ts';
+
+  const root = document.querySelector<HTMLElement>('[data-wager]')!;
+  const MAX = Number(root.dataset.max);
+  const CX = 160, CY = 160;
+  const range = root.querySelector<HTMLInputElement>('[data-range]')!;
+  const val = root.querySelector<HTMLOutputElement>('[data-val]')!;
+  const guess = root.querySelector<SVGLineElement>('[data-guess]')!;
+  const actual = root.querySelector<SVGLineElement>('[data-actual]')!;
+  const status = root.querySelector<HTMLElement>('[data-status]')!;
+  const lockBtn = root.querySelector<HTMLButtonElement>('[data-lock]')!;
+  const dial = root.querySelector<SVGSVGElement>('[data-dial]')!;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let locked = false;
+
+  const rot = (v: number) => `rotate(${-90 + (180 * v) / MAX} ${CX} ${CY})`;
+  function setGuess(v: number) {
+    range.value = String(v);
+    val.textContent = String(v);
+    guess.setAttribute('transform', rot(v));
+  }
+  setGuess(Number(range.value));
+  range.addEventListener('input', () => setGuess(Number(range.value)));
+
+  // Drag the needle on the dial itself (the range input is the keyboard and screen-reader control).
+  function fromPointer(e: PointerEvent) {
+    const r = dial.getBoundingClientRect();
+    const x = ((e.clientX - r.left) / r.width) * 320 - CX;
+    const y = CY - ((e.clientY - r.top) / r.height) * 196;
+    const a = Math.atan2(Math.max(y, 0), x);
+    setGuess(Math.round(MAX * (1 - a / Math.PI)));
+  }
+  let dragging = false;
+  dial.addEventListener('pointerdown', (e) => { if (locked) return; dragging = true; dial.setPointerCapture(e.pointerId); fromPointer(e); });
+  dial.addEventListener('pointermove', (e) => { if (dragging) fromPointer(e); });
+  dial.addEventListener('pointerup', () => (dragging = false));
+  dial.addEventListener('pointercancel', () => (dragging = false));
+
+  lockBtn.addEventListener('click', async () => {
+    if (locked) return;
+    locked = true;
+    const g = Number(range.value);
+    range.disabled = true;
+    lockBtn.disabled = true;
+    root.classList.add('locked');
+    status.textContent = 'Locked in. Bea opens the Night Shift envelope…';
+    const c = await corpus();
+    const net = await ensureNet('wired');
+    const night = bySplit(c, 'night');
+    const urgent = night.filter((m) => m.label === 'urgent').length;
+    actual.style.display = "";
+    root.querySelector<HTMLElement>('[data-actual-key]')!.hidden = false;
+    let missed = 0, right = 0, i = 0;
+    await new Promise<void>((done) => {
+      const per = reduce ? night.length : Math.ceil(night.length / 90);
+      const tick = () => {
+        for (let k = 0; k < per && i < night.length; k++, i++) {
+          const m = night[i];
+          const p = net.predict(m.text).label;
+          if (p === m.label) right++;
+          else if (m.label === 'urgent') missed++;
+        }
+        actual.setAttribute('transform', rot(Math.min(missed, MAX)));
+        status.textContent = `Wick has read ${i} of ${night.length} messages. Missed so far: ${missed}.`;
+        if (i < night.length) requestAnimationFrame(tick);
+        else done();
+      };
+      requestAnimationFrame(tick);
+    });
+    status.textContent = '';
+    root.querySelector('[data-dial-desc]')!.textContent =
+      `The dial shows your wager of ${g} and Wick's real Night Shift misses, ${missed}, against its Day Shift misses, 14.`;
+    root.querySelector('[data-result]')!.textContent =
+      `Wick missed ${missed} of the Night Shift's ${urgent} emergencies. You wagered ${g}.`;
+    const diff = missed - g;
+    root.querySelector('[data-remark]')!.textContent =
+      Math.abs(diff) <= 3 ? `Close. You didn't trust its Day Shift score, and you were right not to. It still got ${Math.round((right / night.length) * 100)}% of the messages right overall.`
+      : diff > 0 ? `You trusted it more than it deserved. On the Day Shift it missed 14; here, nearly twice as many, though it still got ${Math.round((right / night.length) * 100)}% of the messages right overall.`
+      : `You expected worse. It missed nearly twice as many as on the Day Shift, but it still got ${Math.round((right / night.length) * 100)}% of the messages right overall.`;
+    root.querySelector<HTMLElement>('[data-after]')!.hidden = false;
+    root.querySelector('[data-save]')!.addEventListener('click', () => {
+      saveToBoard(c, net, 'wired');
+      root.querySelector('[data-saved]')!.textContent = 'On the board.';
+    });
+  });
+</script>
+
+<style>
+  .wager { display: grid; gap: 1.25rem; }
+  @media (min-width: 46rem) { .wager { grid-template-columns: 1fr 1fr; align-items: center; } .after { grid-column: 1 / -1; } }
+  .dial-wrap { max-width: 26rem; width: 100%; margin-inline: auto; }
+  .dial { width: 100%; height: auto; touch-action: none; cursor: grab; display: block; }
+  .locked .dial { cursor: default; }
+  .face { fill: var(--gold-wash); stroke: var(--ink); stroke-width: 1.5; }
+  .arc { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+  .tick { stroke: var(--ink); stroke-width: 1.4; }
+  .num { font-family: var(--font-ui); font-size: 15px; fill: var(--ink); font-variant-numeric: tabular-nums; }
+  .day-mark { stroke: var(--ink-soft); stroke-width: 5; }
+  .needle { stroke-linecap: round; transition: transform 120ms; }
+  .needle.guess { stroke: var(--gold-ink); stroke-width: 5; }
+  .needle.actual { stroke: var(--alarm); stroke-width: 3.5; stroke-dasharray: 8 4; transition: none; }
+  .hub { fill: var(--gold); stroke: var(--ink); stroke-width: 1.5; }
+  .legend { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; justify-content: center; margin: 0.4rem 0 0; font-size: 0.8rem; color: var(--ink-soft); }
+  .sw { display: inline-block; width: 1.1rem; height: 0.3rem; margin-right: 0.35rem; vertical-align: middle; border-radius: 2px; }
+  .sw.day { background: var(--ink-soft); }
+  .sw.guess { background: var(--gold-ink); }
+  .sw.actual { background: repeating-linear-gradient(90deg, var(--alarm) 0 6px, transparent 6px 9px); }
+  label { display: block; font-weight: 700; margin-bottom: 0.4rem; }
+  .row { display: flex; gap: 0.8rem; align-items: center; }
+  input[type='range'] { flex: 1; min-height: 2.75rem; accent-color: var(--gold-ink); margin: 0; }
+  .val { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; min-width: 2.5ch; text-align: right; color: var(--gold-ink); }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 0.9rem; }
+  .status { color: var(--ink-soft); font-family: var(--font-mono); font-size: 0.85rem; }
+  .after { border-top: 1px solid var(--rule); padding-top: 1rem; }
+  .after p { margin: 0 0 0.4rem; }
+  .big { font-weight: 700; font-size: var(--step-0); }
+  .saved { color: var(--calm); font-weight: 700; }
+</style>

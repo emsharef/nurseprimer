@@ -37,3 +37,18 @@ references:
         writes, erases, moves one square left or right. §6 (pp. 241-242): "It is possible to invent a single
         machine which can be used to compute any computable sequence", given a tape on the beginning of which is
         written the standard description of another machine.
+  rumelhart1986:
+    authors: Rumelhart, D. E.; Hinton, G. E.; Williams, R. J.
+    year: 1986
+    title: Learning representations by back-propagating errors
+    venue: Nature 323(6088), 533-536
+    doi: 10.1038/323533a0
+    verified: { by: Crossref metadata lookup (Claude), on: 2026-10-25, scope: metadata }
+  geirhos2020:
+    authors: Geirhos, R.; Jacobsen, J.-H.; Michaelis, C.; Zemel, R.; Brendel, W.; Bethge, M.; Wichmann, F. A.
+    year: 2020
+    title: Shortcut learning in deep neural networks
+    venue: Nature Machine Intelligence 2(11), 665-673
+    doi: 10.1038/s42256-020-00257-z
+    url: https://arxiv.org/abs/2004.07780
+    verified: { by: Claude (arXiv abstract and Crossref), on: 2026-10-25, scope: claim }

@@ -21,7 +21,9 @@
   --phosphor-ink: #0b6b60;  /* machine text, AA on paper-2 */
   --phosphor-wash: #d5ece6;
   --focus: #2457c5;
-  --plate: transparent;     /* behind illustrations; a lit page on night pages */
+  --violet: #6a3d9a;        /* Bea's purple ink: only for marking the app line on the Fourth Night */
+  --violet-wash: #ece2f5;
+  --plate: transparent;    /* behind illustrations; a lit page on night pages */
 
   --font-display: 'Bodoni Moda Variable', 'Didot', 'Bodoni 72', Georgia, serif;
   --font-read: 'Literata Variable', 'Iowan Old Style', Georgia, serif;
@@ -64,6 +66,8 @@
     --phosphor-ink: #6be8d5;
     --phosphor-wash: #12363a;
     --focus: #9cc2ff;
+    --violet: #c9a6f0;
+    --violet-wash: #2e2445;
     --plate: #f3ecdd;
     color-scheme: dark;
   }
@@ -87,6 +91,8 @@
   --phosphor-ink: #6be8d5;
   --phosphor-wash: #12363a;
   --focus: #9cc2ff;
+  --violet: #c9a6f0;
+  --violet-wash: #2e2445;
   --plate: #f3ecdd;
   color-scheme: dark;
 }

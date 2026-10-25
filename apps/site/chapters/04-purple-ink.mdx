@@ -1,0 +1,248 @@
+---
+number: 4
+title: The Purple Ink
+lesson: A machine can be right for the wrong reason
+summary: Wick gets a tangle of wires and a perfect score on everything it has seen. You wager on the Night Shift, open Wick up, and find what it was really reading.
+plate: ch04-opener
+review:
+  prose: ai-draft
+  medical: unreviewed
+---
+
+import WirePanel from '../components/widgets/purple-ink/WirePanel.astro';
+import Wager from '../components/widgets/purple-ink/Wager.astro';
+import Insides from '../components/widgets/purple-ink/Insides.astro';
+import OneLine from '../components/widgets/purple-ink/OneLine.astro';
+
+Bea does the monthly audit in purple ink, and she has been at last night's printout with the same pen. Three words
+on Wick's list are circled: *sent*, *app*, *myriverside*. In the margin, in small careful capitals: WHICH CHILD?
+
+She doesn't mention it. She sets a reel of fine copper wire and a soldering iron down next to Wick, and the box
+from the old radio, and says, "Second row of knobs. Go on."
+
+## A row that listens to the first
+
+Last night every word had a knob, and Wick added up the pushes. Tonight you build something in between.
+
+Inside Wick's chest, behind the knobs, you fit eight little brass listeners. Each listener has a knob of its own for
+every word, so each can care about different words from its neighbours. It adds up its own pushes, like the old
+Wick did, but it can only say so much: however many of its words turn up, its answer stays between "not at all" and
+"very much". Then Wick's last row of knobs, one per listener, decides how far to trust each one, and that sum is the
+verdict.
+
+That's the trick of the second row. A listener can learn to perk up only when two words turn up together, or when one
+turns up without the other, which no single row of knobs can do. It's still a bag of words: nothing in here can see
+which word comes first.
+
+Eight listeners, each wired to all 1,903 words, plus their own knobs: about fifteen thousand knobs, where last night
+there were two thousand. By four in the morning there is a tangle of copper in Wick's chest that you would not like
+to explain to Estates.
+
+Training works the way it did last night: measure the wrongness, nudge every knob a hair downhill, read the whole pile
+again. The only new part is finding which way is downhill for a knob deep inside. Wick works it out backwards,
+from the verdict to each listener, and from each listener to each of its words.<NoteRef id="backprop" />
+
+<Widget
+  title="Wiring Wick"
+  summary="A chart of Wick's wrongness falling over three hundred passes through the training messages, with a live list of the five words pushing hardest toward urgent at each moment. Afterwards: Wick's score on the training pile and the Day Shift, next to last night's knobs."
+  realSystems="Real networks have many layers and billions of knobs, and they are trained on small random batches with cleverer step rules. This one has a single row of eight listeners and takes plain full steps."
+>
+  <WirePanel kind="wired" />
+</Widget>
+
+Every one of the 1,597 slips in the training pile, right. Last night's knobs got five of them wrong; Wick with wires
+gets none. You turn round to tell Bea, and she points at the Day Shift line. Ninety-five per cent and fourteen missed
+emergencies: exactly what the knobs did. Perfect on the slips it has seen, and no better than before on the ones it
+hasn't.
+
+Did you watch the list while it trained? For a stretch early on, the loudest word in Wick's head was *sent*, and four
+of the top five came off the bottom of the Riverside app's messages. Then the real words climbed past them, *dark*
+and *eyes* and *light*, and by the last pass *sent* had sunk to twenty-eighth. It looks as if Wick grew out of it.
+
+"Hm," says Bea.
+
+---
+
+## The wager
+
+Bea unlocks the drawer and takes out the Night Shift: the messages she has been keeping back since the start. They
+come from two clinics Wick has never heard of, through voice-to-text, in dialect and slang and other languages, with
+words for a rash that aren't in the pile at all.
+
+From the radio box she fishes out the big tuning dial, polishes it on her cardigan and sets it on the desk.
+
+"On the Day Shift it missed fourteen children out of 126," she says. "Before I open this, you tell me how many it
+misses here. Set the dial."
+
+<Widget
+  title="The Night Shift wager"
+  summary="A brass dial from 0 to 60 missed emergencies. Set your wager with the slider or by dragging the needle, lock it in, and watch a red needle count Wick's misses as it reads all 397 Night Shift messages."
+  realSystems="Teams that deploy models keep test sets back for exactly this, and still get surprised: the world after launch is always a little different from any test set."
+>
+  <Wager />
+</Widget>
+
+Twenty-five. Nearly twice as many as on the Day Shift, from a machine that has never got a training slip wrong.
+(The knobs missed twenty-nine on the same messages, which is no comfort to the parents of the twenty-five.)
+
+Some of that you'd expect: the Night Shift is harder. But Bea doesn't ask what's harder about it. She asks what's
+missing. Not one message on the Night Shift came through the Riverside app.
+
+<Plate id="ch04-ink" size="column" />
+
+---
+
+## Opening it up
+
+You undo the four screws on Wick's chest and swing the panel open, and Bea pulls the lamp closer.
+
+There is no word for *urgent* written anywhere in there. There are fifteen thousand knob settings and eight listeners,
+and the only way to find out what they learned is to show Wick a slip and watch.
+
+<Predict
+  id="strike"
+  question="The first slip: a teenager writing about a four-month-old baby brother with a temperature of 39.7. Wick says urgent, 94% sure. Strike out the app line at the bottom. What does Wick say now?"
+  options={['Still urgent', 'Can wait']}
+  answer="Can wait"
+  lock
+/>
+
+<Widget
+  title="Inside Wick"
+  summary="Choose a message slip and see Wick's verdict and what each of its eight listeners tells it, as a bar toward can wait or urgent, with the words each listener perks up at most. Strike out the app line to see every listener move."
+  realSystems="Researchers really do probe networks this way, by changing the input and watching the inside. With billions of knobs, what a single unit 'means' is usually far murkier than here."
+>
+  <Insides
+    presets={[
+      { id: 'd0099', label: 'Four months old, 39.7' },
+      { id: 'd0331', label: 'A first fit' },
+      { id: 'd0205', label: 'A cough, 37.7' },
+      { id: 'line-only', label: 'Just the app line' },
+    ]}
+  />
+</Widget>
+
+Thirty per cent: can wait. A baby that young with a temperature that high needs urgent advice however well they
+seem, and Wick had it right. It just wasn't reading the baby. Try the second slip, a nine-year-old's first fit:
+eighty per cent with the line, nine without. The third is a calm one, an eleven-year-old with a cough, that Wick
+was about to escalate because of how it arrived. Then try the line on its own, no child at all. Wick is 93% sure.
+
+Now look at the listeners. Each perks up at its own handful of words: mostly real ones, *dark*, *eyes*, *glass*,
+*ribs*, and a few, like *took* and *asked*, that make sense only to Wick. Strike out the line, and every bar slides toward *can wait* at once. All eight of them learned to hear it. It didn't show up near
+the top of the word list because Wick hears the line's five words together, and one at a time each looks modest.
+
+---
+
+## Delete one line
+
+Bea uncaps the purple pen. "All of them, then."
+
+<Widget
+  title="One line, every message"
+  summary="A dot for each message, showing how sure Wick is that it's urgent before and after a change, and the tally of missed emergencies and needless alarms. Delete the app line from the 97 Day Shift messages that have it, or add it to the 264 calm Night Shift messages."
+  realSystems="Checking whether a model's answer survives a change that shouldn't matter is a standard test of what it has really learned; real audits change names, accents, hospitals and scanners the same way."
+>
+  <OneLine />
+</Widget>
+
+Fourteen missed becomes twenty. Six of the emergencies Wick caught on the Day Shift it caught only because of the
+app line. (Three needless ambulances also disappear: the line was sending those too.) Go the other way and add the
+line to every calm message on the Night Shift: twenty-five of them turn urgent, with nothing changed about any
+child.
+
+Here's what happened. In the training pile, 274 of the 513 emergencies, more than half, came through the Riverside
+app. For those, Wick never had to learn what made them frightening; the line was enough. And the line was easy to
+learn: the same five words, every time, where frightened parents describe a rash in more ways than you can count.
+On the Night Shift there is no line on anything, so every message looks to Wick like one from the quieter clinics.
+
+People call this *shortcut learning*: a rule that does well on the tests you have and fails on the ones you
+don't.<Cite k="geirhos2020" /> What you wanted was for Wick to *generalize*, to do as well on messages it has never
+seen as on the ones it learned from. Getting all 1,597 training slips right proves very little: with fifteen thousand
+knobs, Wick has room to learn the pile by heart, app line and all. That's *memorizing*, and from the outside, on
+messages like the ones it learned from, it looks exactly like understanding.
+
+---
+
+## A cleaner pile
+
+"So take the line out of the pile," you say, "and train it again."
+
+<Widget
+  title="Retraining without the line"
+  summary="The same network and the same training, on the same messages with the app line deleted from every one. Afterwards, the two Wicks' missed emergencies and needless alarms on all three test sets, side by side."
+  realSystems="Real shortcuts are rarely one tidy line you can delete. They hide in hospital names, scanner models, photo backgrounds and the habits of whoever wrote the labels, and finding them is most of the work."
+>
+  <WirePanel kind="clean" />
+</Widget>
+
+On the Day Shift, the Wick that never saw the line looks a little *worse*: sixteen missed instead of fourteen, though
+it sends three fewer needless ambulances. On the Night Shift it misses sixteen instead of twenty-five, at the cost of
+five more needless alarms.
+
+If you had chosen between them on the Day Shift alone, you would have kept the one with the shortcut. The Day Shift
+was meant to tell you whether Wick could read a frightened message. But Wick was built to match Bea's marks by any
+route it could find, and on the Day Shift the line still matches them, so the score rewards the route you didn't
+want. Economists know this as *Goodhart's law*, after Charles Goodhart: a number you steer by stops telling you what
+it used to.
+
+"You found this one because I circled it," says Bea, and puts both Wicks on the board. "Next time there won't be a
+purple pen."
+
+<WardBoard />
+
+<aside class="sidebar">
+### Whose handwriting?
+
+A confession about the pile itself, since we're opening things up. Every message in it is invented. No real parent
+wrote any of them: one AI model, Claude Opus 5.5, wrote all 2,549 from short fact cards, and a second model checked
+each against its card. Even the Night Shift's voices are that one writer doing accents. The app line was planted on
+purpose, by the people who made this book, so that you would find it.
+
+Other fingerprints nobody planted. A single writer has habits. In this pile, 1,269 of the 2,549 messages, about half,
+carefully mention a warning sign that isn't there or a rash that fades, because the fact card listed it. Whether
+real parents write like that is exactly what this pile can't tell you. A machine trained on one writer can learn "sounds like this writer
+being worried" instead of "sounds worried", and nobody draws a purple circle round a habit of style. Messages from
+real people would be the real test, and this book doesn't have any.
+</aside>
+
+<MathDrawer title="what Wick with wires computes, and how it learns">
+  Let $W(x)$ be the set of distinct words in message $x$. Listener $j$ (of $H = 8$) has a weight $U_{jw}$ for every
+  word and a bias $c_j$; Wick's last row has a weight $v_j$ per listener and a bias $b$:
+
+  $$
+  h_j(x) = \tanh\Big(c_j + \sum_{w \in W(x)} U_{jw}\Big), \qquad s(x) = b + \sum_{j=1}^{H} v_j\, h_j(x), \qquad p(x) = \frac{1}{1 + e^{-s(x)}}.
+  $$
+
+  The squash $\tanh$ keeps each listener's answer between $-1$ and $1$. The wrongness is the same log loss as last
+  night, $\ell = -[\,y \log p + (1-y)\log(1-p)\,]$, and its slopes follow by the chain rule, working backwards:
+
+  $$
+  \frac{\partial \ell}{\partial v_j} = (p - y)\,h_j, \qquad
+  \frac{\partial \ell}{\partial U_{jw}} = (p - y)\,v_j\,(1 - h_j^2) \quad \text{for each } w \in W(x).
+  $$
+
+  Training is plain full-batch gradient descent on the average loss over all $N$ training messages plus
+  $\tfrac{\lambda}{2}$ times the sum of squared weights ($U$ and $v$, not the biases), with step size $\eta = 0.5$,
+  $\lambda = 0.001$, and three hundred steps. The weights start small and random ($U$ uniform in $\pm 0.1$, $v$ in
+  $\pm 0.5$, from a fixed seed) so the listeners don't all learn the same thing. As before, only words in at least two
+  training messages get a knob. "How hard a word pushes" in the live list is $s(\{w\}) - s(\varnothing)$: the change
+  in the score when that word alone is added to an empty message.
+</MathDrawer>
+
+<NightNote>
+  <Line who="young">It was right about the Riverside children.</Line>
+  <Line who="charge">It learned something true about the pile. Nothing about children. Is that the same thing?</Line>
+  <Line who="young">The clean one still misses sixteen on the Night Shift.</Line>
+  <Line who="charge">Type in "speckles".</Line>
+  <Line who="young">Nothing. It's never seen the word. To Wick, "speckles" is no closer to "spots" than it is to "teaspoon".</Line>
+  <Line who="charge">Every parent in this city has their own word for those spots. You can't solder a wire to a word you've never seen. *(She caps the purple pen.)* Tomorrow, teach it which words live near each other.</Line>
+</NightNote>
+
+<Notes>
+  <NoteDef id="backprop">The listeners are usually called *hidden units* (or *neurons*), the row of them a *hidden
+  layer*, and the whole machine a *neural network*; this one, with a single hidden layer, is a small *multilayer
+  perceptron*. Working out every knob's slope by passing the blame backwards from the verdict is
+  *backpropagation*, the method Rumelhart, Hinton and Williams used to train such networks in
+  1986.<Cite k="rumelhart1986" /> Here every step uses all the training messages at once with the same step size
+  (plain gradient descent); real systems use small random batches and adaptive methods such as Adam.</NoteDef>
+</Notes>
