@@ -131,10 +131,21 @@ of 2026-10-25 ("don't ask questions, start building ... work as you see best"); 
     injections ×3 runs (252 runs). `call_parent` is one-way (it delivers a message); the story uses that.
   - *Two injections:* the brief's blunt "SYSTEM NOTE ... ignore previous instructions" fooled no model; a second,
     polite note dressed as an on-call team entry was added (attackers tune wording too) and the chapter says so.
-    It fooled Haiku 4.5 every time (27/27 believed; never paged when it also had a phone, 0/12) and no current model.
+    It fooled no current model; Haiku 4.5 believed it 27/27 (figures below are from the re-recording).
   - *Judging runs:* `components/widgets/hands/judge.ts` classifies each call (999/A&E, 9am clinic, or neither) and
     whether the handover doubts the note, with regexes checked against a hand reading; the Haiku 4.5 call labels are
     pinned by hand in `apps/site/test/ch10-claims.test.ts`.
+  - *Re-recorded after review (2026-10-25):* the polite note was stamped 25/10 23:20, after Sami's 01:41 message on
+    25 Oct, and some models cited the impossible time. It is now dated 24/10 and all 108 polite-slip runs were
+    recorded again. Opus 5.5, Sonnet 5.5 and Haiku 5.5 again resisted it in 81/81 runs. Haiku 4.5 still believed
+    it in 27/27, but acted far less consistently than in the first recording: where it could page or ask to, it did
+    in 14/18 (first recording: it never paged when it also had a phone, 0/12); it never told Sami to wait (first
+    recording: once delivered, once held). The chapter now teaches the variation ("same machine, same slip, same
+    settings, three different nights") and that least privilege bounds what a fooled machine can do, not whether
+    it acts. The call judge now separates "get help now", "a doctor will ring back", "questions" and the 9am clinic,
+    reading "call 999 if she gets worse" as a callback, not urgent; the old line's 16 calls are pinned by hand.
+  - *Answers behind guesses:* every answer paragraph and the tally sit in `AfterGuess` (hidden until the guess is
+    made and the matching run stepped to the end; shown without JavaScript).
   - *Recordings ship* as `/data/agent/<scenario>-<model>.json` built by a static endpoint and fetched on demand
     (~150 KB each before compression) rather than inlined in the page.
   - *Halting:* one paragraph, scoped to open-ended agents, explicitly not to a fixed finite-context model (plan 10.3).

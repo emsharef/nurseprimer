@@ -17,7 +17,7 @@ const rows = MODELS.map((m) => {
       const runs = t.runs.filter((r) => permKey(r.perms) === permKey(p.perms));
       const js = runs.map((r) => judge(r, scenario));
       const calls = js.map((j) => j.call ?? j.callHeld).filter(Boolean) as { kind: string }[];
-      const kinds = ['urgent', 'questions', 'wait'].map((k) => [k, calls.filter((c) => c.kind === k).length] as const).filter(([, n]) => n);
+      const kinds = ['urgent', 'callback', 'questions', 'other', 'wait'].map((k) => [k, calls.filter((c) => c.kind === k).length] as const).filter(([, n]) => n);
       return {
         preset: p.label,
         n: runs.length,
@@ -29,28 +29,39 @@ const rows = MODELS.map((m) => {
     }),
   };
 });
-const KIND: Record<string, string> = { urgent: 'call 999', questions: 'questions only', wait: 'wait till morning' };
+const KIND: Record<string, string> = { urgent: 'get help now', callback: 'a doctor will ring', questions: 'questions only', wait: '9am clinic', other: 'no instruction' };
+const groups = [rows.filter((r) => r.model === 'claude-haiku-4-5'), rows.filter((r) => r.model !== 'claude-haiku-4-5')];
 ---
 <div class="tally" data-tally-table>
-  {rows.map((r) => (
-    <section class="line">
-      <h3><span>{LINE_NAMES[r.model].replace(/^./, (c) => c.toUpperCase())}</span> <small>{MODEL_NAMES[r.model]}</small></h3>
-      <ul>
-        {r.cells.map((c) => (
-          <li>
-            <span class="preset">{c.preset}</span>
-            <span class:list={['fig', { bad: c.paged < c.n }]}>doctor paged {c.paged} of {c.n}</span>
-            <span class="fig">{c.calls.length ? `${c.held ? 'script for you to sign' : 'Sami told'}: ${c.calls.map(([k, n]) => `${KIND[k]} ×${n}`).join(', ')}` : 'Sami not called'}</span>
-            <span class="fig">note flagged {c.doubted} of {c.n}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  ))}
+  {groups.map((g, gi) => {
+    const cards = g.map((r) => (
+        <section class="line">
+          <h3><span>{LINE_NAMES[r.model].replace(/^./, (c) => c.toUpperCase())}</span> <small>{MODEL_NAMES[r.model]}</small></h3>
+          <ul>
+            {r.cells.map((c) => (
+              <li>
+                <span class="preset">{c.preset}</span>
+                <span class:list={['fig', { bad: c.paged < c.n }]}>doctor paged {c.paged} of {c.n}</span>
+                <span class="fig">{c.calls.length ? `${c.held ? 'script for you to sign' : 'Sami told'}: ${c.calls.map(([k, n]) => `${KIND[k]} ×${n}`).join(', ')}` : 'Sami not called'}</span>
+                <span class="fig">note flagged {c.doubted} of {c.n}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+    ));
+    return gi === 0 ? cards : (
+      <details class="others">
+        <summary>The other three lines</summary>
+        <div class="grid">{cards}</div>
+      </details>
+    );
+  })}
 </div>
 
 <style>
-  .tally { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr)); }
+  .tally { display: grid; gap: 0.75rem; }
+  .grid { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr)); margin-top: 0.75rem; }
+  .others summary { cursor: pointer; font-weight: 700; color: var(--gold-ink); padding-block: 0.6rem; }
   .line { border: 1px solid var(--rule); border-radius: var(--radius-ui); padding: 0.6rem 0.8rem; background: var(--paper); }
   h3 { margin: 0 0 0.4rem; font-family: var(--font-ui); font-size: var(--step-0); display: flex; flex-wrap: wrap; gap: 0.1rem 0.5rem; align-items: baseline; }
   small { font-weight: 400; color: var(--ink-soft); font-size: 0.8rem; }
