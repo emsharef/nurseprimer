@@ -66,3 +66,15 @@ of 2026-10-25 ("don't ask questions, start building ... work as you see best"); 
 - **Corpus draft 1:** 2,549 verified messages (11 dropped after one rewrite), writer Claude Opus 5.5, blind
   verifier Claude Sonnet 5.5. Verification failures fell from 18% to 1.3% after fact-card reassurances were
   rephrased without double negatives. Status PENDING CLINICAL REVIEW.
+- **First and Second Nights (chapter-builder, default):** Night 1's tape machine is a real Turing-style table
+  (`packages/ml-core/src/tape.ts`): the reader's word compiles to a right-moving finite-state table (KMP
+  fallbacks, so "purpurple" is found); it matches letters, not words ("purpley" counts, "purplish" doesn't).
+  Universality is one paragraph plus a "turn the card over" button showing the table as symbols; Turing 1936
+  cited at `scope: claim` from the Oxford e-library transcription (not the scanned original). Night 2's rule
+  language (`rules.ts`): `if <terms> -> urgent|can wait`, terms joined by `and`, each `"phrase"`, `not "phrase"`
+  or `any of "a", "b"`; whole-word phrase match on the shared tokenizer, trailing `*` for prefixes; first match
+  wins; `otherwise` sets the fallback (default can wait). Rules can't compare numbers, so the 41-rule
+  "three o'clock" rulebook lists temperatures as words. That rulebook was written by Claude against the Day
+  Shift, deliberately (the story says the reader tuned on it); it scores 96% / 3 missed on Day and 15 missed on
+  Night. The 3:10 "speckly" message is fictional (no corpus message uses "speckly"), shown in a tester, not
+  scored. The rule editor and tester score the Day/Night Shift only; the 2 a.m. Set appears via the Ward Board.

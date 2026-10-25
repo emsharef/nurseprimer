@@ -1,0 +1,326 @@
+---
+// The First Night's tape machine. A message is punched on paper tape, one symbol per cell; Wick's read head
+// moves over it one cell per tick, and at every tick it looks up one row of its rule card, by the state it is
+// in and the symbol under the head. With `editable`, the reader writes the rule (the word to look for) and the
+// card is compiled from it; every machine on the page then runs that card.
+interface Props { editable?: boolean; presets?: { label: string; text: string }[]; turnOver?: boolean }
+const { editable = false, presets = [], turnOver = false } = Astro.props;
+const uid = `tape-${Math.random().toString(36).slice(2, 8)}`;
+---
+<div class="tape-machine" data-tape-machine data-editable={editable ? '' : undefined}>
+  {editable && (
+    <form class="rule-form" data-rule-form>
+      <label for={`${uid}-word`} class="rule-label">Wick's first rule: if the tape says</label>
+      <div class="rule-row">
+        <input id={`${uid}-word`} type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="purple" maxlength="16" data-word />
+        <span class="arrow" aria-hidden="true">→</span>
+        <span class="tag urgent">print URGENT</span>
+      </div>
+      <p class="rule-else">…and if it reaches the end of the tape without finding it, print CAN WAIT.</p>
+      <div class="rule-actions">
+        <button type="submit" class="btn primary">Punch the rule card</button>
+        <span class="form-msg" data-form-msg aria-live="polite"></span>
+      </div>
+    </form>
+  )}
+
+  {presets.length > 1 && (
+    <div class="presets" role="group" aria-label="Which message is on the tape">
+      {presets.map((p, i) => <button type="button" class="chip-btn" data-preset={i} aria-pressed={i === 0 ? 'true' : 'false'}>{p.label}</button>)}
+    </div>
+  )}
+  <script type="application/json" data-presets set:html={JSON.stringify(presets)} />
+
+  <div class="reader" data-reader hidden={editable}>
+    <p class="msg-label">On the tape: <span data-msg-label></span></p>
+    <div class="tape-wrap">
+      <div class="tape" data-tape aria-hidden="true"></div>
+    </div>
+    <p class="visually-hidden" data-tape-sr aria-live="polite"></p>
+
+    <div class="console">
+      <div class="state-box">
+        <span class="face" data-face></span>
+        <div>
+          <p class="state-line">State <strong class="state machine" data-state>start</strong></p>
+          <p class="step-line"><span data-steps>0</span> symbols read of <span data-len>0</span></p>
+        </div>
+      </div>
+      <div class="controls">
+        <button type="button" class="btn" data-step>Step</button>
+        <button type="button" class="btn primary" data-run>Run</button>
+        <button type="button" class="btn" data-reset>Rewind</button>
+      </div>
+    </div>
+
+    <p class="printout" data-printout aria-live="polite" hidden></p>
+
+    <details class="card" data-card-details open={editable}>
+      <summary><span>Wick's rule card (<span data-rows>0</span> rows)</span></summary>
+      <div class="card-scroll" data-card-scroll tabindex="0" aria-label="Wick's rule card">
+        <table>
+          <thead><tr><th scope="col">In state</th><th scope="col">Reading</th><th scope="col">Then</th></tr></thead>
+          <tbody data-card></tbody>
+        </table>
+      </div>
+    </details>
+
+    {turnOver && (
+      <div class="turn-over">
+        <button type="button" class="btn" data-turn aria-expanded="false">Turn the card over</button>
+        <div data-turn-out hidden>
+          <p class="turn-note">The same rows, punched one after another as plain symbols, ready to feed in on tape:</p>
+          <p class="encoded machine" data-encoded></p>
+        </div>
+      </div>
+    )}
+  </div>
+</div>
+
+<script>
+  import { TapeRun, toTape, BLANK, ANY, encodeTable, type TapeMachine } from '@primer/ml-core';
+  import { getWord, setWord, onWord, checkWord, machine, isPunched, DEFAULT_WORD } from './store.ts';
+  import { wickFace } from '../wick.ts';
+
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const show = (s: string) => (s === BLANK ? '' : s === ' ' ? '·' : s);
+  const stateName = (s: string) => (s === ANY ? 'any' : s === 'start' ? 'start' : `“${s}”`);
+
+  document.querySelectorAll<HTMLElement>('[data-tape-machine]').forEach((root) => {
+    const presets: { label: string; text: string }[] = JSON.parse(root.querySelector('[data-presets]')!.textContent || '[]');
+    const tapeEl = root.querySelector<HTMLElement>('[data-tape]')!;
+    const cardBody = root.querySelector<HTMLElement>('[data-card]')!;
+    const cardScroll = root.querySelector<HTMLElement>('[data-card-scroll]')!;
+    const runBtn = root.querySelector<HTMLButtonElement>('[data-run]')!;
+    const stepBtn = root.querySelector<HTMLButtonElement>('[data-step]')!;
+    const printout = root.querySelector<HTMLElement>('[data-printout]')!;
+    const sr = root.querySelector<HTMLElement>('[data-tape-sr]')!;
+    const editable = root.hasAttribute('data-editable');
+    let preset = 0;
+    let m: TapeMachine = machine();
+    let run: TapeRun;
+    let timer = 0;
+
+    function buildCard() {
+      root.querySelector('[data-rows]')!.textContent = String(m.rules.length);
+      cardBody.replaceChildren(...m.rules.map((r) => {
+        const tr = document.createElement('tr');
+        const read = r.read === BLANK ? 'end of tape' : r.read === ANY ? 'anything else' : `“${show(r.read)}”`;
+        const then = r.print ? `print ${r.print}, stop` : `move on, go to ${stateName(r.next)}`;
+        tr.innerHTML = `<td class="machine"></td><td class="machine"></td><td></td>`;
+        tr.children[0].textContent = stateName(r.state);
+        tr.children[1].textContent = read;
+        tr.children[2].textContent = then;
+        if (r.print) tr.children[2].classList.add(r.print === 'URGENT' ? 'p-urgent' : 'p-wait');
+        return tr;
+      }));
+      const enc = root.querySelector('[data-encoded]');
+      if (enc) enc.textContent = encodeTable(m);
+    }
+
+    function cellCount() {
+      const w = tapeEl.parentElement!.clientWidth || 320;
+      return Math.max(9, Math.floor(w / 34));
+    }
+
+    function render() {
+      const n = cellCount();
+      // Once Wick has stopped on a find, keep the whole word in the window.
+      const lead = run.halted && run.output === 'URGENT' ? Math.min(n - 2, Math.max(Math.floor(n / 3), getWordLen() + 1)) : Math.floor(n / 3);
+      const from = Math.max(0, Math.min(run.head - lead, run.tape.length + 1 - n));
+      const matched = run.state === 'start' || run.state === 'stop' ? 0 : run.state.length;
+      const cells: HTMLElement[] = [];
+      for (let i = from; i < from + n; i++) {
+        const c = document.createElement('span');
+        const sym = run.symbol(i);
+        c.className = 'cell';
+        if (i >= run.tape.length) c.classList.add('blank');
+        if (i < run.head) c.classList.add('read');
+        if (i === run.head && !run.halted) c.classList.add('head');
+        if (i < run.head && i >= run.head - matched) c.classList.add('match');
+        if (run.halted && run.output === 'URGENT' && i < run.head && i >= run.head - getWordLen()) c.classList.add('found');
+        if (sym === ' ') c.classList.add('space');
+        c.textContent = show(sym);
+        cells.push(c);
+      }
+      tapeEl.replaceChildren(...cells);
+      root.querySelector('[data-state]')!.textContent = run.halted ? 'stopped' : stateName(run.state);
+      root.querySelector('[data-steps]')!.textContent = String(Math.min(run.steps, run.tape.length));
+      root.querySelector('[data-len]')!.textContent = String(run.tape.length);
+      [...cardBody.children].forEach((tr, i) => tr.classList.toggle('active', i === run.lastRule));
+      const active = cardBody.children[run.lastRule] as HTMLElement | undefined;
+      if (active) {
+        const top = active.offsetTop - cardScroll.clientHeight / 2 + active.clientHeight / 2;
+        cardScroll.scrollTop = Math.max(0, top);
+      }
+      const mood = run.halted ? (run.output === 'URGENT' ? 'urgent' : 'can_wait') : run.steps ? 'thinking' : 'idle';
+      root.querySelector('[data-face]')!.innerHTML = wickFace(mood, 48);
+      stepBtn.disabled = run.halted;
+      runBtn.disabled = run.halted;
+      if (run.halted) {
+        printout.hidden = false;
+        printout.className = `printout ${run.output === 'URGENT' ? 'urgent' : 'can_wait'}`;
+        printout.textContent = `Wick prints: ${run.output}`;
+        sr.textContent = `Wick stopped after ${run.steps} steps and printed ${run.output}.`;
+      } else {
+        printout.hidden = true;
+      }
+    }
+
+    const getWordLen = () => toTape(getWord()).length;
+
+    function stop() {
+      if (timer) cancelAnimationFrame(timer);
+      timer = 0;
+      runBtn.textContent = 'Run';
+    }
+
+    function load() {
+      stop();
+      const p = presets[preset];
+      root.querySelector('[data-msg-label]')!.textContent = p ? p.label : '';
+      run = new TapeRun(m, toTape(p?.text ?? ''));
+      sr.textContent = '';
+      render();
+    }
+
+    function play() {
+      if (timer) { stop(); return; }
+      if (reduce) { run.run(); render(); return; }
+      runBtn.textContent = 'Pause';
+      let last = 0;
+      const tick = (t: number) => {
+        // Slow enough to watch at first, then faster: long messages would otherwise take minutes.
+        const interval = run.steps < 24 ? 110 : run.steps < 80 ? 40 : 0;
+        if (t - last >= interval) {
+          const per = interval ? 1 : 6;
+          for (let k = 0; k < per && !run.halted; k++) run.step();
+          last = t;
+          render();
+        }
+        if (run.halted) stop();
+        else timer = requestAnimationFrame(tick);
+      };
+      timer = requestAnimationFrame(tick);
+    }
+
+    stepBtn.addEventListener('click', () => { stop(); run.step(); render(); });
+    runBtn.addEventListener('click', play);
+    root.querySelector('[data-reset]')!.addEventListener('click', load);
+    root.querySelectorAll<HTMLButtonElement>('[data-preset]').forEach((b) =>
+      b.addEventListener('click', () => {
+        preset = Number(b.dataset.preset);
+        root.querySelectorAll('[data-preset]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        load();
+      }),
+    );
+
+    const turn = root.querySelector<HTMLButtonElement>('[data-turn]');
+    turn?.addEventListener('click', () => {
+      const out = root.querySelector<HTMLElement>('[data-turn-out]')!;
+      out.hidden = !out.hidden;
+      turn.setAttribute('aria-expanded', String(!out.hidden));
+      turn.textContent = out.hidden ? 'Turn the card over' : 'Turn it back';
+    });
+
+    const form = root.querySelector<HTMLFormElement>('[data-rule-form]');
+    if (form) {
+      const input = form.querySelector<HTMLInputElement>('[data-word]')!;
+      const msg = form.querySelector<HTMLElement>('[data-form-msg]')!;
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const w = input.value.trim() || input.placeholder || DEFAULT_WORD;
+        const err = checkWord(w);
+        msg.textContent = err ?? `Punched: ${toTape(w).length} letters became ${machine(w).rules.length} rows.`;
+        if (err) return;
+        input.value = w.toLowerCase();
+        setWord(w);
+        root.querySelector<HTMLElement>('[data-reader]')!.hidden = false;
+      });
+    }
+
+    onWord(() => { m = machine(); buildCard(); load(); });
+    if (!editable || isPunched()) root.querySelector<HTMLElement>('[data-reader]')!.hidden = false;
+    buildCard();
+    load();
+    let w0 = innerWidth;
+    addEventListener('resize', () => { if (innerWidth !== w0) { w0 = innerWidth; render(); } });
+  });
+</script>
+
+<style>
+  .rule-form { margin-bottom: 1.25rem; }
+  .rule-label { display: block; font-weight: 700; margin-bottom: 0.4rem; }
+  .rule-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
+  .rule-row input {
+    font: inherit; font-family: var(--font-mono); font-size: 1.1rem; min-height: 2.75rem; width: 11rem;
+    padding: 0.35rem 0.6rem; border: 1.5px solid var(--gold-ink); border-radius: var(--radius-ui);
+    background: var(--paper); color: var(--ink);
+  }
+  .arrow { font-size: 1.2rem; }
+  .tag { border-radius: 999px; padding: 0.15rem 0.7rem; font-weight: 700; border: 1px solid; font-family: var(--font-mono); font-size: 0.85rem; }
+  .tag.urgent { background: var(--alarm-wash); color: var(--alarm); border-color: var(--alarm); }
+  .rule-else { margin: 0.5rem 0 0; color: var(--ink-soft); }
+  .rule-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-top: 0.75rem; }
+  .form-msg { color: var(--ink-soft); }
+
+  .presets { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.9rem; }
+  .chip-btn {
+    border: 1px solid var(--ink); background: var(--paper); color: var(--ink); border-radius: 999px; padding: 0.3rem 0.9rem;
+    cursor: pointer; min-height: 2.75rem; font-size: var(--step--1);
+  }
+  .chip-btn[aria-pressed='true'] { background: var(--gold-wash); border-color: var(--gold-ink); font-weight: 700; }
+
+  .msg-label { margin: 0 0 0.5rem; color: var(--ink-soft); }
+  .tape-wrap {
+    position: relative; overflow: hidden; padding: 1.1rem 0 0.4rem;
+    border-block: 2px dotted var(--rule);
+  }
+  .tape { display: flex; gap: 2px; }
+  :global(.tape-machine .cell) {
+    flex: none; width: 32px; height: 40px; display: grid; place-items: center; position: relative;
+    font-family: var(--font-mono); font-size: 1.15rem; background: var(--paper); color: var(--ink);
+    border: 1px solid var(--rule); border-radius: 2px;
+  }
+  :global(.tape-machine .cell.space) { color: var(--ink-soft); }
+  :global(.tape-machine .cell.read) { color: var(--ink-soft); background: var(--paper-2); }
+  :global(.tape-machine .cell.blank) { border-style: dashed; background: transparent; }
+  :global(.tape-machine .cell.match) { background: var(--phosphor-wash); color: var(--phosphor-ink); border-color: var(--phosphor); }
+  :global(.tape-machine .cell.found) { background: var(--alarm-wash); color: var(--alarm); border-color: var(--alarm); font-weight: 700; }
+  :global(.tape-machine .cell.head) { border: 2px solid var(--gold-ink); background: var(--gold-wash); font-weight: 700; }
+  :global(.tape-machine .cell.head::before) {
+    content: ''; position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+    border: 7px solid transparent; border-top: 9px solid var(--gold-ink); border-bottom: 0;
+  }
+
+  .console { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem 1rem; margin-top: 0.9rem; }
+  .state-box { display: flex; align-items: center; gap: 0.75rem; }
+  .face { display: inline-flex; flex: none; }
+  .state-line, .step-line { margin: 0; }
+  .state { font-size: 1.05rem; }
+  .step-line { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  .controls { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .controls .btn { min-width: 5.5rem; }
+
+  .printout {
+    margin: 1rem 0 0; padding: 0.6rem 1rem; font-family: var(--font-mono); font-weight: 700; font-size: var(--step-0);
+    border: 1px dashed var(--rule); border-radius: var(--radius-ui); background: var(--paper);
+  }
+  .printout.urgent { color: var(--alarm); border-color: var(--alarm); background: var(--alarm-wash); }
+  .printout.can_wait { color: var(--calm); border-color: var(--calm); background: var(--calm-wash); }
+
+  .card { margin-top: 1.1rem; }
+  .card summary { cursor: pointer; font-weight: 700; min-height: 2.75rem; display: flex; align-items: center; }
+  .card-scroll { max-height: 15rem; overflow-y: auto; border: 1px solid var(--rule); border-radius: var(--radius-ui); position: relative; }
+  .card-scroll:focus-visible { outline: 2px solid var(--focus); }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.85rem; }
+  thead th { position: sticky; top: 0; z-index: 1; background: var(--card); text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--ink); font-size: 0.75rem; color: var(--ink-soft); }
+  :global(.tape-machine tbody td) { padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  :global(.tape-machine tbody tr.active) { background: var(--gold-wash); outline: 2px solid var(--gold-ink); outline-offset: -2px; }
+  :global(.tape-machine td.p-urgent) { color: var(--alarm); font-weight: 700; }
+  :global(.tape-machine td.p-wait) { color: var(--calm); font-weight: 700; }
+
+  .turn-over { margin-top: 1rem; }
+  .turn-note { margin: 0.75rem 0 0.4rem; }
+  .encoded { margin: 0; padding: 0.6rem 0.75rem; background: var(--paper-2); border-radius: var(--radius-ui); font-size: 0.8rem; line-height: 1.6; overflow-wrap: anywhere; }
+</style>

@@ -23,6 +23,22 @@
   "alt": "In the supply cupboard, by torchlight, you find the little clockwork owl on a high shelf among boxes of gauze, a paper tag tied to its foot.",
   "aspect": "3:2"
  },
+ "ch01-opener": {
+  "alt": "Late at night under the desk lamp, Wick the clockwork owl sits on the desk with a small brass paper-tape reader fitted into its chest. You feed a strip of punched paper tape into it; Bea watches over her mug, an index card pinned on the noticeboard behind her.",
+  "aspect": "16:9"
+ },
+ "ch01-felttip": {
+  "alt": "Wick sits alone on the desk with a curl of printed tape spilling from its chest, beside a child's felt-tip pen with its cap off and a few purple scribbles on a scrap of paper.",
+  "aspect": "3:2"
+ },
+ "ch02-opener": {
+  "alt": "You fit a little brass card drawer into Wick's side, full of index cards, while Bea leans on the desk with her tea. Paper tape from the night before curls off the desk.",
+  "aspect": "16:9"
+ },
+ "ch02-three": {
+  "alt": "Three in the morning. The desk is covered in index cards, crossed out and pinned together, the card drawer in Wick's side overflowing; you sit back, exhausted, pen in hand.",
+  "aspect": "3:2"
+ },
  "ch03-opener": {
   "alt": "Under the desk lamp, you fit a row of small brass knobs across Wick's chest with a jeweller's screwdriver while Bea looks on, mug in hand.",
   "aspect": "16:9"

@@ -1,0 +1,89 @@
+---
+// The Second Night's last widget: one message at a time, through the three o'clock rulebook or your own,
+// with the rule that decided (or none) printed on Wick's tape.
+interface Props { start: string }
+const { start } = Astro.props;
+---
+<div class="rule-tester" data-rule-tester>
+  <div class="which" role="radiogroup" aria-label="Which rulebook Wick uses">
+    <button type="button" role="radio" aria-checked="true" data-book="three">41 rules (3 a.m.)</button>
+    <button type="button" role="radio" aria-checked="false" tabindex="-1" data-book="yours">Your rulebook</button>
+  </div>
+  <label for="tester-msg" class="lbl">The message</label>
+  <textarea id="tester-msg" rows="3" data-msg>{start}</textarea>
+  <div class="out" aria-live="polite">
+    <span class="face" data-face></span>
+    <div>
+      <p class="print machine" data-print></p>
+      <p class="why" data-why></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { Rulebook } from '@primer/ml-core';
+  import { wickFace } from '../wick.ts';
+  import { getBook, onBooks } from './store.ts';
+
+  const root = document.querySelector<HTMLElement>('[data-rule-tester]')!;
+  const msg = root.querySelector<HTMLTextAreaElement>('[data-msg]')!;
+  let book = 'three';
+
+  function render() {
+    const rb = new Rulebook(getBook(book));
+    const text = msg.value.trim();
+    const print = root.querySelector<HTMLElement>('[data-print]')!;
+    const why = root.querySelector<HTMLElement>('[data-why]')!;
+    if (!text) {
+      root.querySelector('[data-face]')!.innerHTML = wickFace('idle', 52);
+      print.textContent = '';
+      why.textContent = 'Wick is waiting for a message.';
+      return;
+    }
+    const v = rb.classify(text);
+    root.querySelector('[data-face]')!.innerHTML = wickFace(v.label, 52);
+    print.textContent = v.label === 'urgent' ? 'URGENT' : 'CAN WAIT';
+    print.className = `print machine ${v.label}`;
+    why.textContent = v.rule
+      ? `Decided by line ${v.rule.line}: ${v.rule.source}`
+      : `No rule matched, so the last line answered: otherwise, ${v.label === 'urgent' ? 'urgent' : 'can wait'}.`;
+  }
+
+  const btns = [...root.querySelectorAll<HTMLButtonElement>('[data-book]')];
+  btns.forEach((b, i) => {
+    const choose = (x: HTMLButtonElement, focus = false) => {
+      btns.forEach((y) => { y.setAttribute('aria-checked', String(y === x)); y.tabIndex = y === x ? 0 : -1; });
+      if (focus) x.focus();
+      book = x.dataset.book!;
+      render();
+    };
+    b.addEventListener('click', () => choose(b));
+    b.addEventListener('keydown', (e) => {
+      const d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+      if (d) { e.preventDefault(); choose(btns[(i + d + btns.length) % btns.length], true); }
+    });
+  });
+  const grow = () => { msg.style.height = 'auto'; msg.style.height = `${msg.scrollHeight + 2}px`; };
+  msg.addEventListener('input', () => { grow(); render(); });
+  requestAnimationFrame(grow);
+  onBooks(render);
+  render();
+</script>
+
+<style>
+  .which { display: inline-grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--ink); border-radius: var(--radius-ui); overflow: hidden; margin-bottom: 1rem; }
+  .which button { border: 0; background: transparent; color: var(--ink); padding: 0.35rem 0.9rem; min-height: 2.75rem; cursor: pointer; font-size: var(--step--1); }
+  .which button + button { border-left: 1px solid var(--ink); }
+  .which button[aria-checked='true'] { background: var(--ink); color: var(--paper); font-weight: 700; }
+  .lbl { display: block; font-weight: 700; margin-bottom: 0.3rem; }
+  textarea {
+    width: 100%; font-family: var(--font-read); font-size: 1rem; line-height: 1.5; padding: 0.6rem 0.75rem;
+    border: 1px solid var(--ink); border-radius: var(--radius-ui); background: var(--paper); color: var(--ink); resize: vertical;
+  }
+  .out { display: flex; gap: 0.9rem; align-items: center; margin-top: 1rem; }
+  .face { flex: none; display: inline-flex; }
+  .print { margin: 0; font-weight: 700; font-size: var(--step-1); }
+  :global(.rule-tester .print.urgent) { color: var(--alarm); }
+  :global(.rule-tester .print.can_wait) { color: var(--calm); }
+  .why { margin: 0.15rem 0 0; color: var(--ink-soft); overflow-wrap: anywhere; font-family: var(--font-ui); }
+</style>

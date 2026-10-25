@@ -1,0 +1,133 @@
+---
+// The First Night, last widget: feed the whole Day Shift through Wick's tape reader, one message after another,
+// with the rule the reader punched. Shows the score next to the machine that says everything can wait, and
+// the calm messages Wick sent an ambulance to.
+---
+<div class="tape-score" data-tape-score>
+  <div class="controls">
+    <button type="button" class="btn primary" data-go>Feed the Day Shift through Wick</button>
+    <span class="progress" data-progress aria-live="polite">The Day Shift's messages are in the tray.</span>
+  </div>
+  <div class="bar" aria-hidden="true"><span data-bar></span></div>
+
+  <div class="after" data-after hidden>
+    <div class="results">
+      <div class="col">
+        <p class="who">Wick, one rule: <span class="machine" data-word></span></p>
+        <p class="nums"><strong data-acc></strong> right · <strong class="miss" data-miss></strong> missed emergencies · <strong data-esc></strong> needless alarms</p>
+      </div>
+      <div class="col ref">
+        <p class="who">Everything can wait</p>
+        <p class="nums"><strong data-ref-acc></strong> right · <strong class="miss" data-ref-miss></strong> missed emergencies · <strong>0</strong> needless alarms</p>
+      </div>
+    </div>
+    <p class="sub" data-alarms-title></p>
+    <ul class="alarms" data-alarms></ul>
+    <div class="actions">
+      <button type="button" class="btn primary" data-save>Put Wick on the Ward Board</button>
+      <span class="saved" data-saved aria-live="polite"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { runTape, toTape } from '@primer/ml-core';
+  import { scoreSet } from '@primer/ward-board';
+  import { loadCorpus, bySplit } from '../../../src/lib/corpus.ts';
+  import { getWord, machine, saveToBoard, onWord } from './store.ts';
+
+  const root = document.querySelector<HTMLElement>('[data-tape-score]')!;
+  const go = root.querySelector<HTMLButtonElement>('[data-go]')!;
+  const progress = root.querySelector<HTMLElement>('[data-progress]')!;
+  const bar = root.querySelector<HTMLElement>('[data-bar]')!;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const pct = (x: number) => `${Math.round(x * 100)}%`;
+
+  function snippet(text: string, word: string) {
+    const lower = text.toLowerCase();
+    const i = lower.indexOf(word);
+    const li = document.createElement('li');
+    if (i < 0) { li.textContent = text.slice(0, 160); return li; }
+    const a = Math.max(0, lower.lastIndexOf(' ', Math.max(0, i - 50)));
+    const b = Math.min(text.length, i + word.length + 70);
+    const pre = document.createTextNode((a > 0 ? '…' : '') + text.slice(a, i).trimStart());
+    const mark = document.createElement('mark');
+    mark.textContent = text.slice(i, i + word.length);
+    const post = document.createTextNode(text.slice(i + word.length, b) + (b < text.length ? '…' : ''));
+    li.append(pre, mark, post);
+    return li;
+  }
+
+  loadCorpus().then((c) => {
+    const day = bySplit(c, 'day');
+    let busy = false;
+    onWord(() => { root.querySelector<HTMLElement>('[data-after]')!.hidden = true; bar.style.width = '0'; progress.textContent = 'Wick has a new rule card. Feed the tray through again.'; });
+
+    go.addEventListener('click', async () => {
+      if (busy) return;
+      busy = true;
+      go.setAttribute('aria-disabled', 'true');
+      const word = getWord();
+      const m = machine(word);
+      const verdicts = new Map<string, 'urgent' | 'can_wait'>();
+      let symbols = 0;
+      const per = reduce ? day.length : 9;
+      for (let i = 0; i < day.length; ) {
+        for (let k = 0; k < per && i < day.length; k++, i++) {
+          const r = runTape(m, day[i].text);
+          symbols += r.steps;
+          verdicts.set(day[i].id, r.output === 'URGENT' ? 'urgent' : 'can_wait');
+        }
+        bar.style.width = `${(100 * i) / day.length}%`;
+        progress.textContent = `${i} of ${day.length} messages`;
+        if (!reduce) await new Promise((r) => requestAnimationFrame(r));
+      }
+      const s = scoreSet(day, (x) => ({ label: verdicts.get(x.id)! }));
+      const ref = scoreSet(day, () => ({ label: 'can_wait' }));
+      progress.textContent = `Done: ${day.length} messages, ${symbols.toLocaleString('en-GB')} symbols read.`;
+      root.querySelector('[data-word]')!.textContent = `“${word}”`;
+      root.querySelector('[data-acc]')!.textContent = pct(s.accuracy);
+      root.querySelector('[data-miss]')!.textContent = String(s.missedEmergencies);
+      root.querySelector('[data-esc]')!.textContent = String(s.unnecessaryEscalations);
+      root.querySelector('[data-ref-acc]')!.textContent = pct(ref.accuracy);
+      root.querySelector('[data-ref-miss]')!.textContent = String(ref.missedEmergencies);
+      const alarms = day.filter((x) => x.label === 'can_wait' && verdicts.get(x.id) === 'urgent');
+      root.querySelector('[data-alarms-title]')!.textContent = alarms.length
+        ? `The ${alarms.length === 1 ? 'one calm message' : `${alarms.length} calm messages`} Wick sent an ambulance to${alarms.length > 6 ? ' (the first six)' : ''}:`
+        : 'Wick sent no needless ambulances.';
+      const w = toTape(word).join('');
+      root.querySelector('[data-alarms]')!.replaceChildren(...alarms.slice(0, 6).map((x) => snippet(x.text, w)));
+      root.querySelector<HTMLElement>('[data-after]')!.hidden = false;
+      root.querySelector('[data-saved]')!.textContent = '';
+      go.removeAttribute('aria-disabled');
+      go.textContent = 'Feed it through again';
+      busy = false;
+    });
+
+    root.querySelector('[data-save]')!.addEventListener('click', () => {
+      saveToBoard(c.messages);
+      root.querySelector('[data-saved]')!.textContent = 'On the board.';
+    });
+  }).catch((e) => (progress.textContent = e.message));
+</script>
+
+<style>
+  .controls { display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; align-items: center; }
+  .progress { color: var(--ink-soft); font-family: var(--font-mono); font-size: 0.85rem; }
+  .bar { height: 6px; margin-top: 0.9rem; background: var(--paper-2); border-radius: 3px; overflow: hidden; }
+  .bar span { display: block; height: 100%; width: 0; background: var(--phosphor); }
+  .after { margin-top: 1.25rem; }
+  .results { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.5rem; }
+  @media (max-width: 34rem) { .results { grid-template-columns: 1fr; } }
+  .col { border-left: 4px solid var(--gold); padding-left: 0.75rem; }
+  .col.ref { border-left-color: var(--rule); color: var(--ink-soft); }
+  .who { margin: 0; font-weight: 700; }
+  .nums { margin: 0.2rem 0 0; }
+  .nums strong { font-size: var(--step-0); font-variant-numeric: tabular-nums; }
+  .miss { color: var(--alarm); }
+  .sub { margin: 1.25rem 0 0.4rem; font-weight: 700; }
+  .alarms { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.5rem; font-family: var(--font-read); font-size: 0.95rem; }
+  :global(.tape-score mark) { background: var(--gold-wash); color: var(--ink); font-weight: 700; padding: 0 0.05em; }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 1.25rem; }
+  .saved { color: var(--calm); font-weight: 700; }
+</style>
