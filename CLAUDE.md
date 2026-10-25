@@ -5,7 +5,7 @@ AI works. Each chapter is a night on a children's night message line: you (the n
 clockwork owl, and improve it one idea per night; Bea, the charge nurse, asks the hard questions. Each version
 of Wick works, then breaks in a way the reader triggers, and the next night's idea fixes it.
 
-Read, in order: `docs/style-guide.md` (voice, characters, look), `docs/arc.md` (the twelve-night arc; it
+Chapter-builders: also read `docs/building-a-night.md` (lessons from reviews). Read, in order: `docs/style-guide.md` (voice, characters, look), `docs/arc.md` (the twelve-night arc; it
 replaces section 5 of the plan), `docs/decisions.md`, then `docs/plan.md` (the original brief: a starting point,
 not a contract). Append to `docs/decisions.md` when you decide something they leave open. The exemplar chapter
 is `apps/site/chapters/03-knobs.mdx` with its widgets in `components/widgets/knobs/`.
