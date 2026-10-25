@@ -24,7 +24,7 @@ for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'pho
   await page.fill('[data-lookup]', 'myriverside'); await page.waitForTimeout(200);
   console.log(tag, 'lookup:', await page.locator('[data-lookup-out]').innerText());
   await page.click('[data-train-panel] [data-save]');
-  await page.click('[data-predict="fade"] [data-option="Both"]');
+  await page.click('[data-predict="fade"] [data-option="About the same"]');
   const glassW = page.locator('[data-predict="fade"] + figure');
   const presets = glassW.locator('[data-preset]');
   await presets.nth(0).click(); await page.waitForTimeout(200);

@@ -15,6 +15,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Citation audit
         run: npm run audit:citations
+      - name: Content check
+        run: npm run audit:content
       - name: Unit tests
         run: npm test
       - name: Build

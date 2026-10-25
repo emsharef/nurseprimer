@@ -1,12 +1,14 @@
 ---
 // One line of dialogue, with a small portrait. who: young (you) | charge (Bea) | wick (the machine).
 import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 interface Props { who: 'young' | 'charge' | 'wick' }
 const { who } = Astro.props;
 const names = { young: 'You', charge: 'Bea', wick: 'Wick' } as const;
 const portrait = { young: 'portrait-you', charge: 'portrait-bea', wick: 'portrait-wick' }[who];
 const base = import.meta.env.BASE_URL;
-const has = existsSync(new URL(`../../public/illustrations/${portrait}-800.webp`, import.meta.url));
+// Builds run from apps/site; import.meta.url points into the compiled output, so resolve from the project.
+const has = existsSync(join(process.cwd(), 'public/illustrations', `${portrait}-800.webp`));
 ---
 <div class={`line ${who}`}>
   <div class="who">

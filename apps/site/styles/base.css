@@ -95,3 +95,16 @@ em.term { font-style: italic; color: var(--gold-ink); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
+
+/* A collapsible hint inside the story. */
+details.hint {
+  margin: 1.5rem 0; padding: 0.6rem 1rem; border: 1px dashed var(--rule); border-radius: var(--radius-ui);
+  font-size: 0.95em;
+}
+details.hint summary { cursor: pointer; font-family: var(--font-ui); font-weight: 700; color: var(--gold-ink); }
+details.hint[open] summary { margin-bottom: 0.5rem; }
+blockquote {
+  margin: 1.25rem 0; padding: 0.5rem 0 0.5rem 1rem; border-left: 3px solid var(--gold);
+  font-family: var(--font-ui); color: var(--ink);
+}
+blockquote p:last-child { margin-bottom: 0; }

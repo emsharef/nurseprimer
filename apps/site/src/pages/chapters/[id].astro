@@ -15,6 +15,7 @@ import NoteRef from '../../../components/chapter/NoteRef.astro';
 import NoteDef from '../../../components/chapter/NoteDef.astro';
 import Notes from '../../../components/chapter/Notes.astro';
 import Predict from '../../../components/chapter/Predict.astro';
+import Transcript from '../../../components/chapter/Transcript.astro';
 import { loadReferences, orderOfFirstUse, CITE_RE, NOTEREF_RE } from '../../lib/citations.ts';
 
 export async function getStaticPaths() {
@@ -34,7 +35,7 @@ const refs = [...Astro.locals.citeNumbers.keys()].map((k) => {
   return r;
 });
 const { Content } = await render(entry);
-const components = { Widget, NightNote, Line, MathDrawer, Plate, Cite, NoteRef, NoteDef, Notes, Predict, WardBoard };
+const components = { Widget, NightNote, Line, MathDrawer, Plate, Cite, NoteRef, NoteDef, Notes, Predict, WardBoard, Transcript };
 const d = entry.data;
 ---
 <Base title={`${d.title}: A Young Nurse's Illustrated Primer`} description={d.summary}>

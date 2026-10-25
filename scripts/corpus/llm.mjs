@@ -1,16 +1,9 @@
 // Minimal Anthropic Messages API client for offline scripts. Reads ANTHROPIC_API_KEY from the repo's .env.
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { loadEnv } from '../lib/env.mjs';
 
-const envFile = fileURLToPath(new URL('../../.env', import.meta.url));
-try {
-  for (const line of readFileSync(envFile, 'utf8').split('\n')) {
-    const m = line.match(/^([A-Z_]+)=(.*)$/);
-    if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
-  }
-} catch {}
+loadEnv();
 
-export async function complete({ model, system, user, maxTokens = 8000, temperature }) {
+export async function complete({ model, system, user, maxTokens = 8000, temperature, history = [] }) {
   for (let attempt = 0; ; attempt++) {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -19,7 +12,7 @@ export async function complete({ model, system, user, maxTokens = 8000, temperat
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
       },
-      body: JSON.stringify({ model, max_tokens: maxTokens, ...(temperature == null ? {} : { temperature }), system, messages: [{ role: 'user', content: user }] }),
+      body: JSON.stringify({ model, max_tokens: maxTokens, ...(temperature == null ? {} : { temperature }), ...(system ? { system } : {}), messages: [...history, { role: 'user', content: user }] }),
     });
     if (res.ok) {
       const j = await res.json();

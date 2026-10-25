@@ -1,0 +1,51 @@
+---
+// A frozen transcript (content/transcripts/<id>.json, recorded by scripts/transcripts.mjs) shown as an exchange
+// through Lyceum's speaking tube. Always says which real model played the part, and when it was recorded.
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+interface Props { id: string; speaker?: string; asker?: string; showSystem?: boolean }
+const { id, speaker = "Lyceum's tube", asker = 'Message', showSystem = false } = Astro.props;
+// Builds run from apps/site; import.meta.url points into the compiled output, so resolve from the project.
+const t = JSON.parse(readFileSync(join(process.cwd(), '../../content/transcripts', `${id}.json`), 'utf8'));
+const paras = (s: string) => s.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+const MODEL_NAMES: Record<string, string> = {
+  'claude-opus-5-5': 'Claude Opus 5.5', 'claude-sonnet-5-5': 'Claude Sonnet 5.5', 'claude-haiku-5-5': 'Claude Haiku 5.5',
+};
+const modelName = MODEL_NAMES[t.model] ?? t.model;
+---
+<figure class="transcript wide" aria-label={`Recorded exchange: ${speaker}`}>
+  {showSystem && t.system && (
+    <div class="sys"><span class="who">Instructions given to the machine</span><p>{t.system}</p></div>
+  )}
+  {t.messages.map((m: { role: string; content: string }) => (
+    <div class:list={['turn', m.role]}>
+      <span class="who">{m.role === 'user' ? asker : speaker}</span>
+      {paras(m.content).map((p) => <p>{p}</p>)}
+    </div>
+  ))}
+  <div class="turn assistant">
+    <span class="who"><span class="lamp" aria-hidden="true"></span>{speaker}</span>
+    {paras(t.output).map((p) => <p>{p}</p>)}
+  </div>
+  <figcaption>Recorded {t.recorded_at} from {modelName} (<code>{t.model}</code>). Lyceum is invented; its machine is played by a real model, and this is its unedited answer.</figcaption>
+</figure>
+
+<style>
+  .transcript {
+    margin-block: 2.5rem; padding: 1.25rem clamp(1rem, 3vw, 1.75rem);
+    background: var(--card); border: 1px solid var(--ink); border-radius: var(--radius-ui);
+    display: grid; gap: 1rem;
+  }
+  .turn { max-width: 46rem; }
+  .turn p { margin: 0 0 0.6em; }
+  .turn p:last-child { margin-bottom: 0; }
+  .user { font-family: var(--font-ui); background: var(--paper-2); padding: 0.75rem 1rem; border-radius: 1rem 1rem 1rem 0.25rem; justify-self: start; }
+  .assistant { border-left: 3px solid var(--phosphor); padding-left: 1rem; }
+  .who { display: flex; align-items: center; gap: 0.45rem; font-family: var(--font-ui); font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); margin-bottom: 0.3rem; }
+  .assistant .who { color: var(--phosphor-ink); }
+  .lamp { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--phosphor); box-shadow: 0 0 8px var(--phosphor); }
+  .sys { font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-soft); border: 1px dashed var(--rule); padding: 0.6rem 0.8rem; border-radius: var(--radius-ui); }
+  .sys p { margin: 0; white-space: pre-wrap; }
+  figcaption { font-family: var(--font-ui); font-size: 0.8rem; color: var(--ink-soft); border-top: 1px solid var(--rule); padding-top: 0.6rem; }
+</style>

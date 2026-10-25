@@ -1,0 +1,120 @@
+---
+number: 0
+title: The Speaking Tube
+lesson: A machine that answers, and nobody can say how
+summary: Your first night on the children's night line, a brass machine that answers parents better than you can, and an owl in the supply cupboard.
+plate: ch00-tube
+review:
+  prose: ai-draft
+  medical: unreviewed
+---
+
+import SortDesk from '../components/widgets/SortDesk.astro';
+
+The night line is a desk, a lamp, a phone that hardly rings any more and a screen that never stops. Parents
+don't call at two in the morning now. They type. The messages come in all night, from all over the city, and
+someone has to read every one and decide: does this child need help *now*, or can it wait until the morning?
+
+Tonight that someone is you. It's your first week.
+
+Bea has worked more nights on this desk than you've had birthdays. She shows you where the kettle is, where the
+spare chargers are, and which drawer sticks. Then she pulls a chair up beside yours, sets down her tea, and says,
+"Right. Let's see you sort some."
+
+<Widget
+  title="Your first six messages"
+  summary="Six real messages from the night's queue. Mark each one urgent or can wait, then see Bea's calls and her reasons."
+  realSystems="Real night lines use structured triage protocols and talk to parents; nobody decides from a single text message. This desk keeps only the first step: reading."
+>
+  <SortDesk
+    items={[
+      { id: 'd0162', reason: "A big number on the thermometer isn't the whole story. She's playing and drinking between doses of medicine. That's a night at home, with someone checking on her." },
+      { id: 'd0288', reason: 'Two months old and 39 degrees. For babies under three months, 38 or more needs urgent advice however well they look. That one goes straight up the line.' },
+      { id: 'd0019', reason: "Blue lips would frighten me. Blue raspberry lolly doesn't. An earache with a fever can usually wait for the morning." },
+      { id: 'd0088', reason: "The rash fades under the glass, which is good, and that's what everyone looks at. But light hurting his eyes with a fever is a warning sign on its own." },
+      { id: 'd0143', reason: "Tiny dots that don't fade under a glass. That's the one we never, ever wait on." },
+      { id: 'd0158', reason: "Chickenpox is miserable, but he's eating and on his games console. He can wait." },
+    ]}
+  />
+</Widget>
+
+"Not bad," says Bea, which you will learn is high praise. "Now do it three hundred times a night, for twelve
+hours, and don't get one wrong."
+
+---
+
+## The tube
+
+There is something new on the corner of the desk.
+
+It arrived yesterday afternoon, with two engineers and a letter. It is a tall brass speaking tube, flared like the
+horn of an old gramophone, rising out of a black lacquered cabinet with a thin seam of teal light. A thick cable
+runs from the back of the cabinet down the corridor and, as far as anyone can tell, out of the building
+altogether.
+
+The letter is from the hospital board. A company called Lyceum has lent the night line its machine for a
+twelve-night trial. Messages can be fed to the tube, and the tube will answer them. At the end of the trial the
+board will decide whether the tube should answer them instead of you.
+
+Bea reads the letter twice, folds it into her cardigan pocket, and picks a message off the queue: a boy of four
+with a temperature and a rash. She types it into the little keyboard under the horn.
+
+There's a pause, a faint hum from somewhere far away down the cable, and then the tube answers.
+
+<Transcript id="prologue-tube" asker="Message from a parent" />
+
+You read it twice. It's good. It's kind and quick and it says the things you would want to say, in the right
+order, more clearly than you would have said them at four in the morning.
+
+Bea reads it once. "And how does it know?" she says.
+
+You look at the manual. There is a whole page about the cabinet's cooling system and a single line about how the
+machine works. It says *proprietary*.
+
+"Hm," says Bea.
+
+---
+
+## The owl
+
+At half past three you go to the supply cupboard for gauze and find, on the top shelf behind the bandages, an
+owl.
+
+<Plate id="ch00-cupboard" size="column" />
+
+It's made of brass and dark blue enamel, about the size of a teapot, with two round glass eyes and a slot in its
+chest. Some of its panels are missing, so you can see gears inside. A paper tag is tied to one foot with string.
+In faded pencil it says: *WICK. Unfinished. Teach it to read.*
+
+"Oh, that thing," says Bea, when you bring it back to the desk. "One of the old night nurses built it, years ago.
+Said she was going to make a machine that could sort the queue. Never got it working." She turns it over in her
+hands. "She said you couldn't trust a machine you couldn't take apart."
+
+You look at Wick. You look at the tube. Twelve nights.
+
+If you want to know how the tube knows, you could try to build one yourself. Not as big. Not as clever. But one
+you can open up, piece by piece, and watch work, and watch fail.
+
+Bea pins a sheet of card to the noticeboard above the desk and writes THE WARD BOARD across the top. "Every
+machine you build gets tested on the same messages," she says. "Ones it's never seen. Same as you just did. Then
+we see who's actually any good." She has already put two machines on it: one that sends an ambulance for
+everybody, and one that tells everybody to wait.
+
+<WardBoard />
+
+"Those two are the ones to beat," says Bea. "You'd be surprised how many clever machines don't."
+
+Then she takes an index card from her pocket, writes on it from memory, and pins it under the board.
+
+> she has a fever and some little purple spots on her legs. i pressed a glass on them like my mum said and they
+> dont fade.
+
+"Every machine gets this one too," she says. "A message I had years ago, at seven minutes past two." She doesn't say
+any more about it, and you don't ask. Not yet.
+
+<NightNote>
+  <Line who="young">The tube's answer was better than mine would have been.</Line>
+  <Line who="charge">It was good. I'd like to know why it was good before I let it answer on its own.</Line>
+  <Line who="young">And if we never find out?</Line>
+  <Line who="charge">Then somebody has to sign for it anyway. Usually that's whoever's sitting in your chair.</Line>
+</NightNote>

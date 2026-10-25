@@ -1,8 +1,10 @@
 ---
-// The Fifth Night, third widget: hold any message under Wick's reading glass and see every word's knob,
+// The Third Night, third widget: hold any message under Wick's reading glass and see every word's knob,
 // the total, and the verdict. Used for the "do fade / don't fade" test and the break-it challenge.
 interface Props { presets?: { label: string; text: string }[]; start?: string }
 const { presets = [], start = '' } = Astro.props;
+// Each reading glass on a page needs its own input id.
+const uid = `glass-${Math.random().toString(36).slice(2, 8)}`;
 ---
 <div class="glass" data-reading-glass>
   {presets.length > 0 && (
@@ -10,8 +12,8 @@ const { presets = [], start = '' } = Astro.props;
       {presets.map((p) => <button type="button" class="chip-btn" data-preset={p.text}>{p.label}</button>)}
     </div>
   )}
-  <label class="lbl" for="glass-input">A message for Wick</label>
-  <textarea id="glass-input" rows="3" data-input placeholder="Type a message a parent might send…">{start}</textarea>
+  <label class="lbl" for={uid}>A message for Wick</label>
+  <textarea id={uid} rows="3" data-input placeholder="Type a message a parent might send…">{start}</textarea>
 
   <div class="result" aria-live="polite">
     <div class="verdict">
@@ -26,7 +28,7 @@ const { presets = [], start = '' } = Astro.props;
       <span class="beam"><span class="zero"></span><span class="needle" data-needle></span></span>
       <span class="end u">urgent</span>
     </div>
-    <p class="words-title">How each word turned Wick's knobs</p>
+    <p class="words-title">How hard each word pushes</p>
     <p class="words" data-words></p>
   </div>
 </div>
@@ -68,11 +70,12 @@ const { presets = [], start = '' } = Astro.props;
         seen.add(w);
         const v = m.weight(w);
         const known = m.weights.has(w);
+        if (!known && !dup) span.title = 'Seen in fewer than two training messages, so Wick has no knob for it.';
         span.className = `wchip ${dup ? 'dup' : !known ? 'unknown' : v > 0.05 ? 'u' : v < -0.05 ? 'c' : 'z'}`;
         span.style.setProperty('--strength', String(Math.min(1, Math.abs(v) / 1.5)));
         span.textContent = w;
         const sub = document.createElement('small');
-        sub.textContent = dup ? 'again: counted once' : !known ? 'never seen' : `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(2)}`;
+        sub.textContent = dup ? 'again: counted once' : !known ? 'no knob' : `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(2)}`;
         span.append(sub);
         return span;
       }));

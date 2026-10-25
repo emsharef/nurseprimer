@@ -15,11 +15,19 @@
   "alt": "The nurses' desk at night. You sit under a lamp reading a message on a screen; Bea leans on the desk with a mug of tea; Wick, the little clockwork owl, sits on the corner of the desk in the lamplight.",
   "aspect": "16:9"
  },
- "ch05-opener": {
+ "ch00-tube": {
+  "alt": "A tall brass speaking tube rises from a sleek dark cabinet on the corner of the nurses' desk, glowing faintly teal. You and Bea regard it warily; Bea holds a printed letter.",
+  "aspect": "16:9"
+ },
+ "ch00-cupboard": {
+  "alt": "In the supply cupboard, by torchlight, you find the little clockwork owl on a high shelf among boxes of gauze, a paper tag tied to its foot.",
+  "aspect": "3:2"
+ },
+ "ch03-opener": {
   "alt": "Under the desk lamp, you fit a row of small brass knobs across Wick's chest with a jeweller's screwdriver while Bea looks on, mug in hand.",
   "aspect": "16:9"
  },
- "ch05-training": {
+ "ch03-training": {
   "alt": "Wick sits alone on the desk while the knobs on its chest turn by themselves, a long strip of paper tape pouring out.",
   "aspect": "3:2"
  }

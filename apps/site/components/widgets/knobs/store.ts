@@ -1,4 +1,4 @@
-// Shared state for the Fifth Night's widgets on one page: the knobs you set by hand, and the knobs Wick
+// Shared state for the Third Night's widgets on one page: the knobs you set by hand, and the knobs Wick
 // learns by itself. Module state is shared because every widget imports this one module.
 import { BagOfWords, Trainer } from '@primer/ml-core';
 import { scoreModel, scoreSet, type SetScore } from '@primer/ward-board';
@@ -27,7 +27,7 @@ export function scoreDay(c: Corpus, m: BagOfWords): SetScore {
 }
 
 export function saveToBoard(c: Corpus, m: BagOfWords, id: string, name: string) {
-  saveModel({ id, name, chapter: 5, scores: scoreModel(c.messages, (x) => m.predict(x.text)) });
+  saveModel({ id, name, chapter: 3, scores: scoreModel(c.messages, (x) => m.predict(x.text)) });
 }
 
 export function getTrained(): BagOfWords | null {

@@ -11,12 +11,17 @@ import { parse } from 'yaml';
 export const IMAGE_MODEL = 'gemini-nano-banana-2.1';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dir = root + 'content/illustrations/';
-for (const line of readFileSync(root + '.env', 'utf8').split('\n')) {
-  const m = line.match(/^([A-Z_]+)=(.*)$/);
-  if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
-}
+import { loadEnv } from './lib/env.mjs';
+loadEnv();
 
+// manifest.yaml holds the house style and shared images (character sheets, portraits, home); each night adds
+// its own images in manifest.d/<chapter>.yaml (a list under `images:`), so builders don't collide.
 const manifest = parse(readFileSync(dir + 'manifest.yaml', 'utf8'));
+if (existsSync(dir + 'manifest.d')) {
+  for (const f of readdirSync(dir + 'manifest.d').filter((f) => f.endsWith('.yaml')).sort()) {
+    manifest.images.push(...(parse(readFileSync(dir + 'manifest.d/' + f, 'utf8')).images ?? []));
+  }
+}
 const STYLE = manifest.style.trim();
 const byId = new Map(manifest.images.map((i) => [i.id, i]));
 

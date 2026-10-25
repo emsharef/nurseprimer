@@ -1,0 +1,24 @@
+# The Third Night
+images:
+  - id: ch03-opener
+    aspect: '16:9'
+    refs: [sheet-you, sheet-bea, sheet-wick]
+    alt: Under the desk lamp, you fit a row of small brass knobs across Wick's chest with a jeweller's screwdriver while Bea looks on, mug in hand.
+    prompt: >
+      Scene at the nurses' desk at night under a warm desk lamp. The young nurse leans in close with a tiny
+      jeweller's screwdriver, fitting a neat row of eight small brass knobs, like the tuning knobs of an old
+      valve radio, across the chest of the little clockwork owl, which sits patiently on the desk. Loose
+      screws, a disassembled old radio and a few paper message slips on the desk. The charge nurse stands
+      just behind with a mug, one eyebrow raised, amused. Teal glow from the owl's eyes; dark blue corridor
+      behind.
+
+  - id: ch03-training
+    aspect: '3:2'
+    refs: [sheet-wick]
+    alt: Wick sits alone on the desk while the knobs on its chest turn by themselves, a long strip of paper tape pouring out.
+    prompt: >
+      The little clockwork owl alone on the desk late at night, eyes glowing teal, concentrating. The row of
+      small brass knobs on its chest is turning by itself, each one blurred mid-turn with tiny motion lines.
+      A long strip of paper tape streams out of its chest slot and spills over the edge of the desk onto the
+      floor in loops. Stacks of paper message slips flutter around it. Quiet, focused, slightly magical
+      near-future feeling.

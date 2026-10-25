@@ -16,8 +16,9 @@
     "audit:citations": "node scripts/citation-audit.mjs",
     "audit:version": "node scripts/version-check.mjs apps/site/dist",
     "lint:a11y": "node scripts/a11y-lint.mjs apps/site/dist",
-    "check": "npm run audit:citations && npm test && npm run build && npm run audit:version && npm run lint:a11y",
-    "deploy": "sh tools/deploy.sh"
+    "check": "npm run audit:citations && npm run audit:content && npm test && npm run build && npm run audit:version && npm run lint:a11y",
+    "deploy": "sh tools/deploy.sh",
+    "audit:content": "node scripts/content-check.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",

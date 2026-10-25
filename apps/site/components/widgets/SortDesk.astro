@@ -1,0 +1,110 @@
+---
+// The Prologue's toy: before any machine, you sort six real messages from the corpus yourself, then see Bea's
+// calls and her reasons. Bea's reasons stay within the NHS guidance in data/datacard.md.
+interface Props { items: { id: string; reason: string }[] }
+const { items } = Astro.props;
+---
+<div class="sort-desk" data-sort-desk data-items={JSON.stringify(items)}>
+  <ol class="cards" data-cards><li class="loading">Loading tonight's messages…</li></ol>
+  <div class="foot">
+    <p class="count" data-count aria-live="polite"></p>
+    <button type="button" class="btn primary" data-reveal disabled>Show Bea's calls</button>
+  </div>
+  <p class="result" data-result aria-live="polite" hidden></p>
+</div>
+
+<script>
+  import { loadCorpus } from '../../src/lib/corpus.ts';
+
+  document.querySelectorAll<HTMLElement>('[data-sort-desk]').forEach(async (root) => {
+    const items: { id: string; reason: string }[] = JSON.parse(root.dataset.items!);
+    const list = root.querySelector('[data-cards]')!;
+    const reveal = root.querySelector<HTMLButtonElement>('[data-reveal]')!;
+    const count = root.querySelector('[data-count]')!;
+    const guesses = new Map<string, 'urgent' | 'can_wait'>();
+    let corpus;
+    try { corpus = await loadCorpus(); } catch (e) { list.innerHTML = ''; list.append((e as Error).message); return; }
+    const msgs = items.map((it) => ({ ...it, m: corpus.messages.find((x) => x.id === it.id)! })).filter((x) => x.m);
+
+    const update = () => {
+      count.textContent = `${guesses.size} of ${msgs.length} sorted`;
+      reveal.disabled = guesses.size < msgs.length;
+    };
+
+    list.replaceChildren(...msgs.map(({ id, m }, i) => {
+      const li = document.createElement('li');
+      li.className = 'card';
+      li.innerHTML = `
+        <p class="time">${['23:52', '00:14', '00:41', '01:08', '01:37', '02:20'][i] ?? ''}</p>
+        <p class="text"></p>
+        <div class="choices" role="group" aria-label="Your call on message ${i + 1}">
+          <button type="button" data-call="urgent">Urgent</button>
+          <button type="button" data-call="can_wait">Can wait</button>
+        </div>
+        <p class="bea" hidden></p>`;
+      li.querySelector('.text')!.textContent = m.text;
+      li.querySelectorAll<HTMLButtonElement>('[data-call]').forEach((b) => {
+        b.setAttribute('aria-pressed', 'false');
+        b.addEventListener('click', () => {
+          if (root.dataset.revealed) return;
+          guesses.set(id, b.dataset.call as 'urgent' | 'can_wait');
+          li.querySelectorAll('[data-call]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+          update();
+        });
+      });
+      return li;
+    }));
+    update();
+
+    reveal.addEventListener('click', () => {
+      root.dataset.revealed = '1';
+      let agree = 0;
+      msgs.forEach(({ id, m, reason }, i) => {
+        const li = list.children[i] as HTMLElement;
+        const mine = guesses.get(id);
+        const same = mine === m.label;
+        if (same) agree++;
+        li.classList.add(same ? 'agree' : 'differ');
+        const bea = li.querySelector<HTMLElement>('.bea')!;
+        bea.hidden = false;
+        bea.innerHTML = `<strong></strong> <span></span>`;
+        bea.querySelector('strong')!.textContent = `Bea: ${m.label === 'urgent' ? 'Urgent' : 'Can wait'}.`;
+        bea.querySelector('span')!.textContent = reason;
+        li.querySelectorAll<HTMLButtonElement>('[data-call]').forEach((b) => (b.disabled = true));
+      });
+      const res = root.querySelector<HTMLElement>('[data-result]')!;
+      res.hidden = false;
+      res.textContent =
+        agree === msgs.length
+          ? `You agreed with Bea on all ${msgs.length}. She looks at you over her glasses for slightly longer than usual.`
+          : `You agreed with Bea on ${agree} of ${msgs.length}. Look at the ones you missed: the reasons are the whole job.`;
+      reveal.hidden = true;
+      count.textContent = '';
+    });
+  });
+</script>
+
+<style>
+  .cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.9rem; }
+  :global(.sort-desk .card) {
+    border: 1px solid var(--rule); border-left: 4px solid var(--rule); border-radius: var(--radius-ui);
+    padding: 0.75rem 1rem; background: var(--paper);
+  }
+  :global(.sort-desk .card.agree) { border-left-color: var(--calm); }
+  :global(.sort-desk .card.differ) { border-left-color: var(--alarm); }
+  :global(.sort-desk .time) { margin: 0 0 0.25rem; font-family: var(--font-mono); font-size: 0.8rem; color: var(--phosphor-ink); }
+  :global(.sort-desk .text) { margin: 0 0 0.6rem; font-family: var(--font-read); font-size: 1rem; }
+  :global(.sort-desk .choices) { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  :global(.sort-desk .choices button) {
+    min-height: 2.75rem; min-width: 7rem; padding: 0.35rem 1rem; cursor: pointer;
+    border: 1.5px solid var(--ink); border-radius: var(--radius-ui); background: var(--card); font-weight: 700;
+  }
+  :global(.sort-desk .choices button[data-call='urgent'][aria-pressed='true']) { background: var(--alarm-wash); border-color: var(--alarm); color: var(--alarm); }
+  :global(.sort-desk .choices button[data-call='can_wait'][aria-pressed='true']) { background: var(--calm-wash); border-color: var(--calm); color: var(--calm); }
+  :global(.sort-desk .choices button:disabled) { cursor: default; }
+  :global(.sort-desk .bea) { margin: 0.7rem 0 0; padding-top: 0.6rem; border-top: 1px dashed var(--rule); font-style: italic; }
+  :global(.sort-desk .bea strong) { font-style: normal; }
+  .foot { display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; align-items: center; justify-content: space-between; margin-top: 1rem; }
+  .count { margin: 0; color: var(--ink-soft); }
+  .result { margin: 1rem 0 0; font-weight: 700; }
+</style>

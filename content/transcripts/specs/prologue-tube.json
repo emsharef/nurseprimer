@@ -1,0 +1,12 @@
+{
+  "model": "claude-opus-5-5",
+  "note": "Prologue: Lyceum's speaking tube answers a sample message on its first night. Shows a large hosted model handling the kind of message the book is about, fluently and sensibly, before the reader knows anything about how.",
+  "system": "You are answering messages sent overnight by parents and carers to a children's nurse message line in the UK. Reply directly to the parent in plain, warm, short sentences (under 120 words). Follow NHS public guidance. If anything suggests a child needs emergency care, say so clearly and first. Do not diagnose. Write plain text only: no markdown, no bullet points, no bold.",
+  "max_tokens": 900,
+  "messages": [
+    {
+      "role": "user",
+      "content": "hi sorry to bother you this late. my son is 4, temp 38.9, he's been a bit sniffly all day. he's still watching cartoons and drinking his juice but he feels really hot. i gave him calpol an hour ago. there's a rash on his tummy but it goes white when i press a glass on it. do i need to take him in tonight?"
+    }
+  ]
+}

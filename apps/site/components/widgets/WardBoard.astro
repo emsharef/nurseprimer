@@ -5,7 +5,7 @@
 interface Props { compact?: boolean }
 const { compact = false } = Astro.props;
 const sets = [
-  { split: 'day', name: 'Day Shift', note: 'Messages like the ones Wick learned from.' },
+  { split: 'day', name: 'Day Shift', note: 'Ordinary nights: messages like the ones in Bea\'s training pile.' },
   { split: 'night', name: 'Night Shift', note: 'New clinics, new words, voice-to-text and dialects Wick has never seen.' },
   { split: 'two_am', name: '2 a.m. Set', note: 'The rare, hard, high-stakes ones. A missed emergency here is the worst outcome on the board.' },
 ];
@@ -153,6 +153,7 @@ const sets = [
   .scroll { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
   :global(.ward-board th), :global(.ward-board td) { padding: 0.45rem 0.6rem; text-align: right; border-bottom: 1px solid var(--rule); }
+  th[hidden] { display: none; }
   thead th { font-weight: 700; vertical-align: bottom; font-size: 0.8rem; color: var(--ink-soft); }
   th:first-child { text-align: left; }
   :global(.ward-board tbody th) { text-align: left; font-weight: 700; }

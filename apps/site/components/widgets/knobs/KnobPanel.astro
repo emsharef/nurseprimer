@@ -1,5 +1,5 @@
 ---
-// The Fifth Night, first widget: a row of knobs on Wick's chest, one per word, that you turn by hand.
+// The Third Night, first widget: a row of knobs on Wick's chest, one per word, that you turn by hand.
 // Turning right pushes a message toward "urgent"; left toward "can wait". Scored live on the Day Shift.
 import { HAND_WORDS } from './store.ts';
 const knobs = [...HAND_WORDS.map((w) => ({ id: w, label: `"${w}"` })), { id: '__bias', label: 'Starting lean' }];
@@ -30,6 +30,7 @@ const knobs = [...HAND_WORDS.map((w) => ({ id: w, label: `"${w}"` })), { id: '__
         <input id={`knob-${k.id}`} type="range" min="-3" max="3" step="0.25" value={k.id === '__bias' ? -1 : 0} data-knob={k.id}
           aria-valuetext={k.id === '__bias' ? 'lean -1' : '0'} />
         <output class="val" data-val={k.id}>{k.id === '__bias' ? '−1' : '0'}</output>
+        {k.id === '__bias' && <span class="gloss">where Wick leans before it reads a word</span>}
       </div>
     ))}
   </div>
@@ -37,7 +38,7 @@ const knobs = [...HAND_WORDS.map((w) => ({ id: w, label: `"${w}"` })), { id: '__
 
   <p class="goal" data-goal aria-live="polite"></p>
 
-  <h3 class="tray-title">Four messages from tonight</h3>
+  <h3 class="tray-title">Four messages from the Day Shift</h3>
   <ul class="tray" data-tray><li class="loading">Loading messages…</li></ul>
 
   <div class="actions">
@@ -80,9 +81,9 @@ const knobs = [...HAND_WORDS.map((w) => ({ id: w, label: `"${w}"` })), { id: '__
       const goal = root.querySelector<HTMLElement>('[data-goal]')!;
       goal.classList.toggle('met', met);
       goal.textContent = met
-        ? `Challenge met: ${s.missedEmergencies} missed, ${s.unnecessaryEscalations} needless alarms. Bea raises an eyebrow, which from Bea is a round of applause.`
-        : `Bea's challenge: fewer than ${GOAL.missed} missed emergencies and fewer than ${GOAL.alarms} needless alarms.`;
-      root.querySelector('[data-face]')!.innerHTML = wickFace(s.missedEmergencies > 0 ? 'urgent' : 'can_wait', 52);
+        ? `Challenge met: ${s.missedEmergencies} missed, ${s.unnecessaryEscalations} needless alarms. Bea raises an eyebrow, which from Bea is a round of applause. The kettle's yours.`
+        : `Bea's challenge: under ${GOAL.missed} missed emergencies and under ${GOAL.alarms} needless alarms. ("Then you can make the tea.")`;
+      root.querySelector('[data-face]')!.innerHTML = wickFace('thinking', 52);
       const list = root.querySelector('[data-tray]')!;
       list.replaceChildren(
         ...shown.map((m) => {
@@ -135,7 +136,7 @@ const knobs = [...HAND_WORDS.map((w) => ({ id: w, label: `"${w}"` })), { id: '__
       });
     });
     save.addEventListener('click', () => {
-      saveToBoard(c, hand, 'ch5-hand', 'Wick, knobs set by hand');
+      saveToBoard(c, hand, 'ch3-hand', 'Wick, knobs set by hand');
       root.querySelector('[data-saved]')!.textContent = 'On the board.';
     });
   }).catch((e) => {
@@ -168,6 +169,7 @@ const knobs = [...HAND_WORDS.map((w) => ({ id: w, label: `"${w}"` })), { id: '__
   .lean .word { font-family: var(--font-ui); }
   input[type='range'] { width: 100%; accent-color: var(--ink); margin: 0; min-height: 1.75rem; }
   .val { font-variant-numeric: tabular-nums; color: var(--ink-soft); font-size: 0.8rem; }
+  .gloss { font-size: 0.72rem; color: var(--ink-soft); max-width: 8rem; line-height: 1.25; }
   .legend { display: flex; justify-content: space-between; margin: 0.5rem 0 0; font-size: 0.8rem; }
   .calm-t { color: var(--calm); }
   .alarm-t { color: var(--alarm); }

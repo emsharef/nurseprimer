@@ -5,6 +5,7 @@
 set -e
 cd "$(dirname "$0")/.."
 npm run audit:citations
+npm run audit:content
 npm test
 BASE_PATH=/nurseprimer/ ASTRO_TELEMETRY_DISABLED=1 npm run build
 rm -rf dist-deploy && cp -R apps/site/dist dist-deploy

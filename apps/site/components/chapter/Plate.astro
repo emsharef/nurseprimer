@@ -2,17 +2,20 @@
 // An illustration plate. Images come from content/illustrations via scripts/illustrate.mjs --publish
 // (public/illustrations/<id>-800.webp / -1600.webp). On day pages the picture's paper melts into the page;
 // on night pages it sits on a lit plate, like a picture in a book read by lamplight.
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 interface Props { id: string; alt?: string; caption?: string; size?: 'wide' | 'column' | 'small'; float?: 'left' | 'right'; eager?: boolean }
 const { id, alt, caption, size = 'wide', float, eager = false } = Astro.props;
 const base = import.meta.env.BASE_URL;
-const indexPath = new URL('../../public/illustrations/index.json', import.meta.url);
+// Builds run from apps/site; import.meta.url points into the compiled output, so resolve from the project.
+const indexPath = join(process.cwd(), 'public/illustrations/index.json');
 let meta: Record<string, { alt: string; aspect: string }> = {};
 try { meta = JSON.parse(readFileSync(indexPath, 'utf8')); } catch {}
 const m = meta[id];
 const [aw, ah] = (m?.aspect ?? '16:9').split(':').map(Number);
 ---
+{!m && import.meta.env.DEV && <p style="color:var(--alarm)">Missing illustration: {id}</p>}
 {m ? (
   <figure class:list={['plate', size, float && `float-${float}`, { wide: size === 'wide' }]}>
     <img

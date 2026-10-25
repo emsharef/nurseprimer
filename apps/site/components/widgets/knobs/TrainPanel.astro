@@ -1,5 +1,5 @@
 ---
-// The Fifth Night, second widget: Wick turns its own knobs. Plain gradient descent on every word in the
+// The Third Night, second widget: Wick turns its own knobs. Plain gradient descent on every word in the
 // training messages, animated one step at a time: the wrongness curve falls, your eight knobs turn, and the
 // words Wick decided matter most appear.
 import { HAND_WORDS } from './store.ts';
@@ -22,11 +22,11 @@ import { HAND_WORDS } from './store.ts';
         </defs>
         <line x1="44" y1="24" x2="44" y2="170" class="axis" />
         <line x1="44" y1="170" x2="548" y2="170" class="axis" />
-        <text x="38" y="30" class="tick" text-anchor="end" data-ymax>0.7</text>
-        <text x="38" y="174" class="tick" text-anchor="end">0</text>
+        <text x="38" y="30" class="tick" text-anchor="end">a lot</text>
+        <text x="38" y="174" class="tick" text-anchor="end">none</text>
         <text x="548" y="192" class="tick" text-anchor="end">300 passes</text>
         <text x="44" y="192" class="tick" text-anchor="start">start</text>
-        <text x="44" y="12" class="tick label">Wick's total wrongness</text>
+        <text x="44" y="12" class="tick label">Wick's average wrongness</text>
         <path d="" class="area" data-area />
         <path d="" class="line" data-line />
       </svg>
@@ -69,7 +69,6 @@ import { HAND_WORDS } from './store.ts';
       </div>
     </div>
     <div class="actions">
-      <button type="button" class="btn" data-again>Start again from zero</button>
       <button type="button" class="btn primary" data-save>Put trained Wick on the Ward Board</button>
       <span class="saved" data-saved aria-live="polite"></span>
     </div>
@@ -100,7 +99,7 @@ import { HAND_WORDS } from './store.ts';
     for (const w of HAND_WORDS) {
       const v = m.weight(w);
       const el = root.querySelector<HTMLElement>(`[data-bar="${w}"]`)!;
-      const pct = Math.min(50, (Math.abs(v) / 3) * 50);
+      const pct = Math.min(50, (Math.abs(v) / 1.5) * 50);
       el.style.left = v >= 0 ? '50%' : `${50 - pct}%`;
       el.style.width = `${pct}%`;
       el.className = `fill ${v >= 0 ? 'u' : 'c'}`;
@@ -148,7 +147,6 @@ import { HAND_WORDS } from './store.ts';
         const tick = () => {
           for (let k = 0; k < perFrame && t.epoch < TRAIN.epochs; k++) losses.push(t.step());
           if (t.epoch === 1) yMax = Math.max(0.1, Math.ceil(losses[0] * 10) / 10);
-          root.querySelector('[data-ymax]')!.textContent = yMax.toFixed(1);
           drawCurve(losses);
           drawBars(t.model());
           progress.textContent = `Pass ${t.epoch} of ${TRAIN.epochs}`;
@@ -179,12 +177,11 @@ import { HAND_WORDS } from './store.ts';
     }
 
     btn.addEventListener('click', run);
-    root.querySelector('[data-again]')!.addEventListener('click', run);
     root.querySelector('[data-save]')!.addEventListener('click', () => {
       import('./store.ts').then(({ getTrained }) => {
         const m = getTrained();
         if (!m) return;
-        saveToBoard(c, m, 'ch5-trained', 'Wick, self-tuned');
+        saveToBoard(c, m, 'ch3-trained', 'Wick, self-tuned');
         root.querySelector('[data-saved]')!.textContent = 'On the board.';
       });
     });

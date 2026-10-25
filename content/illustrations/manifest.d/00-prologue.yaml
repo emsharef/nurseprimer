@@ -1,0 +1,21 @@
+# Prologue: The Speaking Tube
+images:
+  - id: ch00-tube
+    aspect: '16:9'
+    refs: [sheet-you, sheet-bea]
+    alt: A tall brass speaking tube rises from a sleek dark cabinet on the corner of the nurses' desk, glowing faintly teal. You and Bea regard it warily; Bea holds a printed letter.
+    prompt: >
+      Night scene at the nurses' desk. On the corner of the desk stands a new installation: a tall, elegant
+      brass speaking tube, flaring like an old gramophone horn, rising from a sleek dark lacquered cabinet with
+      a thin line of teal light along its seam and a heavy cable running away into the dark corridor. It looks
+      expensive and slightly out of place. The young nurse leans in, curious and uneasy; the charge nurse stands
+      beside with arms folded, holding a printed letter, sceptical. Warm desk lamp, deep blue shadows.
+  - id: ch00-cupboard
+    aspect: '3:2'
+    refs: [sheet-you, sheet-wick]
+    alt: In the supply cupboard, by torchlight, you find the little clockwork owl on a high shelf among boxes of gauze, a paper tag tied to its foot.
+    prompt: >
+      Inside a cramped hospital supply cupboard at night, shelves of boxes and rolled bandages. The young nurse
+      holds up a small torch; its beam finds the little clockwork owl sitting on a high shelf, dusty, unfinished,
+      some panels missing so gears show, eyes dark (not glowing). A paper luggage tag on a string is tied to
+      its foot. Sense of discovery, quiet and intimate.
