@@ -20,3 +20,38 @@ references:
     venue: Psychological Review 65(6), 386-408
     doi: 10.1037/h0042519
     verified: { by: Crossref metadata lookup (Claude), on: 2026-10-25, scope: metadata }
+
+  guo2017:
+    authors: Guo, C.; Pleiss, G.; Sun, Y.; Weinberger, K. Q.
+    year: 2017
+    title: On Calibration of Modern Neural Networks
+    venue: Proceedings of the 34th International Conference on Machine Learning (ICML 2017)
+    url: https://arxiv.org/abs/1706.04599
+    # Abstract: "modern neural networks, unlike those from a decade ago, are poorly calibrated"; temperature
+    # scaling, "a single-parameter variant of Platt Scaling", is "surprisingly effective at calibrating predictions".
+    verified: { by: arXiv abstract page (Claude), on: 2026-10-25, scope: claim }
+
+  parasuraman2010:
+    authors: Parasuraman, R.; Manzey, D. H.
+    year: 2010
+    title: 'Complacency and bias in human use of automation: An attentional integration'
+    venue: Human Factors 52(3), 381-410
+    doi: 10.1177/0018720810376055
+    # Abstract (via PubMed and Crossref): complacency arises under multiple-task load; automation bias produces
+    # omission and commission errors with imperfect aids, occurs in naive and expert users, and is not
+    # prevented by training or instructions.
+    verified: { by: PubMed abstract and Crossref metadata (Claude), on: 2026-10-25, scope: claim }
+
+  wong2021:
+    authors: Wong, A.; Otles, E.; Donnelly, J. P.; Krumm, A.; McCullough, J.; DeTroyer-Cooley, O.; Pestrue, J.; Phillips, M.; Konye, J.; Penoza, C.; Ghous, M.; Singh, K.
+    year: 2021
+    title: External Validation of a Widely Implemented Proprietary Sepsis Prediction Model in Hospitalized Patients
+    venue: JAMA Internal Medicine 181(8), 1065-1070
+    doi: 10.1001/jamainternmed.2021.2626
+    # Abstract: implemented at hundreds of US hospitals; 38 455 hospitalizations of adults at Michigan Medicine;
+    # alerts for 6971 of 38 455 hospitalized patients (18%); did not identify 1709 patients with sepsis (67%).
+    verified: { by: JAMA article page, abstract (Claude), on: 2026-10-25, scope: claim }
+    figures:
+      - { value: 'more than 38,000 (38 455) hospitalizations', page: '1065 (abstract)' }
+      - { value: '18% alerted', page: '1065 (abstract)' }
+      - { value: '67% of patients with sepsis not identified', page: '1065 (abstract)' }

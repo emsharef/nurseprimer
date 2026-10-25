@@ -1,0 +1,273 @@
+---
+number: 11
+title: How Sure Are You?
+lesson: Knowing how sure you are, and who decides what to do about it
+summary: Bea fits a gauge to Wick's chest. Tonight you find out whether its needle tells the truth, who gets to decide where the alarm goes off, and what an hour of alarms does to you.
+plate: ch11-opener
+review:
+  prose: ai-draft
+  medical: unreviewed
+---
+
+import ReliabilityJars from '../components/widgets/how-sure/ReliabilityJars.astro';
+import HandoverLine from '../components/widgets/how-sure/HandoverLine.astro';
+import AlertStream from '../components/widgets/how-sure/AlertStream.astro';
+
+Last night Wick got hands. It looked up a chart, paged the doctor on call, and very nearly did what a note
+in somebody's chart told it to do. At four you took the pager away from it.
+
+"It did what you let it do," Bea said, as the day staff came in. "Now: how sure was it?"
+
+You didn't know. As far as anyone could tell, neither did Wick.
+
+Tonight Bea arrives with something wrapped in a tea towel: a brass gauge the size of a pocket watch, from the
+old boiler room, with one thin needle behind a cracked glass. She has painted over the numbers.
+
+"Every Wick you've built has had a number inside it," she says. "How far past the middle its sum came out.
+You've only ever looked at which side it landed. Let's put the number where we can see it."
+
+She doesn't fit the gauge to last night's Wick. She opens the drawer and takes out the knobs: the Third
+Night's Wick, two thousand knobs set by gradient descent, the one whose every number you can check. "Start
+with the one you can see inside," she says. "The big ones have a needle too. You test it the same way."
+
+You wire the gauge to Wick's sum. Now the needle shows Wick's chance that a message is urgent: nothing at
+the far left, certain at the far right. Wick still says *urgent* when the needle is past the middle and *can
+wait* when it isn't. The first message of the night swings the needle nearly to the stop. The next barely
+lifts it. The third wavers, and settles a little short of the middle.
+
+"So when it's nearly at the stop," says Bea, "is it nearly certain?"
+
+## Eighty per cent sure
+
+You can't find out by staring at the needle. Bea lines up five jam jars on the desk (the one the knobs came
+in, emptied, and four from the kitchen) and chalks a range on each: 0 to 20, 20 to 40, and so on up to 100.
+Every Day Shift message goes into the jar for its needle reading. Then you tip each jar out and count how
+many of its messages really were urgent.
+
+If the needle is honest, the jar of messages Wick gave about one chance in ten should hold about one urgent
+child in ten. The jar of nineties should hold nine in ten.
+
+<Predict
+  id="top-jar"
+  question="Of the Day Shift messages where Wick's needle read 80% or more, how many were really urgent?"
+  options={['About 80%', 'Nearly all of them', 'About half']}
+  answer="Nearly all of them"
+  lock
+>
+  Pour the Day Shift in, then look inside the 80–100% jar.
+</Predict>
+
+<Widget
+  title="Bea's jars"
+  summary="Every test message goes into one of five jars by Wick's needle reading (its chance that the message is urgent). Each hatched bar shows how many in that jar really were urgent; the dashed diagonal is where an honest needle would put them. Switch between the Day Shift, the Night Shift and the 2 a.m. Set, and look inside any jar."
+  realSystems="Real calibration checks use many more messages and finer bins, or a smooth curve; with a few hundred messages, the jars that hold only a handful wobble."
+>
+  <ReliabilityJars />
+</Widget>
+
+On the Day Shift the bars climb the dashed line like a staircase. For the 258 messages in the bottom jar the
+needle said 3% on average, and 3% of them were urgent. For the top jar it said 96%, and 98 of those 99
+children were urgent. Counting a needle at 3% as 97% sure it can wait, Wick is on average 94% sure of its
+calls, and it's right 95% of the time. The middle jars are
+small (one holds just eight messages) and they wobble, but nothing in them shouts.
+
+A needle you can take at its word is called *calibrated*. That is rarer than it sounds, and newer, more
+powerful machines aren't automatically better at it: a well-known study found that modern neural networks,
+unlike those of a decade earlier, were poorly calibrated, and that a one-number adjustment after training
+repaired much of it.<Cite k="guo2017" /> Being right more often doesn't make a machine honest about how
+often it's right.
+
+Bea taps the Night Shift: new clinics, new words, voice-to-text, dialects Wick has never read.
+
+<Predict
+  id="night-needle"
+  question="Which way will Wick's needle lie on the Night Shift?"
+  options={['Too alarmed: fewer urgent children than it says', 'Too calm: more urgent children than it says', 'Still honest']}
+  answer="Too calm: more urgent children than it says"
+>
+  Switch the jars to Night, pour, and see which side of the dashed line the bars land.
+</Predict>
+
+Wick's alarms survive the night. Every message the needle put at 80% or more was urgent: all 79 on the Night
+Shift, all 62 in the 2 a.m. Set. It's the middle that slides. Of the 25 Night Shift messages where the needle
+said about 28%, 14 were urgent: one in two, not one in four. Where it said about 50%, 12 of 15 were urgent.
+In the 2 a.m. Set even the bottom jar leaks: the needle said 3% for 65 messages, and 7 of them were
+emergencies.
+
+So Wick is overconfident at night, but only in one direction. Not in its alarms: in its reassurances. Its
+calls are still mostly right, and on the Night Shift as a whole it is about as sure as it is right (93% sure,
+92% right). On the 2 a.m. Set it is 90% sure and right 86% of the time. But on the Night Shift every jar
+holds more urgent children than the needle admits: where the needle is wrong, it is wrong toward *can wait*,
+the side where children get missed.
+
+Why calm? A word with no knob pushes nothing at all, and on the Night Shift words Wick has never seen turn up
+twice as often as on the Day Shift. When a frightened parent writes in words Wick never learned, the urgent
+pushes don't come, and the sum drifts back toward Wick's starting lean, which leans calm. For the Day Shift's
+real emergencies the needle sat at 85% on average; for the Night Shift's, 75%. Wick doesn't know that it
+doesn't know. Nothing in a bag of words could tell it.
+
+The number Bea writes on the Ward Board for this is the *calibration error*: the average gap between what the
+needle said and what happened, jar by jar (she uses ten narrower jars for this), weighted by how full each jar
+is. It comes to 0.03 on the Day Shift, 0.06 on the Night Shift and 0.09 on the 2 a.m. Set.
+
+---
+
+## Where the line goes
+
+Wick has always called *urgent* at the middle of the dial: needle past 50%. Nobody chose that. It's just
+where the middle is.
+
+At the 50% line the Day Shift costs 14 missed emergencies and 6 needless alarms.
+
+"How many needless ambulances," says Bea, "is one missed child worth?"
+
+You say "all of them", and she waits. Every needless ambulance is a crew that isn't free for the next call, a
+family in A&E at four in the morning, a parent who'll think twice before writing next time. She isn't asking
+you to say a missed child doesn't matter. She's asking for a number, because the line has to go somewhere.
+
+<Predict
+  id="line"
+  question="Bea's number is ten: one missed emergency is worth ten needless ambulances. Where should Wick's line go?"
+  options={['Higher than 50%', 'Stay at 50%', 'Much lower, around 10%']}
+  answer="Much lower, around 10%"
+  lock
+>
+  The slider starts at ten. Read where the line lands, then try one and a hundred.
+</Predict>
+
+<Widget
+  title="The handover line"
+  summary="A slider for how many needless ambulances one missed emergency is worth. It sets the needle reading at which Wick hands a message to a nurse as urgent. A chart shows every line Wick could have, as missed emergencies against needless alarms, with the 50% line and yours marked; the counts underneath are for all three test sets."
+  realSystems="Real triage tools usually have several levels, not one line, and their settings are argued over by clinicians, managers and regulators; the arithmetic underneath is the same."
+>
+  <HandoverLine />
+</Widget>
+
+At ten, the line drops to 9%. The arithmetic fits on the back of a slip. If the needle says $p$, sending help
+is needless $1 - p$ of the time, and not sending it misses an emergency $p$ of the time, which counts ten
+times over. So send help whenever $10p$ is more than $1 - p$: whenever the needle reads more than one in
+eleven.
+
+On the Day Shift that turns 14 missed emergencies into 3, and 6 needless alarms into 45. On the Night Shift,
+29 missed become 6, for 29 needless alarms instead of 1. On the 2 a.m. Set, 18 become 4.
+
+But look at the arithmetic again: it takes the needle at its word. "Send help above 9%" is the right rule
+only if 9% means 9%. On the Day Shift it does. At night the needle reads low, so the line lets through children
+it was meant to catch: the six on the Night Shift, the four at two in the morning. A line is only as good as
+the needle it's drawn on.
+
+<MathDrawer title="where the line goes, and what calibration error measures">
+  Say a missed emergency costs $C_{\text{miss}}$ and a needless alarm costs $C_{\text{alarm}}$. If a message
+  with needle reading $p$ really is urgent with probability $p$ (that is, if the needle is calibrated), then
+
+  $$
+  \begin{aligned}
+  \text{expected cost of sending help} &= (1-p)\,C_{\text{alarm}}, \\
+  \text{expected cost of waiting} &= p\,C_{\text{miss}},
+  \end{aligned}
+  $$
+
+  and sending help is cheaper exactly when
+
+  $$
+  p > t^\ast = \frac{C_{\text{alarm}}}{C_{\text{miss}} + C_{\text{alarm}}}.
+  $$
+
+  With a ratio of ten to one, $t^\ast = 1/11 \approx 0.09$; with a hundred to one, $1/101 \approx 0.01$. The
+  slider sets $t^\ast$ this way and nothing else. If the needle isn't calibrated, $t^\ast$ is no longer the
+  cheapest line, and nothing in the formula tells you so.
+
+  The calibration error on the Ward Board sorts the $N$ messages of a test set into ten equal jars $B_1,
+  \dots, B_{10}$ by needle reading and averages the gap between the mean reading and the share that was
+  urgent in each, weighted by size:
+
+  $$
+  \text{calibration error} = \sum_{k=1}^{10} \frac{|B_k|}{N}\,\Big|\, \overline{p}(B_k) - \overline{y}(B_k) \,\Big|.
+  $$
+
+  It's usually called the *expected calibration error*. It depends on how the jars are cut, and it can hide a
+  big gap in a small jar, which is why you looked inside the jars yourself.
+</MathDrawer>
+
+You leave the slider at ten. Then Bea hands you a letter from the hospital board about the trial.
+
+"The board," she says, "would like no missed emergencies. The ambulance service would like us to stop
+sending them to colds. Lyceum would like whatever line makes its tube look best. And the parents would like
+us to get it right every time, which is the only one of those I agree with."
+
+"So who decides where it goes?"
+
+"Whoever signs under it." She pins the letter beside the Ward Board. The board's preferred setting is in the
+third paragraph: one missed emergency is worth a hundred needless ambulances.
+
+Put your Wick, with your line, on the board. Tonight the board has a new column.
+
+<WardBoard calibration />
+
+The calibration error doesn't change when you move the line, because the line doesn't move the needle. It's
+the one number on the board about how far to trust the others.
+
+---
+
+## Four in the morning
+
+<Plate id="ch11-slips" size="column" />
+
+"Try the board's line," says Bea, "and see what it's like at four in the morning."
+
+At a hundred to one the line drops to 1%. Wick hands over anything with a word of worry in it. Across the
+Night Shift and the 2 a.m. Set it rings 383 times, and 162 of those are needless: more than four in ten.
+
+"You're charge nurse for an hour," says Bea. "I'm putting the kettle on." She deals you twenty-four slips
+from those two piles, in about that mix. Not every slip is one Wick rang for.
+
+<Predict
+  id="every-slip"
+  question="Honestly: will you read every slip properly?"
+  options={['Every one', 'Most of them', 'Probably not']}
+  lock
+>
+  Then let's see. Your numbers are kept on this page only, and only until you leave it.
+</Predict>
+
+<Widget
+  title="Four in the morning"
+  summary="Twenty-four real messages from the Night Shift and the 2 a.m. Set, each with Wick's real call at the board's 1% line, arrive one every four seconds. You agree with Wick or overrule it. At the end the widget shows how long you spent on each slip, how often you agreed, and any urgent child who ended up waiting."
+  realSystems="A real alert queue runs for twelve hours, between phone calls and interruptions, and is rarely checked against the truth afterwards. Two minutes of slips is the gentle version."
+>
+  <AlertStream />
+</Widget>
+
+Bea comes back with two mugs and reads your numbers over your shoulder. Whatever they say, she isn't
+surprised.
+
+"When I started on the children's ward we had a monitor that beeped if a lead came loose," she says. "It
+beeped if a baby wriggled. It beeped so often somebody hung a tea towel over it." She doesn't finish the
+story. "Everybody stops checking eventually. Not because they're lazy. The machine is right so often that
+checking stops feeling like work and starts feeling like a habit."
+
+Two of those slips were Wick's own misses: babies of four and five months with temperatures over 39, which
+the guidance lists as needing urgent advice on its own. The messages were full of calm words (a
+bottle taken, breathing fine, no fits), and the calm words won. The needle didn't waver. It sat under 1%, at the
+bottom of the bottom jar.
+
+Going along with the machine's call, especially when it's wrong, has a name: *automation bias*. Its cousin,
+*complacency*, is the checking that quietly stops when you have three other things to do. A review of the
+research found both in novices and experts alike, and found that neither training nor instructions prevented
+them.<Cite k="parasuraman2010" /> And alarms pile up in real wards too. When researchers independently
+checked a sepsis warning system in use at hundreds of American hospitals, on more than 38,000 adult hospital
+stays, it raised alerts in 18% of them and still missed 67% of the patients who had sepsis: a large burden of
+alert fatigue, its authors wrote, for a tool that caught only a third.<Cite k="wong2021" />
+
+One more thing the jars told you, put another way. On the Night Shift, 24 of Wick's 30 mistakes had the
+needle somewhere between 10% and 90%. Only 83 of the 397 messages land there. The needle can't tell you
+which way a message goes. It can tell you when Wick doesn't know.
+
+<NightNote>
+  <Line who="young">When the needle's high, it's right. When it's low, sometimes it's just never heard the words before.</Line>
+  <Line who="charge">And when you're tired, you go quiet too.</Line>
+  <Line who="young">So the line can't fix the needle, and I can't read every slip.</Line>
+  <Line who="charge">No. But you know where the needle wobbles.</Line>
+  <Line who="wick">NEEDLE NEAR THE MIDDLE. HAND OVER?</Line>
+  <Line who="charge">Then tomorrow it gets a bell for that. *(She looks up at the clock.)* Tomorrow's the last night of the trial.</Line>
+</NightNote>

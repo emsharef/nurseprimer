@@ -66,3 +66,15 @@ of 2026-10-25 ("don't ask questions, start building ... work as you see best"); 
 - **Corpus draft 1:** 2,549 verified messages (11 dropped after one rewrite), writer Claude Opus 5.5, blind
   verifier Claude Sonnet 5.5. Verification failures fell from 18% to 1.3% after fact-card reassurances were
   rephrased without double negatives. Status PENDING CLINICAL REVIEW.
+
+- **The Eleventh Night (How Sure Are You?)** (chapter-builder default). The needle is the Third Night's
+  bag-of-words Wick (TRAIN), because it is the one Wick whose numbers can all be checked. Measured story differs
+  from the arc's "overconfident at night": the needle is calibrated on the Day Shift (ECE 0.03) and its alarms stay
+  trustworthy everywhere (every 80%+ reading urgent on all three sets), but at night its *reassurances* are
+  overconfident (Night ECE 0.06, 2 a.m. 0.09; every Night Shift jar holds more urgent children than the needle
+  says). The chapter tells that version. Reliability diagram uses 5 jars for reading; the Ward Board's calibration
+  error keeps 10 bins. The cost slider sets the line at 1/(1+ratio) (decision-theoretic threshold, which assumes
+  calibration; the chapter says so). The alert stream is a fixed, hand-picked set of 24 real Night/2 a.m. slips at
+  the board's 1:100 line, matching the measured needless share (8 of 18 rings vs 162 of 383) plus two of Wick's
+  real misses; the reader's timings are not stored. `<WardBoard calibration />` lays the four numbers in one row
+  on phones.
