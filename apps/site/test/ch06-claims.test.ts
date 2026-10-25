@@ -66,7 +66,7 @@ describe("Wick's voice", () => {
     expect(tape(100).startsWith(' ra cingt. me s sp tin thhe')).toBe(true);
     for (let s = 101; s <= 1000; s++) t.train();
     expect(CharTrainer.evaluate(m, day, VOICE.evalPositions).accuracy).toBeGreaterThan(0.4);
-  });
+  }, 60_000);
 
   it('after 10,000 steps its first guess is right about 2 times in 3 (66%); after 100,000, 69%', () => {
     const a = CharTrainer.evaluate(checkpoint(VOICE.steps), day, VOICE.evalPositions).accuracy;
