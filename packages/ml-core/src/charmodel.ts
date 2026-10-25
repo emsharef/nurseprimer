@@ -7,7 +7,7 @@
 // Everything here is deterministic on every device: the random numbers come from a seeded generator, and
 // exp/tanh are computed with plain arithmetic (the browser's Math.exp may differ in the last bit between
 // engines), so the same seed gives exactly the same Wick on a phone, a laptop and in the tests.
-import { seededRandom } from './ngram.ts';
+import { seededRandom } from './random.ts';
 
 /** The characters Wick can print. Index 0 ("\n") marks the boundary between messages. */
 export const CHARS = "\n abcdefghijklmnopqrstuvwxyz0123456789.,'?";

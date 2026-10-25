@@ -1,3 +1,5 @@
+import { seededRandom } from './random.ts';
+export { seededRandom };
 // A tiny neural network over a bag of words: one hidden layer ("a second row of knobs that listens to the
 // first"). Each hidden unit sums its own weights for the words present, plus a bias, and squashes the total
 // with tanh; the output sums the hidden units' answers with its own weights and squashes with a logistic.
@@ -7,17 +9,6 @@
 import { bag } from './text.ts';
 import { sigmoid, vocabulary, type Example } from './bow.ts';
 
-/** A small seeded random generator (mulberry32), so a page and a test train the same network. */
-export function seededRandom(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 export interface MLPOptions {
   hidden?: number;
