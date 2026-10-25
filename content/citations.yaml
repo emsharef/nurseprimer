@@ -86,3 +86,12 @@ references:
       - { value: 'more than 38,000 (38 455) hospitalizations', page: '1065 (abstract)' }
       - { value: '18% alerted', page: '1065 (abstract)' }
       - { value: '67% of patients with sepsis not identified', page: '1065 (abstract)' }
+  greshake2023:
+    authors: Greshake, K.; Abdelnabi, S.; Mishra, S.; Endres, C.; Holz, T.; Fritz, M.
+    year: 2023
+    title: "Not what you've signed up for: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection"
+    venue: arXiv preprint 2302.12173 (v1 23 February 2023; v2 5 May 2023)
+    url: https://arxiv.org/abs/2302.12173
+    # Claim checked against the abstract: adversaries can inject prompts "into data likely to be retrieved", and
+    # LLM-integrated applications "blur the line between data and instructions".
+    verified: { by: arXiv abstract page read (Claude), on: 2026-10-25, scope: claim }

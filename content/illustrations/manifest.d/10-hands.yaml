@@ -1,0 +1,26 @@
+# The Tenth Night
+images:
+  - id: ch10-opener
+    aspect: '16:9'
+    refs: [sheet-you, sheet-bea, sheet-wick]
+    alt: Wick sits on the desk fitted with two slender brass arms, one holding the desk phone's handset to its ear and the other a pager, while a strip of its paper tape runs back across the desk into Lyceum's speaking tube. You and Bea watch from your chairs.
+    prompt: >
+      Scene at the nurses' desk at night under a warm desk lamp. The little clockwork owl now has two
+      delicate, articulated brass manipulator arms, fine as a watchmaker's tools, fitted at its shoulders.
+      One arm lifts the handset of an old black desk telephone, the coiled cord trailing; the other holds a
+      small slim pager. A strip of paper tape runs from the owl's chest slot back across the desk and up into
+      the flared brass horn of a tall speaking tube that rises from a black lacquered cabinet with a thin seam
+      of teal light. The young nurse sits close, chin on hand, watching intently; the charge nurse stands just
+      behind with her arms folded, wary but curious. Teal glow in the owl's eyes; dark blue corridor behind.
+
+  - id: ch10-slip
+    aspect: '3:2'
+    refs: [sheet-wick]
+    alt: A fanned stack of paper records on the desk, one slip among them giving off a faint teal glow, while Wick's brass arm reaches toward it.
+    prompt: >
+      Close view of the desk late at night: a fanned stack of plain cream paper cards and manila folders with
+      no headings and no titles; any writing on them is only a few faint, blurred grey wavy lines, never
+      letters or words. One small, ordinary-looking blank slip
+      of paper tucked among them gives off a faint, uneasy teal glow, as if lit from inside. The slender brass
+      manipulator arm of the clockwork owl reaches in from the edge of the frame toward it, fingertips just
+      touching. Lamplight gold from one side, deep midnight shadows, quiet tension.

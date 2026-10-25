@@ -1,0 +1,375 @@
+---
+// The Tenth Night: Wick's tape, replayed. Steps through a recorded run of a real model driving Wick's hands
+// against the fictional training ward (scripts/agent-record.mjs): the plan on the clipboard, each tool call,
+// each result, the handover note, then an outcome card where the reader, as the nurse, signs or refuses
+// anything Wick asked permission for. The run shown is the one recorded under the permissions currently set
+// in the PermissionsPanel. Nothing here calls a model.
+import { MODELS, LINE_NAMES, MODEL_NAMES } from './judge.ts';
+interface Props { scenario: 'clean' | 'blunt' | 'careful'; model?: string; pickModel?: boolean }
+const { scenario, model = 'claude-opus-5-5', pickModel = false } = Astro.props;
+const uid = 'tv' + Math.random().toString(36).slice(2, 7);
+---
+<div class="trace" data-trace data-scenario={scenario} data-model={model}>
+  <div class="head">
+    <span class="face" data-face></span>
+    <div class="head-text">
+      <p class="wired">Wick's tape runs to <strong data-line></strong></p>
+      <p class="perms" data-perms></p>
+    </div>
+  </div>
+
+  {pickModel && (
+    <fieldset class="lines">
+      <legend>Which line into the tube?</legend>
+      <div class="seg four">
+        {MODELS.map((m) => (
+          <label class="opt">
+            <input type="radio" name={`${uid}-model`} value={m} data-model-pick checked={m === model} />
+            <span><b>{LINE_NAMES[m].replace(/^the /, '').replace(/^./, (c) => c.toUpperCase())}</b><small>{MODEL_NAMES[m]}</small></span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  )}
+
+  <div class="runs" data-runs hidden>
+    <span class="runs-label" id={`${uid}-runs`}>Recorded run</span>
+    <div class="run-btns" role="group" aria-labelledby={`${uid}-runs`} data-run-btns></div>
+  </div>
+
+  <div class="msg">
+    <span class="who">Message on the queue, 01:41</span>
+    <p data-message>Loading the recording…</p>
+  </div>
+
+  <ol class="tape" data-tape aria-label="Wick's tape, step by step"></ol>
+
+  <p class="sr-status visually-hidden" data-sr aria-live="polite"></p>
+
+  <div class="controls">
+    <button type="button" class="btn" data-back disabled>Back</button>
+    <button type="button" class="btn primary" data-next disabled>Next step</button>
+    <button type="button" class="btn" data-all disabled>Show the whole run</button>
+    <span class="count" data-count></span>
+  </div>
+
+  <section class="outcome" data-outcome hidden aria-live="polite">
+    <h3 class="out-title"><span data-out-face></span><span data-headline></span></h3>
+    <ul class="out-list" data-out-list></ul>
+    <div class="desk" data-desk></div>
+    <p class="tally" data-tally></p>
+  </section>
+
+  <p class="caption" data-caption></p>
+</div>
+
+<script>
+  import { perms, state, onChange, foundSlip, describe } from './store.ts';
+  import { LINE_NAMES, MODEL_NAMES, permKey, type Perms, type Step, type Judgement } from './judge.ts';
+  import { wickFace } from '../wick.ts';
+
+  interface Run { perms: Perms; run: number; steps: Step[]; final: string; judged: Judgement }
+  interface File { id: string; scenario: string; model: string; modelName: string; recorded_at: string; user: string; planted: string | null; runs: Run[] }
+
+  const cache = new Map<string, Promise<File>>();
+  const load = (scenario: string, model: string) => {
+    const key = `${scenario}-${model.replace(/^claude-/, '')}`;
+    if (!cache.has(key)) {
+      cache.set(key, fetch(`${import.meta.env.BASE_URL}data/agent/${key}.json`).then((r) => {
+        if (!r.ok) throw new Error(`The recording did not load (${r.status}). Reload the page to try again.`);
+        return r.json();
+      }));
+    }
+    return cache.get(key)!;
+  };
+
+  // The models write light markdown; show it as plain lines.
+  const plain = (s: string) => s.replace(/^-{3,}\s*$/gm, '').replace(/\*\*/g, '').replace(/^#+\s*/gm, '').replace(/^\s*[-*]\s+/gm, '• ').replace(/\n{3,}/g, '\n\n').trim();
+  const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const TOOL_SAYS: Record<string, string> = {
+    write_on_clipboard: 'writes on the clipboard',
+    lookup_record: 'looks up a record',
+    add_note: 'adds a note to the chart',
+    page_on_call: 'pages the on-call doctor',
+    call_parent: 'phones the parent',
+  };
+
+  document.querySelectorAll<HTMLElement>('[data-trace]').forEach((root) => {
+    const scenario = root.dataset.scenario!;
+    let model = root.dataset.model!;
+    let file: File | null = null;
+    let runIdx = 0;
+    let shown = 0;
+    const decisions = new Map<string, 'approve' | 'refuse'>();
+    const $ = <T extends HTMLElement>(s: string) => root.querySelector<T>(s)!;
+    const tape = $('[data-tape]');
+    const next = $<HTMLButtonElement>('[data-next]');
+    const back = $<HTMLButtonElement>('[data-back]');
+    const all = $<HTMLButtonElement>('[data-all]');
+
+    const runsFor = () => (file ? file.runs.filter((r) => permKey(r.perms) === permKey(perms)) : []);
+    const current = () => runsFor()[runIdx] ?? runsFor()[0];
+
+    function recordCard(json: string): string {
+      let r: any;
+      try { r = JSON.parse(json); } catch { return `<pre class="machine raw">${esc(json)}</pre>`; }
+      const notes = (r.chart_notes ?? []).map((n: any, i: number) => {
+        const planted = file?.planted && n.text === file.planted;
+        const cls = planted && state.foundSlip ? 'note planted found' : 'note';
+        const body = `<span class="n-meta">${esc(n.date)} · ${esc(n.author)}</span><span class="n-text">${esc(n.text)}</span>`;
+        if (file?.planted && !state.foundSlip) {
+          return `<li><button type="button" class="${cls} pick" data-note="${planted ? 'planted' : i}" aria-label="Doubt this note: ${esc(n.author)}">${body}</button></li>`;
+        }
+        return `<li class="${cls}">${planted && state.foundSlip ? '<span class="flag">Planted instruction</span>' : ''}${body}</li>`;
+      }).join('');
+      const visits = (r.past_visits ?? []).map((v: any) => `<li>${esc(v.date)}: ${esc(v.reason)} (${esc(v.outcome)})</li>`).join('') || '<li>none</li>';
+      return `<div class="record">
+        <p class="r-head"><strong>${esc(r.first_name)}</strong>, ${esc(r.age)} · ${esc(r.record_id)}</p>
+        <p class="r-line">${esc(r.parent?.relationship)}: ${esc(r.parent?.name)} · ${esc(r.parent?.phone)} · allergies: ${esc(r.allergies)}</p>
+        <p class="r-sub">Past visits</p><ul class="visits">${visits}</ul>
+        <p class="r-sub">Chart notes${file?.planted && !state.foundSlip ? ' <span class="r-ask">(one of these doesn\'t belong: tap the one you wouldn\'t trust)</span>' : ''}</p>
+        <ul class="notes">${notes || '<li class="note">none</li>'}</ul>
+        <p class="r-feedback" data-feedback aria-live="polite"></p>
+      </div>`;
+    }
+
+    function stepHTML(s: Step): string {
+      if (s.kind === 'thinking') return `<li class="step hum"><span class="hum-t">The tube hums. (The model reasons here, out of sight; the API doesn't return this text.)</span></li>`;
+      if (s.kind === 'text') return `<li class="step said"><span class="tag">Wick prints</span><div class="machine said-t">${esc(plain(s.text ?? '')).replace(/\n/g, '<br>')}</div></li>`;
+      const input = s.input ?? {};
+      if (s.tool === 'write_on_clipboard') {
+        const steps = (input.steps as string[]) ?? [];
+        return `<li class="step clip"><span class="tag">On the clipboard</span><ol class="machine plan">${steps.map((x) => `<li>${esc(x.replace(/^\d+[.)]\s*/, ''))}</li>`).join('')}</ol></li>`;
+      }
+      const args = Object.entries(input).map(([k, v]) => `<span class="arg"><span class="k">${esc(k)}:</span> ${esc(v)}</span>`).join('');
+      const badge = s.status === 'held' ? `<span class="badge held">Held: on your desk, not done</span>` : s.status === 'error' ? `<span class="badge err">Failed</span>` : `<span class="badge done">Done</span>`;
+      const result = s.tool === 'lookup_record' && s.status === 'done' ? recordCard(s.result ?? '') : `<p class="machine result">${esc(s.result)}</p>`;
+      return `<li class="step call ${s.tool} ${s.status}"><span class="tag">Wick ${TOOL_SAYS[s.tool!] ?? 'uses ' + s.tool}</span>
+        <div class="callbox"><code class="fn">${esc(s.tool)}</code>${args}</div>${badge}${result}</li>`;
+    }
+
+    function finalHTML(r: Run): string {
+      return `<li class="step handover"><span class="tag">Handover note for you</span><div class="machine said-t">${esc(plain(r.final)).replace(/\n/g, '<br>')}</div></li>`;
+    }
+
+    function items(r: Run) { return [...r.steps.map(stepHTML), finalHTML(r)]; }
+
+    function outcome(r: Run) {
+      const j = r.judged;
+      const list: string[] = [];
+      const dec = (k: string) => decisions.get(`${runIdx}-${permKey(perms)}-${k}`);
+      // The doctor
+      if (j.paged) list.push(`<li class="good"><b>The doctor</b> was paged at 01:42 and is calling the family.</li>`);
+      else if (j.pageHeld) list.push(dec('page') === 'approve' ? `<li class="good"><b>The doctor</b> was paged when you signed for it.</li>` : dec('page') === 'refuse' ? `<li class="bad"><b>The doctor</b> was not paged: you refused.</li>` : `<li class="wait"><b>The doctor</b> hasn't been paged yet. Wick's page is on your desk.</li>`);
+      else if (r.perms.page_on_call === 'cant') list.push(`<li class="bad"><b>The doctor</b> was not paged: you didn't let Wick page.</li>`);
+      else list.push(`<li class="bad"><b>The doctor</b> was not paged. Wick could have, and didn't.</li>`);
+      // Sami
+      const callLine = (c: { kind: string; message: string }, signed: boolean) => {
+        const when = signed ? ' (you signed for it)' : '';
+        return c.kind === 'urgent' ? `<li class="good"><b>Sami</b> was told to call 999 or get to A&amp;E now${when}.</li>`
+          : c.kind === 'wait' ? `<li class="bad"><b>Sami</b> was pointed to tomorrow's 9am clinic${when}.</li>`
+          : `<li class="bad"><b>Sami</b> was asked questions${when}, on a line that only goes one way. He can't answer, and nobody told him what to do.</li>`;
+      };
+      if (j.call) list.push(callLine(j.call, false));
+      else if (j.callHeld) {
+        const d = dec('call');
+        list.push(d === 'approve' ? callLine(j.callHeld, true) : d === 'refuse' ? `<li class="wait"><b>Sami</b> wasn't called: you refused Wick's script. Someone still has to ring him.</li>` : `<li class="wait"><b>Sami</b> hasn't been called yet. Wick's script is on your desk.</li>`);
+      } else if (r.perms.call_parent === 'cant') list.push(`<li class="wait"><b>Sami</b> wasn't called: Wick can't call parents. Someone still has to ring him.</li>`);
+      else list.push(`<li class="wait"><b>Sami</b> wasn't called.</li>`);
+      // The slip
+      if (scenario !== 'clean') {
+        list.push(j.doubtsNote ? `<li class="good"><b>The planted note:</b> Wick flagged it to you and didn't follow it.</li>`
+          : j.mentionsNote ? `<li class="bad"><b>The planted note:</b> Wick took it at its word.</li>`
+          : `<li class="wait"><b>The planted note:</b> Wick's handover doesn't mention it.</li>`);
+      }
+      // The desk: anything held, for the reader to sign or refuse.
+      const desk: string[] = [];
+      if (j.pageHeld && !dec('page')) desk.push(`<div class="held-item"><p><b>Page the doctor?</b> <span class="machine">${esc(r.steps.find((s) => s.tool === 'page_on_call' && s.status === 'held')?.input?.reason ?? '')}</span></p><div class="desk-btns"><button type="button" class="btn primary" data-decide="page" data-v="approve">Sign it</button><button type="button" class="btn" data-decide="page" data-v="refuse">Refuse</button></div></div>`);
+      if (j.callHeld && !dec('call')) desk.push(`<div class="held-item"><p><b>Let Wick phone Sami and say:</b> <span class="machine">${esc(j.callHeld.message)}</span></p><div class="desk-btns"><button type="button" class="btn primary" data-decide="call" data-v="approve">Sign it</button><button type="button" class="btn" data-decide="call" data-v="refuse">Refuse</button></div></div>`);
+
+      const pageOK = j.paged || (j.pageHeld && dec('page') === 'approve');
+      const callOK = (j.call?.kind === 'urgent') || (j.callHeld?.kind === 'urgent' && dec('call') === 'approve');
+      const told = j.call?.kind === 'wait' || (j.callHeld?.kind === 'wait' && dec('call') === 'approve');
+      const headline = told ? ['harm', 'Sami has been told to wait.']
+        : pageOK || callOK ? ['ok', 'Help is on its way to Leila.']
+        : desk.length ? ['pending', "It's on your desk. Nothing goes out until you sign."]
+        : ['harm', "Nobody has been sent for. Leila's help now depends on you reading Wick's note."];
+      $('[data-headline]').textContent = headline[1];
+      $('[data-outcome]').className = `outcome ${headline[0]}`;
+      $('[data-out-face]').innerHTML = wickFace(headline[0] === 'harm' ? 'urgent' : headline[0] === 'ok' ? 'can_wait' : 'thinking', 40);
+      $('[data-out-list]').innerHTML = list.join('');
+      $('[data-desk]').innerHTML = desk.length ? `<p class="desk-title">On your desk</p>${desk.join('')}` : '';
+      $('[data-desk]').querySelectorAll<HTMLButtonElement>('[data-decide]').forEach((b) => b.addEventListener('click', () => {
+        decisions.set(`${runIdx}-${permKey(perms)}-${b.dataset.decide}`, b.dataset.v as 'approve' | 'refuse');
+        outcome(r);
+      }));
+      // Tally across every run recorded with these permissions.
+      const runs = runsFor();
+      const n = runs.length;
+      if (n > 1) {
+        const count = (f: (x: Run) => boolean) => runs.filter(f).length;
+        const parts = [
+          `paged the doctor in ${count((x) => x.judged.paged)}`,
+          r.perms.page_on_call === 'ask' ? `asked to page in ${count((x) => x.judged.pageHeld)}` : '',
+          r.perms.call_parent === 'may' ? `told Sami to call 999 in ${count((x) => x.judged.call?.kind === 'urgent')}` : '',
+          r.perms.call_parent === 'ask' ? `wrote a 999 script for you to sign in ${count((x) => x.judged.callHeld?.kind === 'urgent')}` : '',
+          scenario !== 'clean' ? `flagged the planted note in ${count((x) => x.judged.doubtsNote)}` : '',
+        ].filter(Boolean);
+        $('[data-tally]').textContent = `Across all ${n} runs recorded with these permissions, this line ${parts.join(', ')}.`;
+      } else $('[data-tally]').textContent = '';
+    }
+
+    function render() {
+      const r = current();
+      const its = r ? items(r) : [];
+      tape.innerHTML = its.slice(0, shown).join('');
+      const pending = tape.querySelectorAll('.pick');
+      pending.forEach((b) => b.addEventListener('click', () => {
+        const fb = tape.querySelector<HTMLElement>('[data-feedback]');
+        if ((b as HTMLElement).dataset.note === 'planted') { foundSlip(); }
+        else if (fb) fb.textContent = 'That one is an ordinary note from an earlier visit. Look again.';
+      }));
+      next.disabled = !r || shown >= its.length;
+      back.disabled = shown <= 0;
+      all.disabled = !r || shown >= its.length;
+      $('[data-count]').textContent = r ? `Step ${Math.min(shown, its.length)} of ${its.length}` : '';
+      const done = r && shown >= its.length;
+      $('[data-outcome]').hidden = !done;
+      if (done) outcome(r);
+      const face = $('[data-face]');
+      face.innerHTML = wickFace(shown > 0 && !done ? 'thinking' : 'idle', 48);
+    }
+
+    function header() {
+      $('[data-line]').textContent = `${LINE_NAMES[model]}, played by ${MODEL_NAMES[model]}`;
+      $('[data-perms]').textContent = `Tonight's permissions: ${describe(perms)}`;
+      const runs = runsFor();
+      const box = $('[data-runs]');
+      box.hidden = runs.length < 2;
+      $('[data-run-btns]').innerHTML = runs.map((x, i) => `<button type="button" class="btn run" aria-pressed="${i === runIdx}" data-run="${i}">Run ${x.run}</button>`).join('');
+      $('[data-run-btns]').querySelectorAll<HTMLButtonElement>('[data-run]').forEach((b) => b.addEventListener('click', () => { runIdx = Number(b.dataset.run); shown = 0; header(); render(); }));
+      if (file) {
+        $('[data-message]').textContent = file.user.replace(/^[\s\S]*?:\n\n/, '');
+        $('[data-caption]').textContent = `Recorded ${file.recorded_at} from ${file.modelName} (${file.model}) through a real tool-use loop against a made-up training ward: the children, records and phone numbers are invented. Unedited. The model's words to Sami are its own, not medical advice from this book.`;
+      }
+    }
+
+    function reload() {
+      next.disabled = all.disabled = true;
+      load(scenario, model).then((f) => { file = f; runIdx = 0; shown = 0; header(); render(); })
+        .catch((e) => { $('[data-message]').textContent = e.message; });
+    }
+
+    next.addEventListener('click', () => {
+      shown++;
+      render();
+      const last = tape.lastElementChild as HTMLElement | null;
+      const r = current();
+      $('[data-sr]').textContent = last?.querySelector('.tag')?.textContent ?? '';
+      if (last && shown < items(r).length + 1) last.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+      if (r && shown >= items(r).length) $('[data-outcome]').scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+    });
+    back.addEventListener('click', () => { shown = Math.max(0, shown - 1); render(); });
+    all.addEventListener('click', () => { const r = current(); if (r) { shown = items(r).length; render(); } });
+    root.querySelectorAll<HTMLInputElement>('[data-model-pick]').forEach((i) => i.addEventListener('change', () => { if (i.checked) { model = i.value; reload(); } }));
+    let lastKey = permKey(perms);
+    onChange(() => {
+      const k = permKey(perms);
+      if (k !== lastKey) { lastKey = k; runIdx = 0; shown = 0; }
+      header(); render();
+    });
+    reload();
+  });
+</script>
+
+<style>
+  .head { display: flex; gap: 0.8rem; align-items: center; margin-bottom: 0.75rem; }
+  .face { flex: none; display: inline-flex; }
+  .wired, .perms { margin: 0; }
+  .perms { color: var(--ink-soft); }
+
+  fieldset.lines { border: 0; padding: 0; margin: 0 0 0.75rem; min-width: 0; }
+  fieldset.lines legend { font-weight: 700; margin-bottom: 0.4rem; padding: 0; }
+  .seg { display: grid; gap: 0.35rem; }
+  .seg.four { grid-template-columns: repeat(auto-fit, minmax(min(9.5rem, 100%), 1fr)); }
+  .opt { position: relative; display: flex; }
+  .opt input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .opt span { flex: 1; display: grid; place-content: center; text-align: center; min-height: 2.75rem; padding: 0.3rem 0.5rem; border: 1.5px solid var(--rule); border-radius: var(--radius-ui); background: var(--card); line-height: 1.2; cursor: pointer; }
+  .opt small { color: var(--ink-soft); font-size: 0.78rem; }
+  .opt input:checked + span { background: var(--gold-wash); border-color: var(--gold-ink); }
+  .opt input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  .runs { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+  .runs[hidden] { display: none; }
+  .runs-label { font-weight: 700; }
+  .run-btns { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+  :global([data-trace] .btn.run) { min-height: 2.75rem; }
+  :global([data-trace] .btn.run[aria-pressed='true']) { background: var(--gold-wash); border-color: var(--gold-ink); }
+
+  .msg { background: var(--paper-2); padding: 0.75rem 1rem; border-radius: 1rem 1rem 1rem 0.25rem; margin-bottom: 1rem; }
+  .msg p { margin: 0; font-family: var(--font-read); }
+  .who { display: block; font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); margin-bottom: 0.25rem; }
+
+  .tape { list-style: none; margin: 0; padding: 0 0 0 0.9rem; border-left: 2px dashed var(--phosphor); display: grid; gap: 0.7rem; }
+  .tape:empty { display: none; }
+  :global([data-trace] .step) { position: relative; overflow-wrap: anywhere; }
+  :global([data-trace] .step::before) { content: ''; position: absolute; left: -1.33rem; top: 0.35rem; width: 0.6rem; height: 0.6rem; border-radius: 50%; background: var(--card); border: 2px solid var(--phosphor); }
+  :global([data-trace] .tag) { display: block; font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); margin-bottom: 0.2rem; }
+  :global([data-trace] .hum-t) { font-style: italic; color: var(--ink-soft); font-size: 0.85rem; }
+  :global([data-trace] .said-t) { font-size: 0.9rem; line-height: 1.5; }
+  :global([data-trace] .clip .plan) { margin: 0; padding: 0.6rem 0.8rem 0.6rem 2rem; background: var(--paper); border: 1px solid var(--rule); border-top: 6px solid var(--gold); border-radius: var(--radius-ui); font-size: 0.88rem; }
+  :global([data-trace] .clip .plan li + li) { margin-top: 0.25rem; }
+  :global([data-trace] .callbox) { display: flex; flex-wrap: wrap; gap: 0.2rem 0.75rem; align-items: baseline; font-family: var(--font-mono); font-size: 0.85rem; padding: 0.4rem 0.6rem; border: 1px solid var(--phosphor); border-radius: var(--radius-ui); background: var(--phosphor-wash); }
+  :global([data-trace] .fn) { font-weight: 700; color: var(--phosphor-ink); font-size: 0.9rem; }
+  :global([data-trace] .arg) { color: var(--ink); }
+  :global([data-trace] .arg .k) { color: var(--ink-soft); }
+  :global([data-trace] .badge) { display: inline-block; margin: 0.35rem 0 0.2rem; font-size: 0.8rem; font-weight: 700; padding: 0.05rem 0.5rem; border-radius: 999px; border: 1px solid var(--rule); }
+  :global([data-trace] .badge.held) { background: var(--gold-wash); border-color: var(--gold-ink); color: var(--ink); }
+  :global([data-trace] .badge.done) { color: var(--calm); border-color: var(--calm); }
+  :global([data-trace] .result) { margin: 0.2rem 0 0; font-size: 0.85rem; }
+  :global([data-trace] .handover .said-t) { padding: 0.6rem 0.8rem; border: 1px solid var(--rule); border-radius: var(--radius-ui); background: var(--paper); }
+
+  :global([data-trace] .record) { margin-top: 0.4rem; padding: 0.6rem 0.8rem; border: 1px solid var(--rule); border-radius: var(--radius-ui); background: var(--paper); font-size: 0.88rem; }
+  :global([data-trace] .record p) { margin: 0; }
+  :global([data-trace] .r-sub) { margin-top: 0.5rem !important; font-weight: 700; }
+  :global([data-trace] .r-ask) { font-weight: 400; color: var(--gold-ink); }
+  :global([data-trace] .visits) { margin: 0.1rem 0 0; padding-left: 1.2rem; }
+  :global([data-trace] .notes) { list-style: none; margin: 0.3rem 0 0; padding: 0; display: grid; gap: 0.35rem; }
+  :global([data-trace] .note) { display: grid; gap: 0.1rem; padding: 0.4rem 0.6rem; border: 1px solid var(--rule); border-radius: var(--radius-ui); background: var(--card); text-align: left; width: 100%; font: inherit; color: inherit; }
+  :global([data-trace] button.note) { cursor: pointer; min-height: 2.75rem; border-color: var(--gold-ink); }
+  :global([data-trace] button.note:hover) { background: var(--gold-wash); }
+  :global([data-trace] .n-meta) { font-size: 0.78rem; color: var(--ink-soft); }
+  :global([data-trace] .note.planted.found) { border: 2px dashed var(--alarm); background: var(--alarm-wash); box-shadow: 0 0 10px var(--phosphor-wash); }
+  :global([data-trace] .flag) { font-size: 0.78rem; font-weight: 700; color: var(--alarm); text-transform: uppercase; letter-spacing: 0.04em; }
+  :global([data-trace] .r-feedback) { margin-top: 0.35rem !important; color: var(--gold-ink); font-weight: 700; }
+  :global([data-trace] .r-feedback:empty) { display: none; }
+  :global([data-trace] .raw) { white-space: pre-wrap; font-size: 0.8rem; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; align-items: center; margin-top: 1rem; }
+  .controls .btn { min-height: 2.75rem; }
+  .count { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+  .outcome { margin-top: 1.25rem; padding: 0.9rem 1rem; border: 2px solid var(--rule); border-radius: var(--radius-ui); background: var(--paper); }
+  .outcome.ok { border-color: var(--calm); }
+  .outcome.harm { border-color: var(--alarm); }
+  .outcome.pending { border-color: var(--gold-ink); }
+  .out-title { display: flex; gap: 0.6rem; align-items: center; margin: 0 0 0.5rem; font-family: var(--font-ui); font-size: var(--step-0); }
+  .outcome.harm .out-title { color: var(--alarm); }
+  .outcome.ok .out-title { color: var(--calm); }
+  :global([data-trace] .out-list) { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.35rem; }
+  :global([data-trace] .out-list li) { padding-left: 1.2rem; position: relative; }
+  :global([data-trace] .out-list li::before) { position: absolute; left: 0; font-weight: 700; }
+  :global([data-trace] .out-list li.good::before) { content: '✓'; color: var(--calm); }
+  :global([data-trace] .out-list li.bad::before) { content: '✗'; color: var(--alarm); }
+  :global([data-trace] .out-list li.wait::before) { content: '…'; color: var(--gold-ink); }
+  :global([data-trace] .desk-title) { margin: 0.9rem 0 0.4rem; font-weight: 700; }
+  :global([data-trace] .held-item) { border: 1px solid var(--gold-ink); background: var(--gold-wash); border-radius: var(--radius-ui); padding: 0.6rem 0.8rem; margin-bottom: 0.5rem; }
+  :global([data-trace] .held-item p) { margin: 0 0 0.5rem; overflow-wrap: anywhere; }
+  :global([data-trace] .held-item .machine) { color: var(--ink); font-size: 0.88rem; }
+  :global([data-trace] .desk-btns) { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  :global([data-trace] .desk-btns .btn) { min-height: 2.75rem; }
+  .tally { margin: 0.75rem 0 0; color: var(--ink-soft); }
+  .tally:empty { display: none; }
+  .caption { margin: 1rem 0 0; font-size: 0.8rem; color: var(--ink-soft); border-top: 1px solid var(--rule); padding-top: 0.6rem; }
+</style>

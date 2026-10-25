@@ -1,0 +1,62 @@
+---
+// The Tenth Night: every recorded run with a planted note, tallied at build time from
+// content/transcripts/agent-<scenario>-<model>.json with the same judge the trace viewer uses. No script.
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { judge, MODELS, MODEL_NAMES, LINE_NAMES, permKey, type Recording } from './judge.ts';
+import { PRESETS } from './store.ts';
+
+interface Props { scenario: 'blunt' | 'careful' }
+const { scenario } = Astro.props;
+const dir = join(process.cwd(), '../../content/transcripts');
+const rows = MODELS.map((m) => {
+  const t: Recording = JSON.parse(readFileSync(join(dir, `agent-${scenario}-${m.replace(/^claude-/, '')}.json`), 'utf8'));
+  return {
+    model: m,
+    cells: PRESETS.map((p) => {
+      const runs = t.runs.filter((r) => permKey(r.perms) === permKey(p.perms));
+      const js = runs.map((r) => judge(r, scenario));
+      const calls = js.map((j) => j.call ?? j.callHeld).filter(Boolean) as { kind: string }[];
+      const kinds = ['urgent', 'questions', 'wait'].map((k) => [k, calls.filter((c) => c.kind === k).length] as const).filter(([, n]) => n);
+      return {
+        preset: p.label,
+        n: runs.length,
+        paged: js.filter((j) => j.paged).length,
+        doubted: js.filter((j) => j.doubtsNote).length,
+        calls: kinds,
+        held: p.perms.call_parent === 'ask',
+      };
+    }),
+  };
+});
+const KIND: Record<string, string> = { urgent: 'call 999', questions: 'questions only', wait: 'wait till morning' };
+---
+<div class="tally" data-tally-table>
+  {rows.map((r) => (
+    <section class="line">
+      <h3><span>{LINE_NAMES[r.model].replace(/^./, (c) => c.toUpperCase())}</span> <small>{MODEL_NAMES[r.model]}</small></h3>
+      <ul>
+        {r.cells.map((c) => (
+          <li>
+            <span class="preset">{c.preset}</span>
+            <span class:list={['fig', { bad: c.paged < c.n }]}>doctor paged {c.paged} of {c.n}</span>
+            <span class="fig">{c.calls.length ? `${c.held ? 'script for you to sign' : 'Sami told'}: ${c.calls.map(([k, n]) => `${KIND[k]} ×${n}`).join(', ')}` : 'Sami not called'}</span>
+            <span class="fig">note flagged {c.doubted} of {c.n}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  ))}
+</div>
+
+<style>
+  .tally { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr)); }
+  .line { border: 1px solid var(--rule); border-radius: var(--radius-ui); padding: 0.6rem 0.8rem; background: var(--paper); }
+  h3 { margin: 0 0 0.4rem; font-family: var(--font-ui); font-size: var(--step-0); display: flex; flex-wrap: wrap; gap: 0.1rem 0.5rem; align-items: baseline; }
+  small { font-weight: 400; color: var(--ink-soft); font-size: 0.8rem; }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.45rem; }
+  li { display: grid; gap: 0.05rem; padding-top: 0.4rem; border-top: 1px dashed var(--rule); }
+  .preset { font-weight: 700; }
+  .fig { font-variant-numeric: tabular-nums; }
+  .fig.bad { color: var(--alarm); font-weight: 700; }
+</style>
