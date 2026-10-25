@@ -16,8 +16,9 @@ of 2026-10-25 ("don't ask questions, start building ... work as you see best"); 
 - **API keys** (owner): copied from ../musicdoo/.env into a gitignored `.env` (Anthropic, Google). Offline
   scripts only; never shipped to the browser.
 - **Section 13 defaults** (all Claude defaults, open to reversal):
-  1. *Audience:* general readers first, with the Nurse / Coder / Curious picker for depth. Nursing students
-     are served by the Nurse track; a school partnership can come later.
+  1. *Audience:* ~~general readers first, with a Nurse / Coder / Curious picker~~ **superseded by the owner:**
+     generalist readers with little AI familiarity; the nurse is the running example, not the audience. No
+     reading tracks.
   2. *Math depth:* drawers only. A parallel technical track roughly doubles writing and review.
   3. *Compute:* in-browser training for chapters 1-10; for 11-13, train small things live where it runs in
      seconds, and otherwise ship precomputed weights with a visible "precomputed" label.
@@ -46,3 +47,22 @@ of 2026-10-25 ("don't ask questions, start building ... work as you see best"); 
 - **Team:** not the full proof_lab tmux lab (built for long-running research with a heartbeat and board).
   For a book, the owner's Claude session coordinates and spawns subagents per chapter in git worktrees, with
   role definitions in `.claude/agents/`: chapter-builder, accuracy-reviewer, reader-tester.
+
+- **Owner corrections (2026-10-25, later):** audience is generalists new to AI; tone is an engaging, friendly
+  interactive adventure like the Primer in *The Diamond Age*, not a textbook; illustrations use the latest Nano
+  Banana generation (`gemini-nano-banana-2.1`, Nano Banana 2.1, per the Gemini models list); the look should be
+  distinctive and tasteful, "a little cyberpunk but don't overdo it", not fairytale; the plan is a starting
+  point, not a contract; use a critic agent.
+- **Story frame:** chapters are nights; you are the new night nurse; Bea is the charge nurse; Wick is a
+  clockwork owl you build. See `docs/style-guide.md`.
+- **Look:** neo-Victorian with a little near-future. Warm paper matching the illustrations, midnight ink,
+  lamplight gold for the human side, phosphor teal (sparingly) for the machine, alarm red only for urgency in
+  data. Bodoni Moda (display), Literata (reading), Atkinson Hyperlegible Next and Mono (interface and machine
+  output). Diagrams: precise ink lines with hatched fills. Replaces the earlier "ward" and "storybook" passes.
+- **Arc:** adopted the story critic's restructure: prologue, twelve nights, morning (`docs/arc.md`), replacing
+  plan section 5. Knobs becomes the Third Night.
+- **Ward Board** is placed by each chapter where it belongs in the story (`<WardBoard />`), not appended to
+  every page.
+- **Corpus draft 1:** 2,549 verified messages (11 dropped after one rewrite), writer Claude Opus 5.5, blind
+  verifier Claude Sonnet 5.5. Verification failures fell from 18% to 1.3% after fact-card reassurances were
+  rephrased without double negatives. Status PENDING CLINICAL REVIEW.

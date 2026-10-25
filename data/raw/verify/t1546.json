@@ -1,0 +1,1 @@
+{"id":"t1546","pass":true,"problems":[],"missedNegations":[],"verifier":{"id":"t1546","present":["infant_fever","nonblanching_rash"],"absent":["breathing","not_feeding"],"label":"urgent","other_concern":null,"unclear":false}}

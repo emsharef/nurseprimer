@@ -1,0 +1,1 @@
+{"id":"d0370","pass":false,"problems":["extra infant_fever","verifier labels urgent"],"missedNegations":[],"verifier":{"id":"d0370","present":["infant_fever"],"absent":["not_feeding","drowsy"],"label":"urgent","other_concern":null,"unclear":false}}

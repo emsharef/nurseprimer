@@ -5,19 +5,20 @@ interface Props { title: string }
 const { title } = Astro.props;
 ---
 <details class="math-drawer">
-  <summary><span class="pull">The math:</span> {title}</summary>
+  <summary><span class="pull">Under the hood</span> {title}</summary>
   <div class="body"><slot /></div>
 </details>
 
 <style>
   .math-drawer {
     margin-block: 1.75rem; border: 1px solid var(--rule); border-radius: var(--radius-ui);
-    background: var(--paper);
+    background: var(--card);
   }
   summary {
     cursor: pointer; padding: 0.75rem 1rem; font-family: var(--font-ui); font-size: var(--step--1);
     list-style-position: inside;
   }
-  .pull { color: var(--lamp); font-weight: 700; }
+  .pull { color: var(--phosphor-ink); font-weight: 700; margin-right: 0.35rem; }
+  .pull::after { content: ':'; }
   .body { padding: 0 1rem 1rem; }
 </style>

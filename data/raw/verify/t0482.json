@@ -1,0 +1,1 @@
+{"id":"t0482","pass":true,"problems":[],"missedNegations":[],"verifier":{"id":"t0482","present":[],"absent":["not_feeding","drowsy","no_pee"],"label":"can_wait","other_concern":null,"unclear":false}}

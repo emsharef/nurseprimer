@@ -1,40 +1,58 @@
 ---
 import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
-import { LADDER } from '../lib/ladder.ts';
+import Plate from '../../components/chapter/Plate.astro';
+import ReviewFlag from '../../components/chapter/ReviewFlag.astro';
+import { LADDER, nightName } from '../lib/ladder.ts';
 
 const written = new Map((await getCollection('chapters')).map((c) => [c.data.number, c.id]));
 const base = import.meta.env.BASE_URL;
+const first = LADDER.find((r) => written.has(r.n));
 ---
 <Base title="A Young Nurse's Illustrated Primer">
   <div class="column">
     <section class="opening">
-      <p class="time" aria-hidden="true">02:07</p>
       <h1>A Young Nurse's Illustrated Primer</h1>
-      <blockquote>
-        <p>hi sorry its late. my daughter is 3, she has a fever and some little purple spots on her legs. i pressed a glass on them like my mum said and they dont go away. should i wait for the morning?</p>
-      </blockquote>
-      <p class="lede">
-        A good night nurse reads that message and calls an ambulance. In this book you build a machine that tries
-        to do the same, one idea at a time, in your browser. Each version works, then breaks in a way you trigger
-        yourself, and the break is what the next chapter fixes.
-      </p>
-      <p class="todo"><code>TODO(review)</code> The opening message and the nurse's response have not yet been reviewed by a clinician.</p>
+      <p class="sub">An adventure in building a machine that learns</p>
     </section>
+    <Plate id="home-desk" size="wide" eager />
+    <div class="message" role="group" aria-label="A message arrives at 2:07 a.m.">
+      <p class="stamp"><span class="pulse" aria-hidden="true"></span>02:07 · new message</p>
+      <p class="text">hi sorry its late. my daughter is 3, she has a fever and some little purple spots on her legs. i pressed a glass on them like my mum said and they dont go away. should i wait for the morning?</p>
+    </div>
+    <div class="lede">
+      <p>
+        It's your first week on the children's night line. Bea, who has worked more nights than you've had
+        birthdays, reads that message over your shoulder and is already reaching for the phone. Spots that don't
+        fade under a glass mean an ambulance, now.
+      </p>
+      <p>
+        On the corner of the desk sits a small brass owl that someone built from spare parts and never finished.
+        Its name is Wick. Over the nights in this book you'll teach Wick to read messages like that one: first
+        with rules, then with knobs, then with things that learn. Each version of Wick will work, and then break
+        in a way you discover yourself. Along the way you'll find out how the AI in your phone actually works,
+        and where it doesn't.
+      </p>
+      {first && <p><a class="btn primary" href={`${base}chapters/${written.get(first.n)}/`}>Begin: {nightName(first.n)}</a></p>}
+    </div>
 
-    <nav aria-labelledby="ladder-title">
-      <h2 id="ladder-title">The chapters</h2>
-      <p class="hint">Linked chapters are ready to read. The others are still being written.</p>
+  </div>
+  <ReviewFlag prose="ai-draft" medical="unreviewed" />
+  <div class="column">
+    <nav aria-labelledby="ladder-title" class="nights">
+      <h2 id="ladder-title">The nights</h2>
       <ol class="ladder">
         {LADDER.map((r) => {
           const id = written.get(r.n);
+          const night = nightName(r.n);
           return (
             <li class:list={{ open: id }}>
-              <span class="n">{r.n ?? 'Coda'}</span>
+              <span class="n">{night}</span>
               <span class="t">
-                {id ? <a href={`${base}chapters/${id}/`}>{r.title}</a> : <span>{r.title}</span>}
+                {id ? <a href={`${base}chapters/${id}/`}>{r.title}</a> : <span class="title">{r.title}</span>}
                 <span class="lesson">{r.lesson}</span>
               </span>
+              {!id && <span class="soon">being written</span>}
             </li>
           );
         })}
@@ -44,26 +62,33 @@ const base = import.meta.env.BASE_URL;
 </Base>
 
 <style>
-  .opening { padding-block: clamp(2.5rem, 8vw, 5rem) 1rem; }
-  .time { font-family: var(--font-mono); font-size: var(--step-3); color: var(--lamp); margin: 0; letter-spacing: 0.04em; }
-  h1 { font-size: clamp(var(--step-3), 7vw, var(--step-4)); margin: 0.2em 0 1em; }
-  blockquote {
-    margin: 0 0 1.5rem; padding: 1rem 1.25rem; max-width: 34rem;
-    background: var(--paper); border: 1px solid var(--rule); border-radius: 1rem 1rem 1rem 0.2rem;
+  .opening { text-align: center; padding-top: clamp(2rem, 6vw, 4rem); }
+  h1 { font-size: clamp(var(--step-4), 8vw, var(--step-5)); margin: 0; }
+  .sub { font-family: var(--font-display); font-style: italic; font-size: var(--step-1); color: var(--gold-ink); margin: 0.4rem 0 0; }
+  .message {
+    margin: -0.5rem auto 2rem; max-width: 30rem; padding: 0.9rem 1.1rem;
+    background: var(--card); border: 1px solid var(--ink); border-radius: 1rem 1rem 1rem 0.25rem;
     font-family: var(--font-ui);
+    box-shadow: 0 18px 40px -30px rgb(18 26 48 / 0.7);
+    position: relative;
   }
-  blockquote p { margin: 0; }
-  .hint { color: var(--ink-soft); font-family: var(--font-ui); font-size: var(--step--1); }
-  .todo { font-family: var(--font-ui); font-size: var(--step--1); border: 2px dashed var(--lamp); background: var(--lamp-bg); padding: 0.5rem 0.75rem; border-radius: var(--radius-ui); }
-  .lede { font-size: var(--step-1); line-height: 1.5; }
+  .stamp { margin: 0 0 0.35rem; font-family: var(--font-mono); font-size: 0.8rem; color: var(--phosphor-ink); display: flex; align-items: center; gap: 0.5rem; }
+  .pulse { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--phosphor); box-shadow: 0 0 8px var(--phosphor); }
+  .text { margin: 0; }
+  .nights { margin-top: 4rem; }
   .ladder { list-style: none; padding: 0; margin: 0; }
   .ladder li {
-    display: grid; grid-template-columns: 3.5rem 1fr; gap: 1rem; align-items: baseline;
-    padding-block: 0.6rem; border-bottom: 1px solid var(--rule);
+    display: grid; grid-template-columns: 11rem 1fr auto; gap: 0.25rem 1.25rem; align-items: baseline;
+    padding-block: 0.75rem; border-bottom: 1px solid var(--rule);
   }
-  .n { font-family: var(--font-mono); color: var(--ink-soft); text-align: right; }
-  .t { display: flex; flex-direction: column; font-family: var(--font-ui); }
-  .t > span:first-child { color: var(--ink-soft); }
-  .open .t a { font-weight: 700; }
-  .lesson { font-size: var(--step--1); color: var(--ink-soft); font-family: var(--font-read); }
+  .n { font-family: var(--font-display); font-style: italic; color: var(--ink-soft); }
+  .t { display: flex; flex-direction: column; }
+  .t a, .t .title { font-family: var(--font-display); font-size: var(--step-1); line-height: 1.25; }
+  .t .title { color: var(--ink-soft); }
+  .lesson { font-size: var(--step--1); color: var(--ink-soft); font-family: var(--font-ui); }
+  .soon { font-family: var(--font-ui); font-size: 0.75rem; color: var(--ink-soft); }
+  @media (max-width: 40rem) {
+    .ladder li { grid-template-columns: 1fr; }
+    .soon { display: none; }
+  }
 </style>

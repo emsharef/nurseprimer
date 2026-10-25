@@ -23,7 +23,11 @@ for (const theme of ['light', 'dark']) {
     const page = await browser.newPage({ viewport: { width: w, height: h }, colorScheme: theme });
     for (const path of paths.length ? paths : ['/']) {
       await page.goto(origin + path);
-      await page.evaluate(() => document.fonts.ready);
+      await page.evaluate(async () => {
+        document.querySelectorAll('img[loading="lazy"]').forEach((i) => (i.loading = 'eager'));
+        await Promise.all([...document.images].map((i) => i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; })));
+        await document.fonts.ready;
+      });
       const name = (path.replace(/\//g, '_') || 'home').replace(/^_|_$/g, '') || 'home';
       await page.screenshot({ path: join(out, `${name}-${theme}-${tag}.png`), fullPage: true });
     }

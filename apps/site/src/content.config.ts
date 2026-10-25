@@ -7,8 +7,10 @@ const chapters = defineCollection({
     number: z.number().int().nullable(),
     title: z.string(),
     lesson: z.string(),
-    /** One line under the wristband: what the reader will do in this chapter. */
+    /** One line under the title: what happens tonight. */
     summary: z.string(),
+    /** Illustration id for the opening plate (content/illustrations/manifest.yaml). */
+    plate: z.string().optional(),
     /** Plan 12: AI-drafted prose and unreviewed medical content carry visible TODO(review) flags. */
     review: z.object({
       prose: z.enum(['ai-draft', 'human-edited']),

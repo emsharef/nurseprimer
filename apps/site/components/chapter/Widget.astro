@@ -1,24 +1,52 @@
 ---
-// Frame for every interactive toy. `realSystems` is the one-line "what real systems do differently"
-// note (plan 12: keep the toy honest). `summary` is the text description for readers who can't see the widget.
+// Frame for every interactive toy: an instrument panel on the nurses' desk. `realSystems` is the one-line
+// "what real systems do differently" note (plan 12: keep the toy honest). `summary` describes what the widget
+// shows, for readers who can't see it.
 interface Props { title: string; realSystems?: string; summary?: string }
 const { title, realSystems, summary } = Astro.props;
 const id = 'w-' + title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 ---
 <figure class="widget wide" aria-labelledby={id}>
-  <figcaption id={id} class="title">{title}</figcaption>
+  <figcaption id={id} class="bar">
+    <span class="lamp" aria-hidden="true"></span>
+    <span class="title">{title}</span>
+  </figcaption>
   <div class="stage"><slot /></div>
   {summary && <p class="summary">{summary}</p>}
-  {realSystems && <p class="real"><strong>What real systems do differently:</strong> {realSystems}</p>}
+  {realSystems && <p class="real"><span class="real-label">How real systems differ</span> {realSystems}</p>}
 </figure>
 
 <style>
   .widget {
-    margin-block: 2.5rem; padding: clamp(1rem, 3vw, 1.75rem);
-    background: var(--paper); border: 1px solid var(--rule); border-radius: var(--radius-ui);
+    position: relative;
+    margin-block: 2.75rem; padding: 0;
+    background: var(--card); border: 1px solid var(--ink); border-radius: var(--radius-ui);
     font-family: var(--font-ui); font-size: var(--step--1); line-height: 1.5;
+    box-shadow: 0 1px 0 var(--rule), 0 24px 48px -36px rgb(18 26 48 / 0.6);
   }
-  .title { font-weight: 700; font-size: var(--step-0); margin-bottom: 1rem; }
-  .summary { margin: 1rem 0 0; color: var(--ink-soft); }
-  .real { margin: 1rem 0 0; padding-top: 0.75rem; border-top: 1px dashed var(--rule); }
+  /* Corner registration ticks: a quiet nod to instruments and screens. */
+  .widget::before, .widget::after {
+    content: ''; position: absolute; width: 10px; height: 10px; border-color: var(--phosphor); border-style: solid;
+  }
+  .widget::before { top: -5px; left: -5px; border-width: 2px 0 0 2px; }
+  .widget::after { bottom: -5px; right: -5px; border-width: 0 2px 2px 0; }
+  .bar {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.6rem clamp(1rem, 3vw, 1.5rem);
+    border-bottom: 1px solid var(--rule);
+    font-weight: 700; letter-spacing: 0.01em;
+  }
+  .lamp {
+    width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--phosphor);
+    box-shadow: 0 0 0 3px var(--phosphor-wash), 0 0 10px var(--phosphor);
+  }
+  .stage { padding: clamp(1rem, 3vw, 1.5rem); }
+  .summary { margin: 0; padding: 0 clamp(1rem, 3vw, 1.5rem) 1rem; color: var(--ink-soft); }
+  .real {
+    margin: 0; padding: 0.75rem clamp(1rem, 3vw, 1.5rem);
+    border-top: 1px dashed var(--rule); background: var(--paper-2);
+    border-radius: 0 0 var(--radius-ui) var(--radius-ui);
+  }
+  .real-label { font-weight: 700; margin-right: 0.35rem; }
+  .real-label::after { content: ':'; }
 </style>

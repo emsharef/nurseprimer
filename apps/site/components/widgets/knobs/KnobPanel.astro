@@ -1,0 +1,192 @@
+---
+// The Fifth Night, first widget: a row of knobs on Wick's chest, one per word, that you turn by hand.
+// Turning right pushes a message toward "urgent"; left toward "can wait". Scored live on the Day Shift.
+import { HAND_WORDS } from './store.ts';
+const knobs = [...HAND_WORDS.map((w) => ({ id: w, label: `"${w}"` })), { id: '__bias', label: 'Starting lean' }];
+---
+<div class="knob-panel" data-knob-panel>
+  <div class="status" aria-live="polite">
+    <span class="face" data-face></span>
+    <div class="stats">
+      <p class="stats-title">Wick on the Day Shift <span class="n" data-n></span></p>
+      <p class="stat-row">
+        <span class="stat"><strong data-acc>–</strong> right</span>
+        <span class="stat miss"><strong data-miss>–</strong> missed emergencies</span>
+        <span class="stat"><strong data-esc>–</strong> needless alarms</span>
+      </p>
+    </div>
+  </div>
+
+  <div class="knobs" role="group" aria-label="Wick's knobs">
+    {knobs.map((k) => (
+      <div class:list={['knob', { lean: k.id === '__bias' }]}>
+        <svg class="dial" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+          <path d="M14.6 49.4 A24 24 0 0 1 32 8" class="arc calm" />
+          <path d="M32 8 A24 24 0 0 1 49.4 49.4" class="arc alarm" />
+          <circle cx="32" cy="32" r="17" class="cap" />
+          <line x1="32" y1="32" x2="32" y2="18" class="pointer" data-pointer={k.id} />
+        </svg>
+        <label for={`knob-${k.id}`} class="word">{k.label}</label>
+        <input id={`knob-${k.id}`} type="range" min="-3" max="3" step="0.25" value={k.id === '__bias' ? -1 : 0} data-knob={k.id}
+          aria-valuetext={k.id === '__bias' ? 'lean -1' : '0'} />
+        <output class="val" data-val={k.id}>{k.id === '__bias' ? '−1' : '0'}</output>
+      </div>
+    ))}
+  </div>
+  <p class="legend"><span class="calm-t">◀ can wait</span><span class="alarm-t">urgent ▶</span></p>
+
+  <p class="goal" data-goal aria-live="polite"></p>
+
+  <h3 class="tray-title">Four messages from tonight</h3>
+  <ul class="tray" data-tray><li class="loading">Loading messages…</li></ul>
+
+  <div class="actions">
+    <button type="button" class="btn" data-reset>Reset the knobs</button>
+    <button type="button" class="btn primary" data-save disabled>Put this Wick on the Ward Board</button>
+    <span class="saved" data-saved aria-live="polite"></span>
+  </div>
+</div>
+
+<script>
+  import { hand, HAND_WORDS, corpus, scoreDay, saveToBoard, changed } from './store.ts';
+  import { bySplit } from '../../../src/lib/corpus.ts';
+  import { wickFace, verdictText } from '../wick.ts';
+  import { bag } from '@primer/ml-core';
+
+  // Four fixed Day Shift messages: two urgent (a rash that won't fade; fast, grunting breathing) and two that can
+  // wait (a rash that does fade; a sticky eye).
+  const TRAY = ['d0045', 'd0311', 'd0108', 'd0004'];
+  // Bea's challenge, set from what careful hand-tuning can reach on this corpus (about 47 missed, 50 alarms).
+  const GOAL = { missed: 50, alarms: 60 };
+
+  const root = document.querySelector<HTMLElement>('[data-knob-panel]')!;
+  const fmt = (v: number) => (v > 0 ? `+${v}` : v < 0 ? `−${Math.abs(v)}` : '0');
+
+  corpus().then((c) => {
+    const day = bySplit(c, 'day');
+    const tray = TRAY.map((id) => day.find((m) => m.id === id)).filter(Boolean) as typeof day;
+    const fallback = [...day.filter((m) => m.label === 'urgent').slice(0, 2), ...day.filter((m) => m.label === 'can_wait').slice(0, 2)];
+    const shown = tray.length === 4 ? tray : fallback;
+    root.querySelector('[data-n]')!.textContent = `(${day.length} messages)`;
+    const save = root.querySelector<HTMLButtonElement>('[data-save]')!;
+    save.disabled = false;
+
+    function update() {
+      const s = scoreDay(c, hand);
+      root.querySelector('[data-acc]')!.textContent = `${Math.round(s.accuracy * 100)}%`;
+      root.querySelector('[data-miss]')!.textContent = String(s.missedEmergencies);
+      root.querySelector('[data-esc]')!.textContent = String(s.unnecessaryEscalations);
+      const met = s.missedEmergencies < GOAL.missed && s.unnecessaryEscalations < GOAL.alarms;
+      const goal = root.querySelector<HTMLElement>('[data-goal]')!;
+      goal.classList.toggle('met', met);
+      goal.textContent = met
+        ? `Challenge met: ${s.missedEmergencies} missed, ${s.unnecessaryEscalations} needless alarms. Bea raises an eyebrow, which from Bea is a round of applause.`
+        : `Bea's challenge: fewer than ${GOAL.missed} missed emergencies and fewer than ${GOAL.alarms} needless alarms.`;
+      root.querySelector('[data-face]')!.innerHTML = wickFace(s.missedEmergencies > 0 ? 'urgent' : 'can_wait', 52);
+      const list = root.querySelector('[data-tray]')!;
+      list.replaceChildren(
+        ...shown.map((m) => {
+          const p = hand.predict(m.text);
+          const li = document.createElement('li');
+          li.className = `msg ${p.label === m.label ? 'right' : 'wrong'}`;
+          const words = bag(m.text);
+          const lit = HAND_WORDS.filter((w) => words.has(w) && hand.weight(w) !== 0);
+          li.innerHTML = `
+            <p class="msg-text"></p>
+            <p class="msg-meta">
+              <span class="tag ${p.label}">Wick: ${verdictText(p.label)}</span>
+              <span class="tag truth">Bea: ${verdictText(m.label)}</span>
+              <span class="mark">${p.label === m.label ? 'agrees' : 'disagrees'}</span>
+            </p>`;
+          li.querySelector('.msg-text')!.textContent = m.text.length > 220 ? m.text.slice(0, 220) + '…' : m.text;
+          if (lit.length) {
+            const k = document.createElement('span');
+            k.className = 'lit';
+            k.textContent = `knobs used: ${lit.join(', ')}`;
+            li.querySelector('.msg-meta')!.append(k);
+          }
+          return li;
+        }),
+      );
+    }
+
+    root.querySelectorAll<HTMLInputElement>('[data-knob]').forEach((input) => {
+      const id = input.dataset.knob!;
+      const pointer = root.querySelector<SVGLineElement>(`[data-pointer="${id}"]`)!;
+      const out = root.querySelector(`[data-val="${id}"]`)!;
+      const apply = () => {
+        const v = Number(input.value);
+        if (id === '__bias') hand.bias = v;
+        else hand.setWeight(id, v);
+        pointer.style.transform = `rotate(${(v / 3) * 135}deg)`;
+        out.textContent = fmt(v);
+        input.setAttribute('aria-valuetext', id === '__bias' ? `lean ${fmt(v)}` : fmt(v));
+        update();
+        changed();
+      };
+      input.addEventListener('input', apply);
+      apply();
+    });
+
+    root.querySelector('[data-reset]')!.addEventListener('click', () => {
+      root.querySelectorAll<HTMLInputElement>('[data-knob]').forEach((i) => {
+        i.value = i.dataset.knob === '__bias' ? '-1' : '0';
+        i.dispatchEvent(new Event('input'));
+      });
+    });
+    save.addEventListener('click', () => {
+      saveToBoard(c, hand, 'ch5-hand', 'Wick, knobs set by hand');
+      root.querySelector('[data-saved]')!.textContent = 'On the board.';
+    });
+  }).catch((e) => {
+    root.querySelector('[data-tray]')!.innerHTML = '';
+    const li = document.createElement('li');
+    li.textContent = e.message;
+    root.querySelector('[data-tray]')!.append(li);
+  });
+</script>
+
+<style>
+  .status { display: flex; gap: 1rem; align-items: center; margin-bottom: 1.25rem; }
+  .face { flex: none; display: inline-flex; }
+  .stats-title { margin: 0; font-weight: 700; }
+  .n { font-weight: 400; color: var(--ink-soft); }
+  .stat-row { margin: 0.2rem 0 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1.1rem; }
+  .stat strong { font-size: var(--step-1); font-variant-numeric: tabular-nums; margin-right: 0.2rem; }
+  .stat.miss strong { color: var(--alarm); }
+
+  .knobs { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); gap: 1rem 0.75rem; }
+  .knob { display: grid; justify-items: center; gap: 0.2rem; text-align: center; }
+  .knob.lean { border-left: 1px dashed var(--rule); padding-left: 0.5rem; }
+  .dial { width: 3.6rem; height: 3.6rem; }
+  .arc { fill: none; stroke-width: 3; stroke-linecap: round; }
+  .arc.calm { stroke: var(--calm); }
+  .arc.alarm { stroke: var(--alarm); }
+  .cap { fill: var(--gold); stroke: var(--ink); stroke-width: 1.5; }
+  .pointer { stroke: var(--ink); stroke-width: 3; stroke-linecap: round; transform-origin: 32px 32px; transition: transform 120ms; }
+  .word { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700; }
+  .lean .word { font-family: var(--font-ui); }
+  input[type='range'] { width: 100%; accent-color: var(--ink); margin: 0; min-height: 1.75rem; }
+  .val { font-variant-numeric: tabular-nums; color: var(--ink-soft); font-size: 0.8rem; }
+  .legend { display: flex; justify-content: space-between; margin: 0.5rem 0 0; font-size: 0.8rem; }
+  .calm-t { color: var(--calm); }
+  .alarm-t { color: var(--alarm); }
+
+  .goal { margin: 1rem 0 0; padding: 0.5rem 0.75rem; border-radius: var(--radius-ui); background: var(--paper-2); }
+  .goal.met { background: var(--gold-wash); font-weight: 700; }
+  .tray-title { font-family: var(--font-ui); font-size: var(--step-0); font-weight: 700; margin: 1.5rem 0 0.5rem; }
+  .tray { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+  :global(.knob-panel .msg) { border: 1px solid var(--rule); border-left-width: 4px; border-radius: var(--radius-ui); padding: 0.6rem 0.8rem; background: var(--paper); }
+  :global(.knob-panel .msg.wrong) { border-left-color: var(--alarm); }
+  :global(.knob-panel .msg.right) { border-left-color: var(--calm); }
+  :global(.knob-panel .msg-text) { margin: 0 0 0.4rem; font-family: var(--font-read); font-size: 0.95rem; }
+  :global(.knob-panel .msg-meta) { margin: 0; display: flex; flex-wrap: wrap; gap: 0.4rem 0.6rem; align-items: center; font-size: 0.8rem; }
+  :global(.knob-panel .tag) { border-radius: 999px; padding: 0.05rem 0.55rem; font-weight: 700; border: 1px solid var(--rule); }
+  :global(.knob-panel .tag.urgent) { background: var(--alarm-wash); color: var(--alarm); border-color: var(--alarm); }
+  :global(.knob-panel .tag.can_wait) { background: var(--calm-wash); color: var(--calm); border-color: var(--calm); }
+  :global(.knob-panel .tag.truth) { font-weight: 400; }
+  :global(.knob-panel .mark) { color: var(--ink-soft); }
+  :global(.knob-panel .lit) { color: var(--ink-soft); font-family: var(--font-mono); }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 1.25rem; }
+  .saved { color: var(--calm); font-weight: 700; }
+</style>

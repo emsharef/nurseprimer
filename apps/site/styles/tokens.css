@@ -1,24 +1,29 @@
-/* Design tokens. Light is the ward by day: linen paper, navy chart ink. Dark is the same ward at 2 a.m.:
-   deep blue-green, lamp light. Amber is the lamp (interactive accent). Alarm red is reserved for urgency
-   and missed emergencies in data; never decoration. */
+/* Design tokens (docs/style-guide.md): neo-Victorian with a little near-future. Midnight ink and lamplight
+   gold for the human side, on warm paper that matches the illustrations; phosphor teal, used sparingly, for
+   the machine (Wick's eyes, its printouts, screens). Night pages are deep blue, where the phosphor glows.
+   Alarm red is reserved for urgency in data; never decoration. */
 
 :root {
-  --linen: #eef1ee;
-  --linen-2: #e3e8e4;
-  --paper: #f8faf7;
-  --ink: #1c2a3a;
-  --ink-soft: #46576a;
-  --rule: #c5cec8;
-  --lamp: #864e00;        /* amber, darkened for 4.5:1 on linen-2 */
-  --lamp-bg: #f6e6c8;
-  --alarm: #b3261e;
-  --alarm-bg: #f7dcd8;
-  --calm: #2f6b4f;        /* can_wait */
-  --calm-bg: #d9eadf;
-  --band: #ffffff;        /* the wristband */
-  --band-edge: #b9c6d6;
-  --focus: #1f5fbf;
+  --paper: #f8f3e8;
+  --paper-2: #efe7d6;
+  --card: #fcf9f2;
+  --ink: #1d2747;
+  --ink-soft: #4d5677;
+  --rule: #d6ccb6;
+  --gold: #e2a93b;          /* fills: Wick's brass, highlights */
+  --gold-ink: #845500;      /* gold as text or interactive accent, AA on paper-2 */
+  --gold-wash: #f6e3b8;
+  --alarm: #b3301d;
+  --alarm-wash: #f6d9d0;
+  --calm: #2b6650;
+  --calm-wash: #d8eadf;
+  --phosphor: #1f9e8f;      /* machine glow (fills, strokes) */
+  --phosphor-ink: #0b6b60;  /* machine text, AA on paper-2 */
+  --phosphor-wash: #d5ece6;
+  --focus: #2457c5;
+  --plate: transparent;     /* behind illustrations; a lit page on night pages */
 
+  --font-display: 'Bodoni Moda Variable', 'Didot', 'Bodoni 72', Georgia, serif;
   --font-read: 'Literata Variable', 'Iowan Old Style', Georgia, serif;
   --font-ui: 'Atkinson Hyperlegible Next Variable', 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'Atkinson Hyperlegible Mono Variable', ui-monospace, Menlo, monospace;
@@ -30,52 +35,58 @@
   --step-2: 1.758rem;
   --step-3: 2.197rem;
   --step-4: 2.747rem;
+  --step-5: 3.433rem;
 
-  --measure: 66ch;
+  --measure: 64ch;
   --wide: 60rem;
   --gutter: clamp(1rem, 4vw, 2rem);
-  --radius-band: 0.9rem;
-  --radius-ui: 0.35rem;
+  --radius-ui: 0.4rem;
 
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --linen: #0f1c22;
-    --linen-2: #16262d;
-    --paper: #132228;
-    --ink: #dfe7e3;
-    --ink-soft: #9fb2ad;
-    --rule: #2c4148;
-    --lamp: #f0b45a;
-    --lamp-bg: #3a2c14;
-    --alarm: #ff8a7a;
-    --alarm-bg: #4a1f1b;
-    --calm: #8fd1ad;
-    --calm-bg: #173528;
-    --band: #e9eef2;
-    --band-edge: #6f8796;
-    --focus: #8cb8ff;
+    --paper: #121a30;
+    --paper-2: #1a2440;
+    --card: #18213b;
+    --ink: #efe8d8;
+    --ink-soft: #b4b8c9;
+    --rule: #34416a;
+    --gold: #f0be5a;
+    --gold-ink: #f0be5a;
+    --gold-wash: #3b3220;
+    --alarm: #ff9282;
+    --alarm-wash: #4a2126;
+    --calm: #8fd1b0;
+    --calm-wash: #173a30;
+    --phosphor: #5fe3cf;
+    --phosphor-ink: #6be8d5;
+    --phosphor-wash: #12363a;
+    --focus: #9cc2ff;
+    --plate: #f3ecdd;
     color-scheme: dark;
   }
 }
 
 :root[data-theme='dark'] {
-  --linen: #0f1c22;
-  --linen-2: #16262d;
-  --paper: #132228;
-  --ink: #dfe7e3;
-  --ink-soft: #9fb2ad;
-  --rule: #2c4148;
-  --lamp: #f0b45a;
-  --lamp-bg: #3a2c14;
-  --alarm: #ff8a7a;
-  --alarm-bg: #4a1f1b;
-  --calm: #8fd1ad;
-  --calm-bg: #173528;
-  --band: #e9eef2;
-  --band-edge: #6f8796;
-  --focus: #8cb8ff;
+  --paper: #121a30;
+  --paper-2: #1a2440;
+  --card: #18213b;
+  --ink: #efe8d8;
+  --ink-soft: #b4b8c9;
+  --rule: #34416a;
+  --gold: #f0be5a;
+  --gold-ink: #f0be5a;
+  --gold-wash: #3b3220;
+  --alarm: #ff9282;
+  --alarm-wash: #4a2126;
+  --calm: #8fd1b0;
+  --calm-wash: #173a30;
+  --phosphor: #5fe3cf;
+  --phosphor-ink: #6be8d5;
+  --phosphor-wash: #12363a;
+  --focus: #9cc2ff;
+  --plate: #f3ecdd;
   color-scheme: dark;
 }

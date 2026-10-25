@@ -1,0 +1,47 @@
+---
+// An illustration plate. Images come from content/illustrations via scripts/illustrate.mjs --publish
+// (public/illustrations/<id>-800.webp / -1600.webp). On day pages the picture's paper melts into the page;
+// on night pages it sits on a lit plate, like a picture in a book read by lamplight.
+import { existsSync, readFileSync } from 'node:fs';
+
+interface Props { id: string; alt?: string; caption?: string; size?: 'wide' | 'column' | 'small'; float?: 'left' | 'right'; eager?: boolean }
+const { id, alt, caption, size = 'wide', float, eager = false } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const indexPath = new URL('../../public/illustrations/index.json', import.meta.url);
+let meta: Record<string, { alt: string; aspect: string }> = {};
+try { meta = JSON.parse(readFileSync(indexPath, 'utf8')); } catch {}
+const m = meta[id];
+const [aw, ah] = (m?.aspect ?? '16:9').split(':').map(Number);
+---
+{m ? (
+  <figure class:list={['plate', size, float && `float-${float}`, { wide: size === 'wide' }]}>
+    <img
+      src={`${base}illustrations/${id}-1600.webp`}
+      srcset={`${base}illustrations/${id}-800.webp 800w, ${base}illustrations/${id}-1600.webp 1600w`}
+      sizes={size === 'small' ? '12rem' : size === 'column' ? '(max-width: 40rem) 100vw, 40rem' : '(max-width: 60rem) 100vw, 60rem'}
+      width={aw * 100} height={ah * 100}
+      alt={alt ?? m.alt}
+      loading={eager ? 'eager' : 'lazy'} decoding="async" fetchpriority={eager ? 'high' : undefined}
+    />
+    {caption && <figcaption>{caption}</figcaption>}
+  </figure>
+) : null}
+
+<style>
+  .plate { margin: 2rem 0; }
+  .plate img {
+    display: block; width: 100%; height: auto;
+    mix-blend-mode: multiply;
+    background: var(--plate);
+    border-radius: var(--radius-ui);
+  }
+  :global(:root[data-theme='dark']) .plate img { mix-blend-mode: normal; padding: 0.5rem; }
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) .plate img { mix-blend-mode: normal; padding: 0.5rem; }
+  }
+  .small { width: 11rem; }
+  .float-right { float: right; margin: 0.25rem 0 1rem 1.5rem; }
+  .float-left { float: left; margin: 0.25rem 1.5rem 1rem 0; }
+  @media (max-width: 34rem) { .float-right, .float-left { float: none; margin-inline: auto; } }
+  figcaption { font-family: var(--font-ui); color: var(--ink-soft); text-align: center; margin-top: 0.6rem; font-size: var(--step--1); }
+</style>

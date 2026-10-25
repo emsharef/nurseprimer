@@ -1,89 +1,163 @@
 ---
 // The Ward Board (plan 6.4): every model the reader has built, scored on the same three test sets.
-// Rendered on the client from the notebook, so it carries across chapters. `compact` is the chapter strip.
+// Rendered on the client from the notebook, so it carries across chapters. One test set at a time keeps it
+// readable on a phone; the reader switches between Day Shift, Night Shift and the 2 a.m. Set.
 interface Props { compact?: boolean }
 const { compact = false } = Astro.props;
+const sets = [
+  { split: 'day', name: 'Day Shift', note: 'Messages like the ones Wick learned from.' },
+  { split: 'night', name: 'Night Shift', note: 'New clinics, new words, voice-to-text and dialects Wick has never seen.' },
+  { split: 'two_am', name: '2 a.m. Set', note: 'The rare, hard, high-stakes ones. A missed emergency here is the worst outcome on the board.' },
+];
 ---
 <section class:list={['ward-board', 'wide', { compact }]} aria-labelledby="ward-board-title" data-ward-board>
-  <h2 id="ward-board-title">Ward Board</h2>
-  <p class="empty" data-empty>
-    Nothing on the board yet. The first model you build goes up here, scored on the Day Shift, the Night Shift
-    and the 2 a.m. Set.
-  </p>
-  <div class="scroll" data-table-wrap hidden>
+  <div class="head">
+    <h2 id="ward-board-title">The Ward Board</h2>
+    <div class="sets" role="radiogroup" aria-label="Test set">
+      {sets.map((s, i) => (
+        <button type="button" role="radio" aria-checked={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1} data-set={s.split} data-note={s.note}>{s.name}</button>
+      ))}
+    </div>
+  </div>
+  <p class="note" data-note-text>{sets[0].note}</p>
+  <div class="scroll">
     <table>
-      <caption class="visually-hidden">Scores for every model you have built, per test set</caption>
-      <thead data-head></thead>
-      <tbody data-body></tbody>
+      <caption class="visually-hidden" data-caption>Scores on the Day Shift for every machine you have built</caption>
+      <thead>
+        <tr>
+          <th scope="col">Machine</th>
+          <th scope="col">Right</th>
+          <th scope="col">Missed emergencies</th>
+          <th scope="col">Needless alarms</th>
+          <th scope="col" data-cal-col hidden>Calibration error</th>
+        </tr>
+      </thead>
+      <tbody data-body>
+        <tr><td colspan="4" class="loading">Loading the night's messages…</td></tr>
+      </tbody>
     </table>
   </div>
+  <p class="empty" data-empty>
+    Two reference machines are already up: one that sends an ambulance for every message, and one that says
+    everything can wait. Every machine you build joins them here.
+  </p>
 </section>
 
 <script>
   import { load, CHANGE_EVENT, type ModelRecord } from '@primer/notebook';
-  import { TEST_SETS, type SetScore } from '@primer/ward-board';
+  import { TEST_SETS, scoreModel, type SetScore } from '@primer/ward-board';
+  import { loadCorpus } from '../../src/lib/corpus.ts';
 
+  type Row = { name: string; scores: Record<string, SetScore>; reference?: boolean };
+  let baselines: Row[] = [];
+  let error = '';
   const pct = (x: number) => `${Math.round(x * 100)}%`;
 
   function render(root: HTMLElement) {
+    const split = root.dataset.split ?? 'day';
     const models = load().models as (ModelRecord & { scores: Record<string, SetScore> })[];
-    const empty = root.querySelector<HTMLElement>('[data-empty]')!;
-    const wrap = root.querySelector<HTMLElement>('[data-table-wrap]')!;
-    empty.hidden = models.length > 0;
-    wrap.hidden = models.length === 0;
-    if (!models.length) return;
-    const showCal = models.some((m) => Object.values(m.scores).some((s) => s?.calibrationError != null));
-    const head = root.querySelector('[data-head]')!;
+    const rows: Row[] = [...baselines, ...models.map((m) => ({ name: m.name, scores: m.scores }))];
+    root.querySelector<HTMLElement>('[data-empty]')!.hidden = models.length > 0;
     const body = root.querySelector('[data-body]')!;
-    const cols = ['Accuracy', 'Missed emergencies', 'Unneeded escalations', ...(showCal ? ['Calibration error'] : [])];
-    head.innerHTML =
-      `<tr><th scope="col" rowspan="2">Model</th>${TEST_SETS.map((t) => `<th scope="colgroup" colspan="${cols.length}">${t.name}</th>`).join('')}</tr>` +
-      `<tr>${TEST_SETS.map(() => cols.map((c) => `<th scope="col">${c}</th>`).join('')).join('')}</tr>`;
+    const setName = TEST_SETS.find((t) => t.split === split)?.name ?? split;
+    root.querySelector('[data-caption]')!.textContent = `Scores on the ${setName} for every machine you have built`;
+    if (error) {
+      body.innerHTML = `<tr><td colspan="4" class="loading"></td></tr>`;
+      body.querySelector('td')!.textContent = error;
+      return;
+    }
+    if (!baselines.length) return;
+    const showCal = rows.some((r) => r.scores[split]?.calibrationError != null);
+    root.querySelector<HTMLElement>('[data-cal-col]')!.hidden = !showCal;
     body.replaceChildren(
-      ...models.map((m) => {
+      ...rows.map((r) => {
+        const s = r.scores[split];
         const tr = document.createElement('tr');
+        if (r.reference) tr.className = 'reference';
         const th = document.createElement('th');
         th.scope = 'row';
-        th.textContent = `${m.name} (ch. ${m.chapter})`;
+        th.textContent = r.name;
         tr.append(th);
-        for (const t of TEST_SETS) {
-          const s = m.scores[t.split];
-          const cells = s
-            ? [pct(s.accuracy), String(s.missedEmergencies), String(s.unnecessaryEscalations), ...(showCal ? [s.calibrationError == null ? 'n/a' : s.calibrationError.toFixed(2)] : [])]
-            : cols.map(() => 'n/a');
-          cells.forEach((c, i) => {
-            const td = document.createElement('td');
-            td.textContent = c;
-            if (i === 1 && s && s.missedEmergencies > 0) td.className = 'miss';
-            tr.append(td);
-          });
+        const cells: [string, string][] = s
+          ? [
+              [pct(s.accuracy), ''],
+              [String(s.missedEmergencies), s.missedEmergencies > 0 ? 'miss' : ''],
+              [String(s.unnecessaryEscalations), ''],
+              ...(showCal ? [[s.calibrationError == null ? '–' : s.calibrationError.toFixed(2), ''] as [string, string]] : []),
+            ]
+          : [['–', ''], ['–', ''], ['–', '']];
+        for (const [text, cls] of cells) {
+          const td = document.createElement('td');
+          td.textContent = text;
+          if (cls) td.className = cls;
+          tr.append(td);
         }
         return tr;
       }),
     );
   }
 
-  document.querySelectorAll<HTMLElement>('[data-ward-board]').forEach((root) => {
-    render(root);
+  const roots = [...document.querySelectorAll<HTMLElement>('[data-ward-board]')];
+  for (const root of roots) {
+    const buttons = [...root.querySelectorAll<HTMLButtonElement>('[data-set]')];
+    const choose = (b: HTMLButtonElement, focus = false) => {
+      buttons.forEach((x) => {
+        x.setAttribute('aria-checked', String(x === b));
+        x.tabIndex = x === b ? 0 : -1;
+      });
+      if (focus) b.focus();
+      root.dataset.split = b.dataset.set;
+      root.querySelector('[data-note-text]')!.textContent = b.dataset.note ?? '';
+      render(root);
+    };
+    buttons.forEach((b, i) => {
+      b.addEventListener('click', () => choose(b));
+      b.addEventListener('keydown', (e) => {
+        const d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+        if (d) { e.preventDefault(); choose(buttons[(i + d + buttons.length) % buttons.length], true); }
+      });
+    });
     addEventListener(CHANGE_EVENT, () => render(root));
     addEventListener('storage', () => render(root));
-  });
+  }
+
+  loadCorpus()
+    .then((c) => {
+      baselines = [
+        { name: 'Ambulance for everyone', scores: scoreModel(c.messages, () => ({ label: 'urgent' })), reference: true },
+        { name: 'Everything can wait', scores: scoreModel(c.messages, () => ({ label: 'can_wait' })), reference: true },
+      ];
+    })
+    .catch((e) => (error = e.message))
+    .finally(() => roots.forEach(render));
 </script>
 
 <style>
   .ward-board {
-    margin-block: 3rem; padding: 1.25rem clamp(1rem, 3vw, 1.75rem);
-    background: var(--paper); border: 1px solid var(--rule); border-top: 6px solid var(--ink);
-    border-radius: var(--radius-ui);
+    margin-block: 3rem; padding: 1.25rem clamp(1rem, 3vw, 1.75rem) 1rem;
+    background: var(--card); border: 1px solid var(--ink); border-radius: var(--radius-ui);
     font-family: var(--font-ui); font-size: var(--step--1);
   }
-  h2 { margin: 0 0 0.75rem; font-size: var(--step-1); }
-  .compact h2 { font-size: var(--step-0); }
-  .empty { color: var(--ink-soft); margin: 0; }
+  .head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.75rem 1rem; }
+  h2 { margin: 0; font-size: var(--step-2); }
+  .compact h2 { font-size: var(--step-1); }
+  .sets { display: inline-flex; border: 1px solid var(--ink); border-radius: 999px; overflow: hidden; }
+  .sets button {
+    border: 0; background: transparent; padding: 0.35rem 0.85rem; cursor: pointer; min-height: 2.25rem;
+    font-size: var(--step--1);
+  }
+  .sets button + button { border-left: 1px solid var(--ink); }
+  .sets button[aria-checked='true'] { background: var(--ink); color: var(--paper); font-weight: 700; }
+  .note { color: var(--ink-soft); margin: 0.6rem 0 0.5rem; }
+  .empty { color: var(--ink-soft); margin: 0.75rem 0 0; font-style: italic; }
   .scroll { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
-  :global(.ward-board th), :global(.ward-board td) { padding: 0.35rem 0.6rem; text-align: right; border-bottom: 1px solid var(--rule); white-space: nowrap; }
-  :global(.ward-board th[scope='row']), :global(.ward-board thead th:first-child) { text-align: left; }
-  :global(.ward-board thead th) { font-weight: 700; vertical-align: bottom; }
+  :global(.ward-board th), :global(.ward-board td) { padding: 0.45rem 0.6rem; text-align: right; border-bottom: 1px solid var(--rule); }
+  thead th { font-weight: 700; vertical-align: bottom; font-size: 0.8rem; color: var(--ink-soft); }
+  th:first-child { text-align: left; }
+  :global(.ward-board tbody th) { text-align: left; font-weight: 700; }
   :global(.ward-board td.miss) { color: var(--alarm); font-weight: 700; }
+  :global(.ward-board tr.reference) { color: var(--ink-soft); }
+  :global(.ward-board tr.reference th) { font-weight: 400; font-style: italic; }
+  :global(.ward-board td.loading) { text-align: left; color: var(--ink-soft); }
 </style>

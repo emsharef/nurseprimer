@@ -1,0 +1,26 @@
+{
+ "portrait-you": {
+  "alt": "You, the new night nurse.",
+  "aspect": "1:1"
+ },
+ "portrait-bea": {
+  "alt": "Bea, the charge nurse.",
+  "aspect": "1:1"
+ },
+ "portrait-wick": {
+  "alt": "Wick, the clockwork owl.",
+  "aspect": "1:1"
+ },
+ "home-desk": {
+  "alt": "The nurses' desk at night. You sit under a lamp reading a message on a screen; Bea leans on the desk with a mug of tea; Wick, the little clockwork owl, sits on the corner of the desk in the lamplight.",
+  "aspect": "16:9"
+ },
+ "ch05-opener": {
+  "alt": "Under the desk lamp, you fit a row of small brass knobs across Wick's chest with a jeweller's screwdriver while Bea looks on, mug in hand.",
+  "aspect": "16:9"
+ },
+ "ch05-training": {
+  "alt": "Wick sits alone on the desk while the knobs on its chest turn by themselves, a long strip of paper tape pouring out.",
+  "aspect": "3:2"
+ }
+}

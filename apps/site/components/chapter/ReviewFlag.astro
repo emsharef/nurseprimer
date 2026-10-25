@@ -3,8 +3,8 @@
 interface Props { prose: 'ai-draft' | 'human-edited'; medical: 'unreviewed' | 'clinician-reviewed' | 'none' }
 const { prose, medical } = Astro.props;
 const items: string[] = [];
-if (prose === 'ai-draft') items.push('The prose in this chapter was drafted by AI and has not yet had a human edit.');
-if (medical === 'unreviewed') items.push('Medical statements, labels and pictures here have not yet been reviewed by a clinician.');
+if (prose === 'ai-draft') items.push('This chapter was drafted with AI and has not yet had a human edit.');
+if (medical === 'unreviewed') items.push('A clinician has not yet checked the medical details in it.');
 ---
 {items.length > 0 && (
   <div class="column"><div class="review-flag" role="note">
@@ -16,9 +16,9 @@ if (medical === 'unreviewed') items.push('Medical statements, labels and picture
 <style>
   .review-flag {
     font-family: var(--font-ui); font-size: var(--step--1);
-    border: 2px dashed var(--lamp); border-radius: var(--radius-ui);
-    padding: 0.75rem 1rem; margin-block: 0 2rem;
-    background: var(--lamp-bg);
+    border: 1px dashed var(--ink-soft); border-radius: var(--radius-ui);
+    padding: 0.6rem 1rem; margin-block: 1rem 2.5rem;
+    color: var(--ink-soft);
   }
   .review-flag p { margin: 0 0 0.25rem; font-weight: 700; }
   ul { margin: 0; padding-left: 1.2rem; }

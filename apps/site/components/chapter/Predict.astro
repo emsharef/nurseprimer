@@ -1,0 +1,67 @@
+---
+// Predict before reveal (plan 4.2): the reader commits to a guess; only then does the answer (the slot) show.
+// Options are short strings. `answer` (optional) marks which option was right, shown after the guess.
+// With `lock`, the element right after this one (usually a widget) stays locked until the reader guesses.
+interface Props { id: string; question: string; options: string[]; answer?: string; lock?: boolean }
+const { id, question, options, answer, lock = false } = Astro.props;
+---
+<div class="predict" data-predict={id} data-answer={answer ?? ''} data-lock={lock ? '' : undefined}>
+  <p class="q" id={`${id}-q`}><strong>Your guess:</strong> {question}</p>
+  <div class="options" role="group" aria-labelledby={`${id}-q`}>
+    {options.map((o) => <button type="button" data-option={o} aria-pressed="false">{o}</button>)}
+  </div>
+  <p class="verdict" data-predict-verdict aria-live="polite"></p>
+  <div class="reveal" data-reveal hidden><slot /></div>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-predict]').forEach((root) => {
+    const answer = root.dataset.answer;
+    const verdict = root.querySelector<HTMLElement>("[data-predict-verdict]")!;
+    const reveal = root.querySelector<HTMLElement>('[data-reveal]')!;
+    const locked = root.hasAttribute('data-lock') ? (root.nextElementSibling as HTMLElement | null) : null;
+    if (locked) {
+      locked.classList.add('predict-locked');
+      locked.inert = true;
+      locked.dataset.lockNote = 'Make your guess above first.';
+    }
+    root.querySelectorAll<HTMLButtonElement>('[data-option]').forEach((b) =>
+      b.addEventListener('click', () => {
+        root.querySelectorAll('[data-option]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        const guess = b.dataset.option!;
+        verdict.textContent = answer
+          ? guess === answer ? `You guessed "${guess}". That's right.` : `You guessed "${guess}". The answer is "${answer}".`
+          : `You guessed "${guess}". Now see what happens.`;
+        reveal.hidden = !reveal.textContent?.trim() && !reveal.children.length;
+        if (locked) {
+          locked.inert = false;
+          locked.classList.remove('predict-locked');
+        }
+        root.dispatchEvent(new CustomEvent('primer:revealed', { bubbles: true, detail: { guess } }));
+      }),
+    );
+  });
+</script>
+
+<style>
+  .predict {
+    margin-block: 2rem; padding: 1rem 1.25rem; border-radius: var(--radius-ui);
+    border: 2px solid var(--gold-ink); background: var(--card);
+  }
+  .q { margin: 0 0 0.75rem; }
+  .options { display: flex; flex-wrap: wrap; gap: 0.5rem; font-family: var(--font-ui); }
+  button {
+    border: 1px solid var(--rule); background: var(--paper); border-radius: var(--radius-ui);
+    padding: 0.45rem 0.9rem; cursor: pointer; min-height: 2.5rem; font-size: var(--step--1);
+  }
+  button[aria-pressed='true'] { background: var(--gold-wash); border-color: var(--gold-ink); font-weight: 700; }
+  .verdict { font-family: var(--font-ui); font-size: var(--step--1); margin: 0.75rem 0 0; }
+  .verdict:empty { display: none; }
+  .reveal { margin-top: 1rem; }
+  :global(.predict-locked) { position: relative; opacity: 0.35; filter: grayscale(0.6); }
+  :global(.predict-locked)::after {
+    content: attr(data-lock-note); position: absolute; inset: 0; display: grid; place-items: center;
+    font-family: var(--font-ui); font-weight: 700; color: var(--ink); font-size: var(--step-0);
+  }
+  .reveal :global(> :last-child) { margin-bottom: 0; }
+</style>

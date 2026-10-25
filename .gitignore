@@ -8,3 +8,4 @@ dist-deploy/
 .DS_Store
 *.log
 .worktrees/
+content/illustrations/raw/

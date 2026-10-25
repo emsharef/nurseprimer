@@ -1,0 +1,1 @@
+{"id":"t1008","pass":true,"problems":[],"missedNegations":[],"verifier":{"id":"t1008","present":[],"absent":["not_feeding","no_pee","breathing"],"label":"can_wait","other_concern":null,"unclear":false}}

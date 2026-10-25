@@ -1,7 +1,8 @@
 ---
 import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
-import Wristband from '../../../components/chapter/Wristband.astro';
+import ChapterOpener from '../../../components/chapter/ChapterOpener.astro';
+import Plate from '../../../components/chapter/Plate.astro';
 import ReviewFlag from '../../../components/chapter/ReviewFlag.astro';
 import References from '../../../components/chapter/References.astro';
 import WardBoard from '../../../components/widgets/WardBoard.astro';
@@ -9,11 +10,11 @@ import Widget from '../../../components/chapter/Widget.astro';
 import NightNote from '../../../components/chapter/NightNote.astro';
 import Line from '../../../components/chapter/Line.astro';
 import MathDrawer from '../../../components/chapter/MathDrawer.astro';
-import ForTrack from '../../../components/chapter/ForTrack.astro';
 import Cite from '../../../components/chapter/Cite.astro';
 import NoteRef from '../../../components/chapter/NoteRef.astro';
 import NoteDef from '../../../components/chapter/NoteDef.astro';
 import Notes from '../../../components/chapter/Notes.astro';
+import Predict from '../../../components/chapter/Predict.astro';
 import { loadReferences, orderOfFirstUse, CITE_RE, NOTEREF_RE } from '../../lib/citations.ts';
 
 export async function getStaticPaths() {
@@ -33,16 +34,15 @@ const refs = [...Astro.locals.citeNumbers.keys()].map((k) => {
   return r;
 });
 const { Content } = await render(entry);
-const components = { Widget, NightNote, Line, MathDrawer, ForTrack, Cite, NoteRef, NoteDef, Notes };
+const components = { Widget, NightNote, Line, MathDrawer, Plate, Cite, NoteRef, NoteDef, Notes, Predict, WardBoard };
 const d = entry.data;
 ---
 <Base title={`${d.title}: A Young Nurse's Illustrated Primer`} description={d.summary}>
   <article>
-    <Wristband number={d.number} title={d.title} summary={d.summary} />
+    <ChapterOpener number={d.number} title={d.title} summary={d.summary} plate={d.plate} />
     <ReviewFlag prose={d.review.prose} medical={d.review.medical} />
     <div class="column prose">
       <Content components={components} />
-      <WardBoard compact />
       <References refs={refs} />
     </div>
   </article>

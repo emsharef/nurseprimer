@@ -1,0 +1,102 @@
+# Illustrations (docs/style-guide.md). `style` prefixes every prompt. Character sheets come first and are
+# passed as references to every scene. Generated with scripts/illustrate.mjs; chosen images are <id>.png.
+style: >
+  Graphic-novel illustration in fine ink line work with watercolour wash, in the spirit of a neo-Victorian
+  near future (as in Neal Stephenson's The Diamond Age). Limited palette: deep midnight-blue ink and washes,
+  warm lamplight gold, and sparing touches of luminous teal glow from screens and machine parts, on pale warm
+  paper (#F8F3E8). Precise, confident pen lines with engraving-like cross-hatching for shadow; generous empty
+  paper. Grown-up, atmospheric and restrained: an illustrated novel for adults, not a children's book and not a
+  fairytale. Realistic proportions. No text, no letters, no numbers, no logos.
+
+images:
+  - id: sheet-you
+    aspect: '16:9'
+    alt: Character sheet for you, the new night nurse.
+    prompt: >
+      Character reference sheet: the same young nurse shown four times on one page: front view, three-quarter
+      view, side profile, and sitting at a desk writing. Late twenties, realistic adult proportions, warm brown skin, short dark curly hair,
+      kind and slightly tired eyes, navy blue scrubs, a lanyard, a pen tucked behind one ear, comfortable
+      shoes. Androgynous, approachable. Plain paper background, no scenery.
+
+  - id: sheet-bea
+    aspect: '16:9'
+    alt: Character sheet for Bea, the charge nurse.
+    prompt: >
+      Character reference sheet: the same older charge nurse shown four times on one page: front view,
+      three-quarter view, side profile, and leaning on a desk holding a mug of tea. A Black woman in her
+      sixties, silver-grey hair in a neat bun, reading glasses on a beaded chain, a soft grey cardigan over
+      dark blue scrubs, a fob watch pinned to her chest. Wry half-smile, raised eyebrow, sharp but kind.
+      Plain paper background, no scenery.
+
+  - id: sheet-wick
+    aspect: '16:9'
+    alt: Character sheet for Wick, the little clockwork owl machine.
+    prompt: >
+      Object character reference sheet: the same small clockwork owl machine shown four times on one page:
+      front view, three-quarter view, side view, and from behind. About the size of a teapot, made of brass
+      and copper with visible rivets and a little winding key on its back. Two big round glass eyes like
+      lamp lenses that glow softly gold. A slot in its chest that feeds out a long curling strip of paper
+      tape like a tail. Small folded tin wings. Endearing, earnest, homemade from spare parts. Plain paper
+      background, no scenery.
+
+  - id: portrait-you
+    aspect: '1:1'
+    refs: [sheet-you]
+    alt: You, the new night nurse.
+    prompt: >
+      Small round portrait vignette, head and shoulders: the young nurse from the reference sheet, looking
+      slightly to the side with a thoughtful, tired half-smile, pen behind the ear. Soft vignette fading to
+      plain paper at the edges, no background objects.
+
+  - id: portrait-bea
+    aspect: '1:1'
+    refs: [sheet-bea]
+    alt: Bea, the charge nurse.
+    prompt: >
+      Small round portrait vignette, head and shoulders: the charge nurse from the reference sheet, glasses
+      low on her nose, one eyebrow raised, a wry, kind half-smile. Soft vignette fading to plain paper at the
+      edges, no background objects.
+
+  - id: portrait-wick
+    aspect: '1:1'
+    refs: [sheet-wick]
+    alt: Wick, the clockwork owl.
+    prompt: >
+      Small round portrait vignette: the clockwork owl from the reference sheet, head and upper body, eyes
+      glowing softly gold, head tilted curiously. Soft vignette fading to plain paper at the edges, no
+      background objects.
+
+  - id: home-desk
+    aspect: '16:9'
+    refs: [sheet-you, sheet-bea, sheet-wick]
+    alt: The nurses' desk at night. You sit under a lamp reading a message on a screen; Bea leans on the desk with a mug of tea; Wick, the little clockwork owl, sits on the corner of the desk in the lamplight.
+    prompt: >
+      Wide establishing scene: a children's hospital night desk, late at night. A pool of warm gold lamplight
+      on a cluttered desk with a phone, a computer screen glowing, a clipboard, a drinking glass, and paper
+      tape curling off the edge. The young nurse sits at the desk reading the screen, worried. The charge
+      nurse leans on the desk holding a mug of tea, watching. The small clockwork owl sits on the corner of the
+      desk, looking up at the young nurse. Dark corridor fading into midnight-blue wash behind them, a window
+      with a moon. Cosy, quiet, a little magical.
+
+  - id: ch05-opener
+    aspect: '16:9'
+    refs: [sheet-you, sheet-bea, sheet-wick]
+    alt: Under the desk lamp, you fit a row of small brass knobs across Wick's chest with a jeweller's screwdriver while Bea looks on, mug in hand.
+    prompt: >
+      Scene at the nurses' desk at night under a warm desk lamp. The young nurse leans in close with a tiny
+      jeweller's screwdriver, fitting a neat row of eight small brass knobs, like the tuning knobs of an old
+      valve radio, across the chest of the little clockwork owl, which sits patiently on the desk. Loose
+      screws, a disassembled old radio and a few paper message slips on the desk. The charge nurse stands
+      just behind with a mug, one eyebrow raised, amused. Teal glow from the owl's eyes; dark blue corridor
+      behind.
+
+  - id: ch05-training
+    aspect: '3:2'
+    refs: [sheet-wick]
+    alt: Wick sits alone on the desk while the knobs on its chest turn by themselves, a long strip of paper tape pouring out.
+    prompt: >
+      The little clockwork owl alone on the desk late at night, eyes glowing teal, concentrating. The row of
+      small brass knobs on its chest is turning by itself, each one blurred mid-turn with tiny motion lines.
+      A long strip of paper tape streams out of its chest slot and spills over the edge of the desk onto the
+      floor in loops. Stacks of paper message slips flutter around it. Quiet, focused, slightly magical
+      near-future feeling.

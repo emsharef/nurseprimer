@@ -1,0 +1,1 @@
+{"id":"t1065","pass":true,"problems":[],"missedNegations":[],"verifier":{"id":"t1065","present":["skin_colour"],"absent":["nonblanching_rash","drowsy","not_feeding","no_pee"],"label":"urgent","other_concern":null,"unclear":false}}

@@ -1,0 +1,198 @@
+---
+number: 3
+title: Knobs
+lesson: Learning as turning knobs; what a machine can't see, it can't learn
+summary: Your rulebook for Wick is in the bin. Tonight Bea brings a box of radio knobs, and Wick learns to tune itself.
+plate: ch05-opener
+review:
+  prose: ai-draft
+  medical: unreviewed
+---
+
+import KnobPanel from '../components/widgets/knobs/KnobPanel.astro';
+import TrainPanel from '../components/widgets/knobs/TrainPanel.astro';
+import ReadingGlass from '../components/widgets/knobs/ReadingGlass.astro';
+
+The rulebook didn't survive the last night. You had written forty-one rules for Wick, each one a patch on the
+one before, and at ten past three a mother wrote that her son's legs had gone "all speckly". Wick knew *spots*
+and *dots* and *rash*. It had never met *speckly*. It printed CAN WAIT.
+
+Bea read the tape, folded it in half and dropped it in the bin. "You can't write down everything a nurse knows,"
+she said. "I've been trying for thirty years."
+
+Tonight she comes back from the supply cupboard with a cardboard box and sets it down next to Wick. Inside is the
+gutted shell of an old valve radio and a jam jar full of brass knobs.
+
+"My father mended these," she says. "Nobody ever wrote a rule for how a radio should sound. You turn the knobs
+until it sounds right."
+
+## A knob for every word
+
+So here is the new Wick. It no longer tries to follow rules about what a message means. It only notices which
+words are in it.
+
+Every word gets a knob. Turn a word's knob to the right and that word nudges Wick toward *urgent*. Turn it left
+and the word nudges Wick toward *can wait*. When a message arrives, Wick adds up the nudges from every word in it,
+starting from a resting lean, and if the total tips past the middle its eyes go red.
+
+That's all. No grammar, no meaning, no rulebook: a row of knobs and a sum. You've fitted the first eight.
+
+<Predict
+  id="best-knob"
+  question="Before you touch anything: if you could turn up just one of these knobs, which would catch the most emergencies?"
+  options={['glass', 'purple', 'sleepy', 'breathing']}
+  answer="glass"
+  lock
+>
+  Try it below. Turn that one knob all the way right and watch the count of missed emergencies. Then try the
+  others.
+</Predict>
+
+<Widget
+  title="Wick's knobs"
+  summary="Eight knobs, one per word, plus Wick's starting lean. Wick's score on the Day Shift's messages updates as you turn them, and four sample messages show Wick's verdict next to Bea's."
+  realSystems="A real text classifier has a knob for every one of tens of thousands of word pieces, and nobody sets them by hand."
+>
+  <KnobPanel />
+</Widget>
+
+You'll probably find that two or three knobs do most of the work, and that every turn fixes some messages and
+breaks others. Even Bea's modest challenge takes some fiddling, and when you meet it, look at the count of missed
+emergencies again. It's still dozens. *Glass* is a strong one: parents mostly mention the glass test when a rash has frightened them.
+*Fade* is treacherous, because it turns up in "they don't fade" and in "they fade fine". And however clever you
+are, you have eight knobs. Tonight's messages contain more than three thousand different words.
+
+---
+
+## Wick turns its own knobs
+
+"So stop turning them," says Bea. "Let the thing do it."
+
+Here is how a machine can set two thousand knobs with nobody at the controls.
+
+Take the pile of messages Bea has already marked *urgent* or *can wait*. Show each one to Wick and measure how
+wrong its answer was: a little wrong if it said "probably urgent" about an urgent message, very wrong if it was
+confident and mistaken. Add up all that wrongness. Then, for every knob, ask a single question: *if I turned this
+one a hair to the right, would the total wrongness go up or down?* Turn each knob a hair in whichever direction
+helps. Then go through the whole pile again.
+
+<Plate id="ch05-training" size="column" />
+
+That's the entire trick, repeated three hundred times. People call it *training*, and the way the knobs creep
+downhill on the wrongness is called *gradient descent*.<NoteRef id="gd" /> Almost every AI system you have heard
+of was made this way, only with billions of knobs instead of thousands.
+
+<Predict
+  id="beat-you"
+  question="Will Wick, tuning itself, beat your hand-set knobs on the Day Shift?"
+  options={['Yes, easily', 'About the same', 'No, I did better']}
+  lock
+/>
+
+<Widget
+    title="Training Wick"
+    summary="A chart of Wick's total wrongness falling as it makes three hundred passes through the training messages, bars showing how it sets your eight words' knobs, and the words it ends up treating as most urgent and most reassuring."
+    realSystems="Real training shows the machine small batches of examples at a time and uses cleverer ways to step downhill, but the idea is the same: measure the wrongness, nudge every knob to reduce it, repeat."
+  >
+  <TrainPanel />
+</Widget>
+
+Look at the words Wick decided matter most. Some make sense straight away. Others are strange: little words like
+*it* and *just* lean toward *can wait*, because calm parents write longer, chattier messages. Wick doesn't know
+what any word means. It only knows which words tended to turn up in which pile.
+
+Now use the lookup to find *sent*, *app* and *myriverside*. All three sit in the top thirty, out of nearly two
+thousand words, as urgent as *dots* and *wake*. They come from a line that one clinic's phone app adds to the
+bottom of every message. They say nothing at all about any child. Hold that thought; it will be back tomorrow.
+
+Put both versions of Wick on the Ward Board and see how they compare with the two reference machines: the one
+that sends an ambulance for everybody, and the one that says everything can wait.
+
+<WardBoard />
+
+---
+
+## Do fade, don't fade
+
+At seven minutes past two the message comes in again, the one from every night:
+
+> she has a fever and some little purple spots on her legs. i pressed a glass on them like my mum said and they
+> dont go away.
+
+You hold it under Wick's reading glass. Then you write the version a calmer parent might send, where the spots
+*do* fade.
+
+<Predict
+  id="fade"
+  question="Which of these two messages will the trained Wick call urgent?"
+  options={['Only the one where the spots don\'t fade', 'Both', 'Neither', 'Only the one where they fade']}
+  answer="Both"
+  lock
+/>
+
+<Widget
+    title="Wick's reading glass"
+    summary="Type or choose a message to see each word's knob setting, the total, and Wick's verdict. Two preset messages differ only in whether the spots fade."
+    realSystems="Modern language models read words in order and in context, so 'don't' attaches to the word it belongs to. A bag of words like this one throws the order away."
+  >
+    <ReadingGlass
+      presets={[
+        { label: "Spots don't fade", text: "my daughter is 3, she has a fever and little purple spots on her legs. i pressed a glass on them and they dont go away" },
+        { label: 'Spots fade', text: "my daughter is 3, she has a fever and little purple spots on her legs. i pressed a glass on them and they go away fine, dont worry she is playing" },
+      ]}
+    />
+</Widget>
+
+Both. Look at the little word chips. *Dont* is one of Wick's alarm words: in the training pile it turned up most often
+in "they don't fade", so Wick learned to flinch at it. But Wick has no idea which word *don't* belongs to. Tipped
+out of the bag, "the spots don't fade" and "the spots fade, don't worry" are the same handful of words.
+
+That is the real lesson of the night, and it's worth saying plainly. No amount of knob-turning can fix this.
+Training found the best knob settings that exist for a machine that sees a message as a bag of separate words.
+The trouble isn't the settings. It's what Wick can see.
+
+**Your turn to break it.** Write a message that any nurse would call an emergency but Wick calls *can wait*.
+(Hint: reassuring words are heavy.) Then try the opposite: a perfectly calm message that sends Wick into a panic.
+
+<Widget title="Break Wick" summary="An empty reading glass for your own messages." realSystems="Real systems get broken this way too: people search for inputs that fool them, and the fixes are always partial.">
+  <ReadingGlass />
+</Widget>
+
+<MathDrawer title="what Wick computes, and how it learns">
+  Each word $w$ has a weight $\theta_w$ (its knob) and Wick has a bias $b$ (the starting lean). For a message $x$,
+  let $W(x)$ be the set of distinct words in it. Wick's score and its confidence that the message is urgent are
+
+  $$
+  s(x) = b + \sum_{w \in W(x)} \theta_w, \qquad p(x) = \frac{1}{1 + e^{-s(x)}}.
+  $$
+
+  For a message with label $y$ ($1$ for urgent, $0$ for can wait), the wrongness is the log loss
+  $\ell = -\,[\,y \log p + (1-y)\log(1-p)\,]$. Its slope with respect to each knob is simple: for every word in the
+  message, $\partial \ell / \partial \theta_w = p - y$. Training averages this over all $N$ training messages and
+  takes a step of size $\eta$ against it:
+
+  $$
+  \theta_w \leftarrow \theta_w - \eta \left( \frac{1}{N}\sum_{i:\, w \in W(x_i)} \big(p(x_i) - y_i\big) + \lambda\,\theta_w \right).
+  $$
+
+  This is plain (full-batch) gradient descent on logistic regression, with a small penalty $\lambda$ that keeps
+  knobs from growing without limit. Here $\eta = 1$, $\lambda = 0.001$, three hundred steps, and only words that
+  appear in at least two training messages get a knob.
+</MathDrawer>
+
+<NightNote>
+  <Line who="young">It beat my knobs. It beat my rules, too.</Line>
+  <Line who="charge">On which messages?</Line>
+  <Line who="young">The ones that look like the ones it learned from. And it can't tell what "don't" is about.</Line>
+  <Line who="charge">My father's radios were like that. You could turn the knobs all night and you'd still only get the stations the aerial could reach.</Line>
+  <Line who="young">So Wick needs a better aerial.</Line>
+  <Line who="charge">Or a second row of knobs that listens to the first. Bring a screwdriver tomorrow.</Line>
+</NightNote>
+
+<Notes>
+  <NoteDef id="gd">The knobs are usually called *weights* and the starting lean a *bias*; the whole machine is a
+  *logistic regression*, one of the oldest tools in statistics. The idea of a machine that learns by adjusting
+  weights goes back at least to the perceptron<Cite k="rosenblatt1958" />. Here every step uses all the training
+  messages at once and the same step size every time ("plain" gradient descent); real systems usually use small
+  random batches and adaptive methods such as Adam.</NoteDef>
+</Notes>

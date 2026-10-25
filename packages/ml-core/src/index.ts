@@ -1,3 +1,4 @@
-// Tiny from-scratch learning code (plan 8.1): rule engine, perceptron, MLP, char-transformer.
-// Built in M2-M4; nothing here yet.
-export {};
+// Tiny from-scratch learning code (plan 8.1): everything the reader trains runs here, in the browser,
+// with no ML library, so every number can be shown.
+export * from './text.ts';
+export * from './bow.ts';

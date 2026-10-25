@@ -1,0 +1,1 @@
+{"id":"t0514","pass":true,"problems":[],"missedNegations":[],"verifier":{"id":"t0514","present":[],"absent":["nonblanching_rash","not_feeding","drowsy"],"label":"can_wait","other_concern":null,"unclear":false}}

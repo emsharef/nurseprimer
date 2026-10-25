@@ -1,18 +1,31 @@
 ---
-interface Props { who: 'young' | 'charge' }
+// One line of dialogue, with a small portrait. who: young (you) | charge (Bea) | wick (the machine).
+import { existsSync } from 'node:fs';
+interface Props { who: 'young' | 'charge' | 'wick' }
 const { who } = Astro.props;
-const name = who === 'young' ? 'You' : 'Charge nurse';
+const names = { young: 'You', charge: 'Bea', wick: 'Wick' } as const;
+const portrait = { young: 'portrait-you', charge: 'portrait-bea', wick: 'portrait-wick' }[who];
+const base = import.meta.env.BASE_URL;
+const has = existsSync(new URL(`../../public/illustrations/${portrait}-800.webp`, import.meta.url));
 ---
 <div class={`line ${who}`}>
-  <span class="who">{name}</span>
-  <div class="said"><slot /></div>
+  <div class="who">
+    {has ? <img src={`${base}illustrations/${portrait}-800.webp`} alt="" width="56" height="56" loading="lazy" /> : <span class="dot" aria-hidden="true" />}
+    <span class="name">{names[who]}</span>
+  </div>
+  <div class:list={['said', { machine: who === 'wick' }]}><slot /></div>
 </div>
 
 <style>
-  .line { display: grid; grid-template-columns: 8.5rem 1fr; gap: 0.25rem 1rem; }
-  .who { font-family: var(--font-ui); font-size: var(--step--1); font-weight: 700; padding-top: 0.2em; color: var(--ink-soft); }
-  .charge .who { color: var(--lamp); }
+  .line { display: grid; grid-template-columns: 4.5rem 1fr; gap: 0.25rem 1rem; align-items: start; }
+  .who { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
+  img { width: 3.5rem; height: 3.5rem; border-radius: 50%; object-fit: cover; background: var(--plate); border: 1.5px solid var(--rule); }
+  .charge img { border-color: var(--gold); }
+  .wick img { border-color: var(--phosphor); }
+  .dot { width: 3.5rem; height: 3.5rem; border-radius: 50%; border: 1.5px solid var(--rule); }
+  .name { font-family: var(--font-ui); font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); }
+  .said { padding-top: 0.35rem; }
   .said :global(p:last-child) { margin-bottom: 0; }
   .charge .said { font-style: italic; }
-  @media (max-width: 34rem) { .line { grid-template-columns: 1fr; } }
+  @media (max-width: 30rem) { .line { grid-template-columns: 3.25rem 1fr; } img, .dot { width: 2.75rem; height: 2.75rem; } }
 </style>

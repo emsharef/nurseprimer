@@ -1,0 +1,1 @@
+{"id":"t0601","pass":true,"problems":[],"missedNegations":[],"verifier":{"id":"t0601","present":["infant_fever"],"absent":["breathing","not_feeding"],"label":"urgent","other_concern":null,"unclear":false}}

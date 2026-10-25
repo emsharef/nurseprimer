@@ -1,0 +1,1 @@
+{"id":"d0182","pass":false,"problems":["extra infant_fever","verifier labels urgent"],"missedNegations":[],"verifier":{"id":"d0182","present":["infant_fever"],"absent":["not_feeding","skin_colour","stiff_neck","drowsy"],"label":"urgent","other_concern":null,"unclear":false}}

@@ -1,0 +1,233 @@
+---
+// The Fifth Night, second widget: Wick turns its own knobs. Plain gradient descent on every word in the
+// training messages, animated one step at a time: the wrongness curve falls, your eight knobs turn, and the
+// words Wick decided matter most appear.
+import { HAND_WORDS } from './store.ts';
+---
+<div class="train-panel" data-train-panel>
+  <div class="controls">
+    <button type="button" class="btn primary" data-train>Let Wick turn its own knobs</button>
+    <span class="progress" data-progress aria-live="polite">Wick hasn't started.</span>
+  </div>
+
+  <div class="grid">
+    <figure class="chart">
+      <svg viewBox="0 0 560 210" role="img" aria-labelledby="loss-title loss-desc" data-chart>
+        <title id="loss-title">Wrongness during training</title>
+        <desc id="loss-desc" data-chart-desc>Empty chart. Press the button to start training.</desc>
+        <defs>
+          <pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="5" stroke="var(--phosphor)" stroke-width="1" opacity="0.5" />
+          </pattern>
+        </defs>
+        <line x1="44" y1="24" x2="44" y2="170" class="axis" />
+        <line x1="44" y1="170" x2="548" y2="170" class="axis" />
+        <text x="38" y="30" class="tick" text-anchor="end" data-ymax>0.7</text>
+        <text x="38" y="174" class="tick" text-anchor="end">0</text>
+        <text x="548" y="192" class="tick" text-anchor="end">300 passes</text>
+        <text x="44" y="192" class="tick" text-anchor="start">start</text>
+        <text x="44" y="12" class="tick label">Wick's total wrongness</text>
+        <path d="" class="area" data-area />
+        <path d="" class="line" data-line />
+      </svg>
+    </figure>
+
+    <div class="knob-readout">
+      <p class="sub">Your eight knobs, as Wick sets them</p>
+      <ul class="bars">
+        {HAND_WORDS.map((w) => (
+          <li>
+            <span class="w">"{w}"</span>
+            <span class="track"><span class="mid" aria-hidden="true"></span><span class="fill" data-bar={w}></span></span>
+            <span class="v" data-bar-val={w}>0</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+
+  <div class="after" data-after hidden>
+    <div class="score">
+      <p><strong>Day Shift:</strong> <span data-day></span></p>
+      <p class="compare" data-compare></p>
+    </div>
+    <div class="tops">
+      <div>
+        <p class="sub">Words Wick turned furthest toward <span class="u">urgent</span></p>
+        <ol class="top" data-top-urgent></ol>
+      </div>
+      <div>
+        <p class="sub">…and furthest toward <span class="c">can wait</span></p>
+        <ol class="top" data-top-calm></ol>
+      </div>
+    </div>
+    <div class="lookup">
+      <label for="word-lookup">Look up where Wick put any word</label>
+      <div class="lookup-row">
+        <input id="word-lookup" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. sent" data-lookup />
+        <output data-lookup-out aria-live="polite"></output>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn" data-again>Start again from zero</button>
+      <button type="button" class="btn primary" data-save>Put trained Wick on the Ward Board</button>
+      <span class="saved" data-saved aria-live="polite"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { Trainer } from '@primer/ml-core';
+  import { hand, HAND_WORDS, TRAIN, corpus, scoreDay, saveToBoard, setTrained } from './store.ts';
+  import { bySplit } from '../../../src/lib/corpus.ts';
+
+  const root = document.querySelector<HTMLElement>('[data-train-panel]')!;
+  const btn = root.querySelector<HTMLButtonElement>('[data-train]')!;
+  const progress = root.querySelector<HTMLElement>('[data-progress]')!;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const X0 = 44, X1 = 548, Y0 = 170, Y1 = 24;
+  let yMax = 0.7;
+
+  function drawCurve(losses: number[]) {
+    const pts = losses.map((l, i) => [X0 + ((X1 - X0) * i) / (TRAIN.epochs - 1), Y0 - ((Y0 - Y1) * Math.min(l, yMax)) / yMax]);
+    if (!pts.length) return;
+    const line = 'M' + pts.map((p) => p.map((v) => v.toFixed(1)).join(' ')).join(' L');
+    root.querySelector('[data-line]')!.setAttribute('d', line);
+    root.querySelector('[data-area]')!.setAttribute('d', `${line} L${pts.at(-1)![0].toFixed(1)} ${Y0} L${X0} ${Y0} Z`);
+  }
+
+  function drawBars(m: { weight(w: string): number }) {
+    for (const w of HAND_WORDS) {
+      const v = m.weight(w);
+      const el = root.querySelector<HTMLElement>(`[data-bar="${w}"]`)!;
+      const pct = Math.min(50, (Math.abs(v) / 3) * 50);
+      el.style.left = v >= 0 ? '50%' : `${50 - pct}%`;
+      el.style.width = `${pct}%`;
+      el.className = `fill ${v >= 0 ? 'u' : 'c'}`;
+      root.querySelector(`[data-bar-val="${w}"]`)!.textContent = (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(1);
+    }
+  }
+
+  function list(sel: string, items: [string, number][]) {
+    const ol = root.querySelector(sel)!;
+    ol.replaceChildren(...items.map(([w, v]) => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="tw"></span><span class="tv">${(v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2)}</span>`;
+      li.querySelector('.tw')!.textContent = w;
+      return li;
+    }));
+  }
+
+  let ranked: string[] = [];
+  const lookupIn = root.querySelector<HTMLInputElement>('[data-lookup]')!;
+  function lookup() {
+    const out = root.querySelector('[data-lookup-out]')!;
+    const w = lookupIn.value.trim().toLowerCase().replace(/[’']/g, '');
+    import('./store.ts').then(({ getTrained }) => {
+      const m = getTrained();
+      if (!w || !m) { out.textContent = ''; return; }
+      const r = ranked.indexOf(w);
+      if (r < 0) { out.textContent = `Wick has no knob for "${w}": it appeared in fewer than two training messages.`; return; }
+      const v = m.weight(w);
+      out.textContent = `"${w}": ${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(2)}, number ${r + 1} of ${ranked.length} toward urgent.`;
+    });
+  }
+  lookupIn.addEventListener('input', lookup);
+
+  corpus().then((c) => {
+    const train = bySplit(c, 'train');
+    drawBars({ weight: () => 0 });
+
+    async function run() {
+      btn.disabled = true;
+      root.querySelector<HTMLElement>('[data-after]')!.hidden = true;
+      const t = new Trainer(train, TRAIN);
+      const losses: number[] = [];
+      const perFrame = reduce ? TRAIN.epochs : 3;
+      await new Promise<void>((done) => {
+        const tick = () => {
+          for (let k = 0; k < perFrame && t.epoch < TRAIN.epochs; k++) losses.push(t.step());
+          if (t.epoch === 1) yMax = Math.max(0.1, Math.ceil(losses[0] * 10) / 10);
+          root.querySelector('[data-ymax]')!.textContent = yMax.toFixed(1);
+          drawCurve(losses);
+          drawBars(t.model());
+          progress.textContent = `Pass ${t.epoch} of ${TRAIN.epochs}`;
+          if (t.epoch < TRAIN.epochs) requestAnimationFrame(tick);
+          else done();
+        };
+        requestAnimationFrame(tick);
+      });
+      const m = t.model();
+      setTrained(m);
+      const s = scoreDay(c, m);
+      const mine = scoreDay(c, hand);
+      progress.textContent = `Done: ${TRAIN.epochs} passes over ${train.length} messages, ${t.vocab.length} knobs.`;
+      root.querySelector('[data-chart-desc]')!.textContent =
+        `Wrongness fell from ${losses[0].toFixed(2)} to ${losses.at(-1)!.toFixed(2)} over ${TRAIN.epochs} passes, quickly at first and then slowly.`;
+      root.querySelector('[data-day]')!.textContent =
+        `${Math.round(s.accuracy * 100)}% right, ${s.missedEmergencies} missed emergencies, ${s.unnecessaryEscalations} needless alarms.`;
+      root.querySelector('[data-compare]')!.textContent =
+        `Your hand-set knobs: ${Math.round(mine.accuracy * 100)}% right, ${mine.missedEmergencies} missed emergencies.`;
+      const top = m.top(10);
+      ranked = [...m.weights].sort((a, b) => b[1] - a[1]).map(([w]) => w);
+      lookup();
+      list('[data-top-urgent]', top.urgent);
+      list('[data-top-calm]', top.canWait);
+      root.querySelector<HTMLElement>('[data-after]')!.hidden = false;
+      btn.disabled = false;
+      btn.textContent = 'Watch it again';
+    }
+
+    btn.addEventListener('click', run);
+    root.querySelector('[data-again]')!.addEventListener('click', run);
+    root.querySelector('[data-save]')!.addEventListener('click', () => {
+      import('./store.ts').then(({ getTrained }) => {
+        const m = getTrained();
+        if (!m) return;
+        saveToBoard(c, m, 'ch5-trained', 'Wick, self-tuned');
+        root.querySelector('[data-saved]')!.textContent = 'On the board.';
+      });
+    });
+  }).catch((e) => (progress.textContent = e.message));
+</script>
+
+<style>
+  .controls { display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; align-items: center; margin-bottom: 1rem; }
+  .progress { color: var(--ink-soft); font-family: var(--font-mono); font-size: 0.85rem; }
+  .grid { display: grid; gap: 1.25rem; }
+  .bars { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2rem; }
+  @media (max-width: 40rem) { .bars { grid-template-columns: 1fr; } }
+  .chart { margin: 0; }
+  svg { width: 100%; height: auto; overflow: visible; }
+  .axis { stroke: var(--ink); stroke-width: 1; }
+  .tick { font-family: var(--font-ui); font-size: 12px; fill: var(--ink-soft); }
+  .tick.label { font-weight: 700; fill: var(--ink); }
+  .line { fill: none; stroke: var(--phosphor-ink); stroke-width: 2; }
+  .area { fill: url(#hatch); }
+  .sub { margin: 0 0 0.4rem; font-weight: 700; }
+  .bars { list-style: none; margin: 0; padding: 0; display: grid; row-gap: 0.3rem; }
+  .bars li { display: grid; grid-template-columns: 6.5rem 1fr 2.6rem; gap: 0.5rem; align-items: center; }
+  .w { font-family: var(--font-mono); font-size: 0.85rem; }
+  .track { position: relative; height: 0.7rem; background: var(--paper-2); border-radius: 2px; }
+  .mid { position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--ink); }
+  :global(.train-panel .fill) { position: absolute; top: 0; bottom: 0; border-radius: 2px; }
+  :global(.train-panel .fill.u) { background: var(--alarm); }
+  :global(.train-panel .fill.c) { background: var(--calm); }
+  .v { font-variant-numeric: tabular-nums; text-align: right; color: var(--ink-soft); font-size: 0.8rem; }
+  .after { margin-top: 1.5rem; border-top: 1px solid var(--rule); padding-top: 1rem; }
+  .score p { margin: 0 0 0.25rem; }
+  .compare { color: var(--ink-soft); }
+  .tops { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem; }
+  @media (max-width: 34rem) { .tops { grid-template-columns: 1fr; } }
+  .u { color: var(--alarm); }
+  .c { color: var(--calm); }
+  .top { margin: 0; padding-left: 1.4rem; font-family: var(--font-mono); font-size: 0.85rem; }
+  :global(.train-panel .top li) { display: flex; justify-content: space-between; gap: 1rem; }
+  :global(.train-panel .tv) { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  .lookup { margin-top: 1.25rem; }
+  .lookup label { font-weight: 700; display: block; margin-bottom: 0.3rem; }
+  .lookup-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; }
+  .lookup input { font: inherit; font-family: var(--font-mono); padding: 0.4rem 0.6rem; border: 1px solid var(--ink); border-radius: var(--radius-ui); background: var(--paper); color: var(--ink); width: 12rem; }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 1.25rem; }
+  .saved { color: var(--calm); font-weight: 700; }
+</style>

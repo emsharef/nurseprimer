@@ -1,0 +1,127 @@
+---
+// The Fifth Night, third widget: hold any message under Wick's reading glass and see every word's knob,
+// the total, and the verdict. Used for the "do fade / don't fade" test and the break-it challenge.
+interface Props { presets?: { label: string; text: string }[]; start?: string }
+const { presets = [], start = '' } = Astro.props;
+---
+<div class="glass" data-reading-glass>
+  {presets.length > 0 && (
+    <div class="presets" role="group" aria-label="Try a message">
+      {presets.map((p) => <button type="button" class="chip-btn" data-preset={p.text}>{p.label}</button>)}
+    </div>
+  )}
+  <label class="lbl" for="glass-input">A message for Wick</label>
+  <textarea id="glass-input" rows="3" data-input placeholder="Type a message a parent might send…">{start}</textarea>
+
+  <div class="result" aria-live="polite">
+    <div class="verdict">
+      <span class="face" data-face></span>
+      <div>
+        <p class="v-text" data-verdict>Wick is getting ready…</p>
+        <p class="v-sub" data-sub></p>
+      </div>
+    </div>
+    <div class="balance" aria-hidden="true">
+      <span class="end c">can wait</span>
+      <span class="beam"><span class="zero"></span><span class="needle" data-needle></span></span>
+      <span class="end u">urgent</span>
+    </div>
+    <p class="words-title">How each word turned Wick's knobs</p>
+    <p class="words" data-words></p>
+  </div>
+</div>
+
+<script>
+  import { ensureTrained, getTrained, onChange } from './store.ts';
+  import { tokenize } from '@primer/ml-core';
+  import { wickFace, verdictText } from '../wick.ts';
+
+  document.querySelectorAll<HTMLElement>('[data-reading-glass]').forEach((root) => {
+    const input = root.querySelector<HTMLTextAreaElement>('[data-input]')!;
+    root.querySelector('[data-face]')!.innerHTML = wickFace('thinking', 52);
+
+    function render() {
+      const m = getTrained();
+      if (!m) return;
+      const text = input.value.trim();
+      const words = root.querySelector('[data-words]')!;
+      if (!text) {
+        root.querySelector('[data-verdict]')!.textContent = 'Wick is waiting for a message.';
+        root.querySelector('[data-sub]')!.textContent = '';
+        root.querySelector('[data-face]')!.innerHTML = wickFace('idle', 52);
+        words.replaceChildren();
+        return;
+      }
+      const { label, pUrgent } = m.predict(text);
+      const score = m.score(text);
+      root.querySelector('[data-face]')!.innerHTML = wickFace(label, 52);
+      root.querySelector('[data-verdict]')!.textContent = `Wick says: ${verdictText(label)}`;
+      root.querySelector('[data-sub]')!.textContent =
+        `Total ${score >= 0 ? '+' : '−'}${Math.abs(score).toFixed(2)} (starting lean ${m.bias >= 0 ? '+' : '−'}${Math.abs(m.bias).toFixed(2)}), so ${Math.round(pUrgent * 100)}% sure it's urgent.`;
+      const needle = root.querySelector<HTMLElement>('[data-needle]')!;
+      needle.style.left = `${50 + Math.max(-48, Math.min(48, score * 8))}%`;
+      needle.className = `needle ${label}`;
+      const seen = new Set<string>();
+      words.replaceChildren(...tokenize(text).map((w) => {
+        const span = document.createElement('span');
+        const dup = seen.has(w);
+        seen.add(w);
+        const v = m.weight(w);
+        const known = m.weights.has(w);
+        span.className = `wchip ${dup ? 'dup' : !known ? 'unknown' : v > 0.05 ? 'u' : v < -0.05 ? 'c' : 'z'}`;
+        span.style.setProperty('--strength', String(Math.min(1, Math.abs(v) / 1.5)));
+        span.textContent = w;
+        const sub = document.createElement('small');
+        sub.textContent = dup ? 'again: counted once' : !known ? 'never seen' : `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(2)}`;
+        span.append(sub);
+        return span;
+      }));
+    }
+
+    input.addEventListener('input', render);
+    root.querySelectorAll<HTMLButtonElement>('[data-preset]').forEach((b) =>
+      b.addEventListener('click', () => { input.value = b.dataset.preset!; render(); input.focus(); }),
+    );
+    onChange(render);
+    ensureTrained().then(render).catch((e) => (root.querySelector('[data-verdict]')!.textContent = e.message));
+  });
+</script>
+
+<style>
+  .presets { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.9rem; }
+  .chip-btn {
+    border: 1px solid var(--ink); background: var(--paper); border-radius: 999px; padding: 0.3rem 0.8rem;
+    cursor: pointer; min-height: 2.25rem; font-size: var(--step--1);
+  }
+  .chip-btn:hover { background: var(--gold-wash); }
+  .lbl { display: block; font-weight: 700; margin-bottom: 0.3rem; }
+  textarea {
+    width: 100%; font: inherit; font-family: var(--font-read); font-size: 1rem; line-height: 1.5;
+    padding: 0.6rem 0.75rem; border: 1px solid var(--ink); border-radius: var(--radius-ui);
+    background: var(--paper); color: var(--ink); resize: vertical;
+  }
+  .result { margin-top: 1rem; }
+  .verdict { display: flex; gap: 0.9rem; align-items: center; }
+  .face { flex: none; display: inline-flex; }
+  .v-text { margin: 0; font-weight: 700; font-size: var(--step-0); }
+  .v-sub { margin: 0.1rem 0 0; color: var(--ink-soft); }
+  .balance { display: grid; grid-template-columns: auto 1fr auto; gap: 0.6rem; align-items: center; margin: 1rem 0; font-size: 0.8rem; }
+  .end.c { color: var(--calm); }
+  .end.u { color: var(--alarm); }
+  .beam { position: relative; height: 0.5rem; border-radius: 999px; background: linear-gradient(90deg, var(--calm-wash), var(--paper-2) 50%, var(--alarm-wash)); border: 1px solid var(--rule); }
+  .zero { position: absolute; left: 50%; top: -0.35rem; bottom: -0.35rem; width: 1.5px; background: var(--ink); }
+  :global(.glass .needle) { position: absolute; top: 50%; width: 0.95rem; height: 0.95rem; border-radius: 50%; transform: translate(-50%, -50%); background: var(--ink); border: 2px solid var(--card); transition: left 200ms; left: 50%; }
+  :global(.glass .needle.urgent) { background: var(--alarm); }
+  :global(.glass .needle.can_wait) { background: var(--calm); }
+  .words-title { margin: 0 0 0.4rem; font-weight: 700; }
+  .words { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0; }
+  :global(.glass .wchip) {
+    display: inline-flex; flex-direction: column; align-items: center; line-height: 1.15;
+    padding: 0.2rem 0.45rem; border-radius: var(--radius-ui); border: 1px solid var(--rule);
+    font-family: var(--font-mono); font-size: 0.85rem; background: var(--paper);
+  }
+  :global(.glass .wchip small) { font-family: var(--font-ui); font-size: 0.68rem; color: var(--ink-soft); }
+  :global(.glass .wchip.u) { border-color: var(--alarm); background: color-mix(in srgb, var(--alarm-wash) calc(var(--strength) * 100%), var(--paper)); }
+  :global(.glass .wchip.c) { border-color: var(--calm); background: color-mix(in srgb, var(--calm-wash) calc(var(--strength) * 100%), var(--paper)); }
+  :global(.glass .wchip.dup), :global(.glass .wchip.unknown) { opacity: 0.6; border-style: dashed; }
+</style>
