@@ -15,10 +15,11 @@ const y = (f: number) => Y0 - (Y0 - Y1) * f;
     ))}
   </div>
 
-  <div class="pour-row">
+  <div class="pour-row" data-pour-row>
     <button type="button" class="btn primary" data-pour>Pour the Day Shift into the jars</button>
     <span class="status" data-status aria-live="polite">Loading the night's messages…</span>
   </div>
+  <p class="later" data-later>The Night Shift and the 2 a.m. Set open once you've made the guess below the jars.</p>
 
   <figure class="chart">
     <figcaption class="chart-title">In each jar, how many were really urgent</figcaption>
@@ -193,6 +194,7 @@ const y = (f: number) => Y0 - (Y0 - Y1) * f;
     if (!readings) return;
     const done = poured.has(s);
     pour.hidden = done;
+    root.querySelector<HTMLElement>('[data-pour-row]')!.hidden = done;
     pour.textContent = `Pour the ${setName(s).replace(/^The /, '')} into the jars`;
     status.textContent = done ? '' : `${readings[s].length} messages, each with Wick's needle reading.`;
     jarButtons.forEach((b) => (b.disabled = !done));
@@ -205,13 +207,24 @@ const y = (f: number) => Y0 - (Y0 - Y1) * f;
     showJar();
   }
 
+  // Night and 2 a.m. wait for the reader's guess about the Night Shift, so the jars can't answer it first.
+  const lockLater = (locked: boolean) => {
+    setButtons.forEach((b) => { if (b.dataset.set !== 'day') b.disabled = locked; });
+    root.querySelector<HTMLElement>('[data-later]')!.hidden = !locked;
+  };
+  lockLater(!!document.querySelector('[data-predict="night-needle"]'));
+  document.addEventListener('primer:revealed', (e) => {
+    if ((e.target as HTMLElement).closest?.('[data-predict]')?.getAttribute('data-predict') === 'night-needle') lockLater(false);
+  });
+
   setButtons.forEach((b, i) => {
     b.addEventListener('click', () => select(b.dataset.set as TestSplit));
     b.addEventListener('keydown', (e) => {
       const d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
       if (!d) return;
       e.preventDefault();
-      const next = setButtons[(i + d + setButtons.length) % setButtons.length];
+      const open = setButtons.filter((x) => !x.disabled);
+      const next = open[(open.indexOf(b) + d + open.length) % open.length];
       next.focus();
       select(next.dataset.set as TestSplit);
     });
@@ -227,6 +240,7 @@ const y = (f: number) => Y0 - (Y0 - Y1) * f;
     const finish = () => {
       poured.add(s);
       status.textContent = '';
+      root.dispatchEvent(new CustomEvent('primer:poured', { bubbles: true, detail: { split: s } }));
       if (split === s) select(s);
       if (jar < 0) { jar = bins.findIndex((b) => b.n && b.lo >= 0.2 && b.hi <= 0.6); showJar(); }
     };
@@ -256,6 +270,9 @@ const y = (f: number) => Y0 - (Y0 - Y1) * f;
   .sets button { border: 0; background: transparent; padding: 0.35rem 1rem; min-height: 2.75rem; cursor: pointer; font-size: var(--step--1); }
   .sets button + button { border-left: 1px solid var(--ink); }
   .sets button[aria-checked='true'] { background: var(--ink); color: var(--paper); font-weight: 700; }
+  .sets button:disabled { color: var(--ink-soft); opacity: 0.55; cursor: not-allowed; }
+  .later { margin: -0.4rem 0 0.9rem; color: var(--ink-soft); font-size: 0.85rem; }
+  .later[hidden], .pour-row[hidden] { display: none; }
   .pour-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; min-height: 2.75rem; margin-bottom: 0.75rem; }
   .status { color: var(--ink-soft); font-family: var(--font-mono); font-size: 0.85rem; }
   .chart { margin: 0; max-width: 38rem; }

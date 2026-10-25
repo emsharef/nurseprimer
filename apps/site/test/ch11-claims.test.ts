@@ -8,7 +8,7 @@ import {
   reliabilityBins, expectedCalibrationError, confidenceVsAccuracy, atThreshold, thresholdForCosts, type Scored,
 } from '@primer/ward-board';
 import { TRAIN } from '../components/widgets/knobs/store.ts';
-import { STREAM, BOARD_RATIO, DEFAULT_RATIO, lineFor, costsFor } from '../components/widgets/how-sure/store.ts';
+import { STREAM, BOARD_RATIO, DEFAULT_RATIO, lineFor, costsFor, unknownShare, UNKNOWN_SHARE_FLAG } from '../components/widgets/how-sure/store.ts';
 
 const corpus = JSON.parse(readFileSync(new URL('../public/data/corpus.json', import.meta.url), 'utf8'));
 type M = { id: string; text: string; label: 'urgent' | 'can_wait'; split: string };
@@ -158,5 +158,50 @@ describe('Part 3: four in the morning', () => {
     expect(wrong.filter(mid)).toHaveLength(24);
     expect(night.filter(mid)).toHaveLength(83);
     expect(night).toHaveLength(397);
+  });
+});
+
+describe('Revisions: the honest-needle sum, and the second signal for the bell', () => {
+  const line = lineFor(DEFAULT_RATIO);
+  const quiet = (xs: Scored[]) => xs.filter((x) => x.p < line);
+  const expected = (xs: Scored[]) => quiet(xs).reduce((a, x) => a + x.p, 0);
+  const made = (xs: Scored[]) => quiet(xs).filter((x) => x.y).length;
+
+  it('below the 9% line an honest needle predicts three misses by day (made 3) and three at night (made 6)', () => {
+    expect(Math.round(expected(day))).toBe(3);
+    expect(made(day)).toBe(3);
+    expect(Math.round(expected(night))).toBe(3);
+    expect(made(night)).toBe(6);
+  });
+
+  it("the night's six bad misses are the six mistakes with the needle outside 10-90%, all calm and under 9%", () => {
+    const wrong = night.filter((x) => (x.p >= 0.5 ? 1 : 0) !== x.y);
+    const outside = wrong.filter((x) => x.p < 0.1 || x.p >= 0.9);
+    expect(outside).toHaveLength(6);
+    expect(outside.every((x) => x.y === 1 && x.p < line)).toBe(true);
+  });
+
+  const withText = (s: string) =>
+    split(s).map((m) => ({ m, p: wick.pUrgent(m.text), y: m.label === 'urgent' ? 1 : 0, u: unknownShare(wick, m.text) }));
+
+  it("unknown words flag 3 of the 2 a.m. Set's 4 calm, sure misses; about one message in six there", () => {
+    const xs = withText('two_am');
+    const misses = xs.filter((x) => x.y && x.p < line);
+    expect(misses).toHaveLength(4);
+    expect(misses.filter((x) => x.u >= UNKNOWN_SHARE_FLAG)).toHaveLength(3);
+    const flagged = xs.filter((x) => x.u >= UNKNOWN_SHARE_FLAG).length;
+    expect(flagged).toBe(28);
+    expect(Math.round(xs.length / flagged)).toBe(6);
+  });
+
+  it('on the Night Shift they flag 1 of 6, and those misses are no stranger than the calm messages Wick got right', () => {
+    const xs = withText('night');
+    const misses = xs.filter((x) => x.y && x.p < line);
+    expect(misses.filter((x) => x.u >= UNKNOWN_SHARE_FLAG)).toHaveLength(1);
+    const mean = (a: { u: number }[]) => a.reduce((q, x) => q + x.u, 0) / a.length;
+    expect(mean(misses)).toBeLessThanOrEqual(mean(xs.filter((x) => !x.y && x.p < line)));
+    // Five of the six are babies a few months old with a temperature.
+    const babies = misses.filter((x) => /\b([1-5]|one|two|three|four|five)[ -]*month/i.test(x.m.text) && /temp/i.test(x.m.text));
+    expect(babies).toHaveLength(5);
   });
 });

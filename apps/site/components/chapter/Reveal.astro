@@ -1,0 +1,40 @@
+---
+// Holds back prose that gives an answer away until the reader has guessed (the Predict with id `guess`) and,
+// optionally, done the thing a widget announces with a bubbling CustomEvent (`event`, with `detail.split` equal
+// to `match`). Without JavaScript the prose is simply shown.
+interface Props { guess?: string; event?: string; match?: string; note: string }
+const { guess, event, match, note } = Astro.props;
+---
+<div class="reveal-after" data-reveal-after data-guess={guess} data-event={event} data-match={match} data-note={note}>
+  <slot />
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-reveal-after]').forEach((el) => {
+    const { guess, event, match, note } = el.dataset;
+    let guessed = !guess, done = !event;
+    const hold = document.createElement('p');
+    hold.className = 'reveal-hold';
+    hold.textContent = note ?? 'Make your guess above to read on.';
+    el.hidden = true;
+    el.before(hold);
+    const check = () => {
+      if (!guessed || !done) return;
+      el.hidden = false;
+      hold.remove();
+    };
+    if (guess) document.addEventListener('primer:revealed', (e) => {
+      if ((e.target as HTMLElement).closest?.('[data-predict]')?.getAttribute('data-predict') === guess) { guessed = true; check(); }
+    });
+    if (event) document.addEventListener(event, (e) => {
+      if (!match || (e as CustomEvent).detail?.split === match) { done = true; check(); }
+    });
+  });
+</script>
+
+<style>
+  :global(.reveal-hold) {
+    font-family: var(--font-ui); font-size: var(--step--1); color: var(--ink-soft); font-style: italic;
+    border-left: 3px solid var(--gold); padding: 0.4rem 0 0.4rem 0.9rem; margin-block: 1.5rem;
+  }
+</style>

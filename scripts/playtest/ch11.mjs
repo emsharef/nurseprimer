@@ -6,14 +6,14 @@ import { chromium } from 'playwright';
 // Usage: node scripts/playtest/ch11.mjs <screenshot dir> [phone-light|phone-dark|desk ...]
 const dist = 'apps/site/dist', out = process.argv[2] ?? '.';
 const want = process.argv.slice(3);
-const runs = [[390, 844, 'phone', 'light'], [390, 844, 'phone', 'dark'], [1280, 900, 'desk', 'light']]
+const runs = [[390, 844, 'phone', 'light'], [390, 844, 'phone', 'dark'], [360, 780, 'android', 'light'], [1280, 900, 'desk', 'light']]
   .filter(([, , tag, scheme]) => !want.length || want.includes(`${tag}-${scheme}`) || want.includes(tag));
 
 const srv = await serve(dist);
 const b = await chromium.launch();
 for (const [w, h, tag, scheme] of runs) {
   const name = `${tag}-${scheme}`;
-  const phone = tag === 'phone';
+  const phone = tag !== 'desk';
   const ctx = await b.newContext({ viewport: { width: w, height: h }, colorScheme: scheme, isMobile: phone, hasTouch: phone, deviceScaleFactor: phone ? 2 : 1 });
   const page = await ctx.newPage();
   const tap = (sel) => (phone ? page.locator(sel).first().tap() : page.locator(sel).first().click());
@@ -25,6 +25,8 @@ for (const [w, h, tag, scheme] of runs) {
   await page.locator('[data-predict="top-jar"]').scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${out}/ch11-${name}-locked.png` });
   console.log(name, 'locked before guess:', await page.locator('.predict-locked').count());
+  const held = async () => page.locator('.reveal-hold').count();
+  console.log(name, 'reveals held before any guess:', await held(), '| night tab disabled:', await page.locator('[data-jars] [data-set="night"]').isDisabled());
   await tap('[data-predict="top-jar"] [data-option="Nearly all of them"]');
   await page.waitForSelector('[data-jars] [data-pour]:not([disabled])');
   await tap('[data-jars] [data-pour]');
@@ -37,11 +39,13 @@ for (const [w, h, tag, scheme] of runs) {
   await page.screenshot({ path: `${out}/ch11-${name}-jars-day.png` });
   await tap('[data-predict="top-jar"] ~ .predict-check button');
   console.log(name, 'check 1:', await page.locator('.predict-check p').first().innerText());
+  console.log(name, 'reveals held after pouring Day:', await held());
   await tap('[data-predict="night-needle"] [data-option="Too calm: more urgent children than it says"]');
   await tap('[data-jars] [data-set="night"]');
   await tap('[data-jars] [data-pour]');
   await page.waitForTimeout(1300);
   await tap('[data-jars] [data-jar="1"]');
+  console.log(name, 'reveals held after pouring Night:', await held());
   console.log(name, 'night jar 2:', await page.locator('[data-jars] .inside-sum').innerText());
   await page.locator('[data-jars] .chart').scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${out}/ch11-${name}-jars-night.png` });
@@ -81,19 +85,24 @@ for (const [w, h, tag, scheme] of runs) {
   await page.locator('[data-stream]').scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${out}/ch11-${name}-stream.png` });
   for (let i = 0; i < 24; i++) {
-    await page.waitForSelector('[data-stream] [data-agree]:not([disabled])', { timeout: 15000 });
+    await page.waitForSelector('[data-stream] [data-agree][aria-disabled="false"]', { timeout: 15000 });
     await page.waitForTimeout(i < 8 ? 3500 : i < 16 ? 1500 : 300);
     if (i === 10) {
       await tap('[data-stream] [data-pause]');
       await page.waitForTimeout(1500);
-      if (i === 10 && tag === 'phone' && scheme === 'light') await page.screenshot({ path: `${out}/ch11-${name}-paused.png` });
+      await page.locator('[data-stream] [data-slip]').scrollIntoViewIfNeeded();
+      await page.screenshot({ path: `${out}/ch11-${name}-paused.png` });
       await tap('[data-stream] [data-pause]');
     }
     if (i === 15) await page.screenshot({ path: `${out}/ch11-${name}-stream-backlog.png` });
     const text = await page.locator('[data-stream] [data-slip-text]').innerText();
     // A careful reader overrules a couple of obvious needless alarms early on.
     const overrule = i < 8 && /felt tip|runny|sneezing/i.test(text);
-    await tap(overrule ? '[data-stream] [data-overrule]' : '[data-stream] [data-agree]');
+    if (phone) await tap(overrule ? '[data-stream] [data-overrule]' : '[data-stream] [data-agree]');
+    else {
+      await page.keyboard.press(overrule ? 'o' : 'a');
+      if (i === 3) console.log(name, 'focus after key:', await page.evaluate(() => document.activeElement?.textContent?.trim()));
+    }
   }
   await page.waitForSelector('[data-stream] [data-done]:not([hidden])');
   console.log(name, 'stream:', (await page.locator('[data-stream] [data-done]').innerText()).replace(/\s+/g, ' ').slice(0, 900));
