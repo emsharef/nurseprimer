@@ -2,3 +2,5 @@
 // with no ML library, so every number can be shown.
 export * from './text.ts';
 export * from './bow.ts';
+export * from './ngram.ts';
+export * from './charmodel.ts';

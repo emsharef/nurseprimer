@@ -1,0 +1,286 @@
+---
+// The Sixth Night, third widget: GPT-2 small in the reader's browser. Until the reader presses Download it
+// shows a frozen recording (content/transcripts/gpt2-next-word.json, made by scripts/record-gpt2.mjs with the
+// same wrapper); after, it runs live in a Web Worker: the word pieces, the next-piece bars, a temperature
+// slider, and Wick printing GPT-2's picks on its tape.
+import './next-word.css';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { GPT2, GPT2_DOWNLOAD_BYTES, megabytes } from '@primer/models-browser';
+
+// Builds run from apps/site; resolve from the project like Transcript.astro does.
+const rec = JSON.parse(readFileSync(join(process.cwd(), '../../content/transcripts/gpt2-next-word.json'), 'utf8'));
+const modelMB = megabytes(GPT2.files['onnx/decoder_model_merged_quantized.onnx']);
+const total = megabytes(GPT2_DOWNLOAD_BYTES);
+const recorded = new Date(rec.recorded_at + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+const short = (s: string) => (s.length > 34 ? s.slice(0, 32).trimEnd() + '…' : s);
+---
+<div class="nw-widget gpt2" data-gpt2>
+  <script type="application/json" data-rec set:html={JSON.stringify(rec).replace(/</g, '\\u003c')} />
+
+  <div class="dl" data-dl>
+    <p class="dl-title"><strong>GPT-2 small</strong> (OpenAI, 2019), about 124 million knobs, running in this page on your own device.</p>
+    <p class="nw-note">Download once: <strong>{total}</strong> (the model, {modelMB}, and its word-piece list from Hugging Face, plus a 5.5&nbsp;MB engine that runs it). Your browser keeps a copy, so next time it starts at once. On mobile data, you may want Wi-Fi.</p>
+    <div class="nw-row">
+      <button type="button" class="btn primary" data-load>Download GPT-2 ({total})</button>
+      <span class="nw-status" data-load-status aria-live="polite"></span>
+    </div>
+    <progress max="100" value="0" data-progress hidden>0%</progress>
+  </div>
+  <p class="mode" data-mode-line>Showing a <strong>recording</strong>: GPT-2 run on {recorded} with the same code (<code>{rec.model}</code>, 8-bit). Download it to try your own text.</p>
+
+  <label class="nw-label" for="gpt2-text">Start GPT-2 off</label>
+  <textarea id="gpt2-text" class="nw-input" rows="2" data-text readonly>{rec.next[0].prompt}</textarea>
+  <div class="nw-chips" role="group" aria-label="Examples">
+    {rec.next.map((n: { prompt: string }, i: number) => <button type="button" class="nw-chip" data-preset={n.prompt} aria-pressed={i === 0 ? 'true' : 'false'}>{short(n.prompt)}</button>)}
+    {rec.tokens.slice(1).map((t: { text: string }) => <button type="button" class="nw-chip" data-preset={t.text} aria-pressed="false">{short(t.text)}</button>)}
+  </div>
+
+  <p class="sub-title"><span data-piece-count></span></p>
+  <ul class="nw-pieces" data-pieces></ul>
+  <p class="nw-note">Each box is one piece. A dot is a space that belongs to the piece after it.</p>
+
+    <div class="next">
+      <p class="nw-tape" data-tape hidden></p>
+      <p class="sub-title" data-next-title>What GPT-2 thinks comes next</p>
+      <ul class="nw-bars" data-bars></ul>
+      <div class="nw-range temp">
+        <label for="gpt2-temp">Temperature</label>
+        <input id="gpt2-temp" type="range" min="0" max="2" step="0.25" value="1" data-temp />
+        <output data-temp-out>1</output>
+      </div>
+      <p class="nw-note" data-temp-note>At 1 the bars are GPT-2's own odds. Lower makes the favourite more of a favourite (at 0 it always takes the top piece); higher evens the odds out.</p>
+      <div class="nw-row live-only" hidden data-live-controls>
+        <button type="button" class="btn primary" data-pick>Pick one by the odds</button>
+        <button type="button" class="btn" data-run>Print 30 more</button>
+        <button type="button" class="btn" data-reset>Clear the tape</button>
+      </div>
+      <p class="nw-note live-only" hidden data-live-hint>Tap a bar to make Wick print that piece. Each guess takes GPT-2 <span data-ms>a moment</span> on this device.</p>
+      <p class="nw-caution">Machine text here is not advice. GPT-2 is guessing what comes next on a web page, not answering anyone. It learned from millions of pages, so it can print odd or unpleasant things; a short list of swear words is blocked, nothing else is filtered.</p>
+    </div>
+</div>
+
+<script>
+  import { renderBars, showSpaces } from './bars.ts';
+  import type { Gpt2In, Gpt2Out } from './gpt2.worker.ts';
+  import { GPT2 } from '@primer/models-browser';
+
+  interface Rec {
+    tokens: { text: string; ids: number[]; pieces: string[] }[];
+    next: { prompt: string; pieces: string[]; temps: Record<string, { top: { id: number; piece: string; p: number }[]; rest: number }> }[];
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-gpt2]').forEach((root) => {
+    const rec: Rec = JSON.parse(root.querySelector('[data-rec]')!.textContent!);
+    const $ = <T extends HTMLElement>(s: string) => root.querySelector<T>(s)!;
+    const text = $<HTMLTextAreaElement>('[data-text]');
+    const fmt = (n: number) => n.toLocaleString('en-GB');
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const REST_OF = (shown: number) => `${fmt(GPT2.vocabulary - shown)} others`;
+    let live = false;
+    let worker: Worker | null = null;
+    let reqId = 0;
+    const pending = new Map<number, (m: Gpt2Out) => void>();
+    let startIds: number[] = [];
+    let added: number[] = [];
+    let addedPieces: string[] = [];
+    let running = false;
+    let stopRun = false;
+
+    function pieces(ps: string[]) {
+      $('[data-piece-count]').textContent = `How GPT-2 cuts this up: ${ps.length} piece${ps.length === 1 ? '' : 's'}`;
+      $('[data-pieces]').replaceChildren(...ps.map((p) => { const li = document.createElement('li'); li.append(showSpaces(p)); return li; }));
+    }
+
+    function temperature() {
+      return Number($<HTMLInputElement>('[data-temp]').value);
+    }
+
+    // ---- Recorded mode ----
+    function showRecorded() {
+      const t = text.value;
+      const r = rec.next.find((x) => x.prompt === t);
+      if (!r) {
+        const tk = rec.tokens.find((x) => x.text === t) ?? rec.tokens[0];
+        pieces(tk.pieces);
+        $('[data-next-title]').textContent = 'What GPT-2 thinks comes next: not recorded for this one (download GPT-2 to see).';
+        $('[data-bars]').replaceChildren();
+        return;
+      }
+      $('[data-next-title]').textContent = 'What GPT-2 thinks comes next';
+      pieces(r.pieces);
+      const key = String(temperature());
+      const d = r.temps[key] ?? r.temps['1'];
+      renderBars($('[data-bars]'), d.top.map((x) => ({ label: x.piece, p: x.p, aria: x.piece.trim() || 'a space or new line' })), { p: d.rest, label: REST_OF(d.top.length) }, null, { spaces: true });
+    }
+
+    // ---- Live mode ----
+    function call(m: Gpt2In & { id: number }): Promise<Gpt2Out> {
+      return new Promise((resolve) => { pending.set(m.id, resolve); worker!.postMessage(m); });
+    }
+
+    function drawTape() {
+      const tape = $('[data-tape]');
+      tape.hidden = false;
+      tape.replaceChildren();
+      const you = document.createElement('span');
+      you.className = 'you';
+      you.textContent = text.value;
+      const w = document.createElement('span');
+      w.className = 'wick';
+      w.textContent = addedPieces.slice(0, -1).join('');
+      const f = document.createElement('span');
+      f.className = 'wick fresh';
+      f.textContent = addedPieces.at(-1) ?? '';
+      const caret = document.createElement('span');
+      caret.className = 'caret';
+      caret.setAttribute('aria-hidden', 'true');
+      tape.append(you, w, f, caret);
+    }
+
+    let liveTop: { id: number; piece: string; p: number }[] = [];
+    async function liveNext() {
+      const id = ++reqId;
+      const m = await call({ type: 'next', id, ids: [...startIds, ...added], temperature: temperature(), k: 10 });
+      if (m.type !== 'next' || id !== reqId) return;
+      liveTop = m.top;
+      $('[data-ms]').textContent = m.ms > 1000 ? `${(m.ms / 1000).toFixed(1)} seconds` : `${Math.max(1, Math.round(m.ms / 10) * 10)} milliseconds`;
+      renderBars($('[data-bars]'), m.top.map((x) => ({ label: x.piece, p: x.p, aria: x.piece.trim() || 'a space or new line' })), { p: m.rest, label: REST_OF(m.top.length) }, (i) => !running && choose(liveTop[i].id, liveTop[i].piece), { spaces: true });
+    }
+
+    async function choose(id: number, piece: string) {
+      if (id === 50256) { addedPieces.push(' (end of text)'); drawTape(); return; }
+      added.push(id);
+      addedPieces.push(piece);
+      drawTape();
+      if (!running) await liveNext();
+    }
+
+    async function retokenize() {
+      const id = ++reqId;
+      const m = await call({ type: 'tokenize', id, text: text.value });
+      if (m.type !== 'tokens') return;
+      startIds = m.ids;
+      pieces(m.pieces);
+      added = [];
+      addedPieces = [];
+      drawTape();
+      await liveNext();
+    }
+
+    async function pickOne() {
+      const id = ++reqId;
+      const m = await call({ type: 'sample', id, ids: [...startIds, ...added], temperature: temperature(), r: Math.random() });
+      if (m.type === 'sampled') await choose(m.token, m.piece);
+    }
+
+    function goLive() {
+      live = true;
+      text.readOnly = false;
+      $('[data-mode-line]').innerHTML = '<strong>Live:</strong> GPT-2 is running in this page. Type anything.';
+      root.querySelectorAll<HTMLElement>('.live-only').forEach((e) => (e.hidden = false));
+      $<HTMLInputElement>('[data-temp]').step = '0.05';
+      $('[data-dl]').hidden = true;
+      retokenize();
+    }
+
+    // ---- Download ----
+    const loadBtn = $<HTMLButtonElement>('[data-load]');
+    const loadStatus = $('[data-load-status]');
+    const bar = $<HTMLProgressElement>('[data-progress]');
+    loadBtn.addEventListener('click', () => {
+      if (!('Worker' in window)) { loadStatus.textContent = 'This browser cannot run GPT-2 in the background.'; return; }
+      loadBtn.disabled = true;
+      loadStatus.textContent = 'Starting…';
+      bar.hidden = false;
+      worker?.terminate();
+      worker = new Worker(new URL('./gpt2.worker.ts', import.meta.url), { type: 'module' });
+      worker.onmessage = (e: MessageEvent<Gpt2Out>) => {
+        const m = e.data;
+        if (m.type === 'progress') {
+          const p = Math.min(100, (m.loaded / m.total) * 100);
+          bar.value = p;
+          bar.textContent = `${Math.round(p)}%`;
+          loadStatus.textContent = `${fmt(Math.round(m.loaded / 1e6))} of ${fmt(Math.round(m.total / 1e6))} MB`;
+        } else if (m.type === 'ready') {
+          loadStatus.textContent = 'Ready.';
+          goLive();
+        } else if (m.type === 'error' && m.id === undefined) {
+          loadBtn.disabled = false;
+          bar.hidden = true;
+          loadBtn.textContent = 'Try the download again';
+          loadStatus.textContent = `The download didn’t work (${m.message.slice(0, 120)}). Are you offline? The recording below still works.`;
+        } else if ('id' in m && m.id !== undefined) {
+          pending.get(m.id)?.(m);
+          pending.delete(m.id);
+        }
+      };
+      worker.onerror = (e) => {
+        loadBtn.disabled = false;
+        bar.hidden = true;
+        loadStatus.textContent = `GPT-2 couldn’t start on this device (${e.message || 'unknown error'}). The recording below still works.`;
+      };
+      worker.postMessage({ type: 'load' } satisfies Gpt2In);
+    });
+
+
+    // ---- Controls ----
+    root.querySelectorAll<HTMLButtonElement>('[data-preset]').forEach((b) =>
+      b.addEventListener('click', () => {
+        root.querySelectorAll('[data-preset]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        text.value = b.dataset.preset!;
+        if (live) retokenize(); else showRecorded();
+      }),
+    );
+    let typing = 0;
+    text.addEventListener('input', () => {
+      root.querySelectorAll('[data-preset]').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+      if (!live) return;
+      clearTimeout(typing);
+      typing = window.setTimeout(retokenize, 250);
+    });
+    {
+      const t = $<HTMLInputElement>('[data-temp]');
+      t.addEventListener('input', () => {
+        $('[data-temp-out]').textContent = Number(t.value).toFixed(2).replace(/\.?0+$/, '') || '0';
+        if (live) liveNext(); else showRecorded();
+      });
+      $('[data-pick]').addEventListener('click', () => { if (!running) pickOne(); });
+      const runBtn = $<HTMLButtonElement>('[data-run]');
+      runBtn.addEventListener('click', async () => {
+        if (running) { stopRun = true; return; }
+        running = true;
+        stopRun = false;
+        runBtn.textContent = 'Stop';
+        for (let i = 0; i < 30 && !stopRun; i++) {
+          await pickOne();
+          if (addedPieces.at(-1) === ' (end of text)') break;
+          if (!reduce) await new Promise((r) => setTimeout(r, 30));
+        }
+        running = false;
+        runBtn.textContent = 'Print 30 more';
+        await liveNext();
+      });
+      $('[data-reset]').addEventListener('click', () => { if (!running) retokenize(); });
+    }
+    showRecorded();
+  });
+</script>
+
+<style>
+  .dl { border: 1px dashed var(--phosphor); border-radius: var(--radius-ui); padding: 0.75rem 1rem; margin-bottom: 1rem; background: var(--paper); }
+  .dl-title { margin: 0; }
+  .dl .nw-row { margin-top: 0.75rem; }
+  progress { width: 100%; height: 0.8rem; margin-top: 0.6rem; accent-color: var(--phosphor); }
+  .mode { margin: 0 0 1rem; color: var(--ink-soft); }
+  .mode code { font-size: 0.85em; }
+  textarea[readonly] { background: var(--paper-2); }
+  .nw-chips { margin-top: 0.6rem; }
+  .sub-title { font-weight: 700; margin: 1.1rem 0 0.4rem; }
+  .next { margin-top: 0.5rem; }
+  .next .nw-tape { margin-top: 1rem; }
+  .temp { margin-top: 1rem; }
+  .temp label { font-weight: 700; }
+  .live-only[hidden] { display: none; }
+  .nw-row.live-only { margin-top: 0.9rem; }
+</style>

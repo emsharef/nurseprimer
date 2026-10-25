@@ -20,3 +20,50 @@ references:
     venue: Psychological Review 65(6), 386-408
     doi: 10.1037/h0042519
     verified: { by: Crossref metadata lookup (Claude), on: 2026-10-25, scope: metadata }
+  shannon1948:
+    authors: Shannon, C. E.
+    year: 1948
+    title: A Mathematical Theory of Communication
+    venue: Bell System Technical Journal 27(3), 379-423
+    doi: 10.1002/j.1538-7305.1948.tb01338.x
+    url: https://people.math.harvard.edu/~ctm/home/text/others/shannon/entropy/entropy.pdf
+    note: >-
+      Section 3, "The series of approximations to English" (pp. 7-8 of the reprint with corrections): first- and
+      second-order word approximations, built by opening a book at random, reading until the current word turns
+      up, and recording the word that follows.
+    verified: { by: Claude (read section 3 of the reprint; DOI metadata via Crossref), on: 2026-10-25, scope: claim }
+  bengio2003:
+    authors: Bengio, Y., Ducharme, R., Vincent, P. and Jauvin, C.
+    year: 2003
+    title: A Neural Probabilistic Language Model
+    venue: Journal of Machine Learning Research 3, 1137-1155
+    url: https://www.jmlr.org/papers/volume3/bengio03a/bengio03a.pdf
+    note: Learned feature vectors for each word in a fixed window, one tanh hidden layer, softmax over the next word (Figure 1, section 2).
+    verified: { by: Claude (read abstract and section 2), on: 2026-10-25, scope: claim }
+  kingma2014:
+    authors: Kingma, D. P. and Ba, J.
+    year: 2014
+    title: 'Adam: A Method for Stochastic Optimization'
+    venue: arXiv:1412.6980 (ICLR 2015)
+    url: https://arxiv.org/abs/1412.6980
+    note: Algorithm 1 gives the defaults beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8, which Wick's training uses.
+    verified: { by: Claude (read Algorithm 1, v9), on: 2026-10-25, scope: claim }
+    figures:
+      - { value: 'beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8', page: '2' }
+  radford2019:
+    authors: Radford, A., Wu, J., Child, R., Luan, D., Amodei, D. and Sutskever, I.
+    year: 2019
+    title: Language Models are Unsupervised Multitask Learners
+    venue: OpenAI technical report
+    url: https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf
+    note: >-
+      WebText: outbound links from Reddit with at least 3 karma; slightly over 8 million documents, 40 GB of text
+      (section 2.1). Vocabulary 50,257; context 1,024 tokens; smallest model 117M parameters, 12 layers (section 2.3,
+      Table 2).
+    verified: { by: Claude (read sections 2.1-2.3 and Table 2), on: 2026-10-25, scope: claim }
+    figures:
+      - { value: 'slightly over 8 million documents', page: '3' }
+      - { value: '40 GB of text', page: '3' }
+      - { value: '50,257 vocabulary', page: '4' }
+      - { value: '1024-token context', page: '4' }
+      - { value: '117M parameters (smallest model)', table: '2' }

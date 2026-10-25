@@ -2,6 +2,7 @@ import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import { defaultClientConditions } from 'vite';
 import { versionStamp } from '../../scripts/lib/version.mjs';
 
 // BASE_PATH is set by tools/deploy.sh (/nurseprimer/); local dev and CI serve from /.
@@ -21,5 +22,9 @@ export default defineConfig({
   },
   vite: {
     define: { __PRIMER_VERSION__: JSON.stringify(stamp) },
+    // GPT-2 (the Sixth Night) runs on ONNX Runtime Web. This condition picks its build that loads the 27 MB
+    // WebAssembly engine at run time (transformers.js fetches it from jsDelivr, compressed, only when the reader
+    // presses Download) instead of copying it into the site.
+    resolve: { conditions: ['onnxruntime-web-use-extern-wasm', ...defaultClientConditions] },
   },
 });

@@ -1,0 +1,28 @@
+# The Sixth Night: Guess the Next Word
+images:
+  - id: ch06-opener
+    aspect: '16:9'
+    refs: [sheet-you, sheet-bea, sheet-wick]
+    alt: Late at night under the desk lamp, Wick prints a long ribbon of paper tape that curls across the desk and over its edge, its eyes glowing teal. You lean in to read the tape; Bea watches over her tea.
+    prompt: >
+      Night scene at the nurses' desk under a warm desk lamp. The little clockwork owl sits on the desk, eyes
+      glowing teal, and from the slot in its chest a long, narrow ribbon of paper tape streams out, curling in
+      loose loops across the desk, around a mug and a pen pot, and spilling over the desk's edge toward the
+      floor. The tape is covered in tiny, illegible grey marks like faint type (no readable letters or words
+      anywhere). The young nurse leans in close over the desk, holding a length of the tape up to the lamp to
+      read it, delighted and curious. The charge nurse sits back in her chair beside the desk holding a mug of
+      tea in both hands, watching with quiet, sceptical amusement. Dark blue corridor behind, a glimpse of the
+      tall brass speaking tube in shadow at the far corner of the desk. Intimate, magical, restrained.
+
+  - id: ch06-two-ribbons
+    aspect: '3:2'
+    refs: [sheet-wick]
+    alt: The tall brass speaking tube and little Wick side by side on the desk, each letting out a ribbon of paper; the tube's ribbon is long and broad, Wick's short and narrow.
+    prompt: >
+      Still life at night on the corner of the nurses' desk. On the left, the tall elegant brass speaking tube
+      rising from its dark lacquered cabinet with a thin seam of teal light; from its horn unfurls a long,
+      broad, smooth ribbon of pale paper that billows down across the desk like a scroll. On the right, much
+      smaller, the little clockwork owl, eyes glowing teal, letting out its own short, narrow, slightly crumpled
+      strip of paper tape. The two ribbons lie side by side on the desk, the same kind of paper at very
+      different scales. No legible text anywhere: the paper is blank or has only faint illegible grey marks.
+      Warm lamplight from above, deep blue shadows, quiet and contemplative.

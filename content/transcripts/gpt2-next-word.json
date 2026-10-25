@@ -1,0 +1,2497 @@
+{
+ "model": "Xenova/gpt2",
+ "revision": "bf2c7f02e0b826c60d03af341171bde20893da66",
+ "dtype": "q8",
+ "file": "onnx/decoder_model_merged_quantized.onnx",
+ "library": "@huggingface/transformers 4.3.1",
+ "runtime": "onnxruntime-node (Node.js), via scripts/record-gpt2.mjs",
+ "recorded_at": "2026-10-25",
+ "note": "GPT-2 small, as the Sixth Night runs it in the browser. Probabilities rounded to 5 decimal places; \"rest\" is everything outside the top 10.",
+ "tokens": [
+  {
+   "text": "she has a fever and some little purple spots on her legs. i pressed a glass on them like my mum said and they dont fade.",
+   "ids": [
+    7091,
+    468,
+    257,
+    17372,
+    290,
+    617,
+    1310,
+    14032,
+    10222,
+    319,
+    607,
+    7405,
+    13,
+    1312,
+    12070,
+    257,
+    5405,
+    319,
+    606,
+    588,
+    616,
+    25682,
+    531,
+    290,
+    484,
+    17666,
+    22100,
+    13
+   ],
+   "pieces": [
+    "she",
+    " has",
+    " a",
+    " fever",
+    " and",
+    " some",
+    " little",
+    " purple",
+    " spots",
+    " on",
+    " her",
+    " legs",
+    ".",
+    " i",
+    " pressed",
+    " a",
+    " glass",
+    " on",
+    " them",
+    " like",
+    " my",
+    " mum",
+    " said",
+    " and",
+    " they",
+    " dont",
+    " fade",
+    "."
+   ]
+  },
+  {
+   "text": "Sent from MyRiverside Health app",
+   "ids": [
+    31837,
+    422,
+    2011,
+    49,
+    1191,
+    485,
+    3893,
+    598
+   ],
+   "pieces": [
+    "Sent",
+    " from",
+    " My",
+    "R",
+    "ivers",
+    "ide",
+    " Health",
+    " app"
+   ]
+  },
+  {
+   "text": "petechiae",
+   "ids": [
+    6449,
+    3055,
+    33100
+   ],
+   "pieces": [
+    "pet",
+    "ech",
+    "iae"
+   ]
+  },
+  {
+   "text": "Calpol and Nurofen",
+   "ids": [
+    9771,
+    16104,
+    290,
+    399,
+    1434,
+    41037
+   ],
+   "pieces": [
+    "Cal",
+    "pol",
+    " and",
+    " N",
+    "uro",
+    "fen"
+   ]
+  }
+ ],
+ "next": [
+  {
+   "prompt": "she has a fever and some little purple",
+   "pieces": [
+    "she",
+    " has",
+    " a",
+    " fever",
+    " and",
+    " some",
+    " little",
+    " purple"
+   ],
+   "temps": {
+    "0": {
+     "top": [
+      {
+       "id": 1243,
+       "piece": " things",
+       "p": 1
+      },
+      {
+       "id": 2951,
+       "piece": " eyes",
+       "p": 0
+      },
+      {
+       "id": 19521,
+       "piece": " pills",
+       "p": 0
+      },
+      {
+       "id": 10222,
+       "piece": " spots",
+       "p": 0
+      },
+      {
+       "id": 4190,
+       "piece": " hair",
+       "p": 0
+      },
+      {
+       "id": 42232,
+       "piece": " bruises",
+       "p": 0
+      },
+      {
+       "id": 17372,
+       "piece": " fever",
+       "p": 0
+      },
+      {
+       "id": 32908,
+       "piece": " hairs",
+       "p": 0
+      },
+      {
+       "id": 12,
+       "piece": "-",
+       "p": 0
+      },
+      {
+       "id": 3404,
+       "piece": " stuff",
+       "p": 0
+      }
+     ],
+     "rest": 0
+    },
+    "1": {
+     "top": [
+      {
+       "id": 1243,
+       "piece": " things",
+       "p": 0.02847
+      },
+      {
+       "id": 2951,
+       "piece": " eyes",
+       "p": 0.02656
+      },
+      {
+       "id": 19521,
+       "piece": " pills",
+       "p": 0.02283
+      },
+      {
+       "id": 10222,
+       "piece": " spots",
+       "p": 0.02224
+      },
+      {
+       "id": 4190,
+       "piece": " hair",
+       "p": 0.02136
+      },
+      {
+       "id": 42232,
+       "piece": " bruises",
+       "p": 0.02081
+      },
+      {
+       "id": 17372,
+       "piece": " fever",
+       "p": 0.01953
+      },
+      {
+       "id": 32908,
+       "piece": " hairs",
+       "p": 0.01875
+      },
+      {
+       "id": 12,
+       "piece": "-",
+       "p": 0.01582
+      },
+      {
+       "id": 3404,
+       "piece": " stuff",
+       "p": 0.01452
+      }
+     ],
+     "rest": 0.78911
+    },
+    "2": {
+     "top": [
+      {
+       "id": 1243,
+       "piece": " things",
+       "p": 0.00256
+      },
+      {
+       "id": 2951,
+       "piece": " eyes",
+       "p": 0.00247
+      },
+      {
+       "id": 19521,
+       "piece": " pills",
+       "p": 0.00229
+      },
+      {
+       "id": 10222,
+       "piece": " spots",
+       "p": 0.00226
+      },
+      {
+       "id": 4190,
+       "piece": " hair",
+       "p": 0.00222
+      },
+      {
+       "id": 42232,
+       "piece": " bruises",
+       "p": 0.00219
+      },
+      {
+       "id": 17372,
+       "piece": " fever",
+       "p": 0.00212
+      },
+      {
+       "id": 32908,
+       "piece": " hairs",
+       "p": 0.00208
+      },
+      {
+       "id": 12,
+       "piece": "-",
+       "p": 0.00191
+      },
+      {
+       "id": 3404,
+       "piece": " stuff",
+       "p": 0.00183
+      }
+     ],
+     "rest": 0.97806
+    },
+    "0.25": {
+     "top": [
+      {
+       "id": 1243,
+       "piece": " things",
+       "p": 0.25813
+      },
+      {
+       "id": 2951,
+       "piece": " eyes",
+       "p": 0.19571
+      },
+      {
+       "id": 19521,
+       "piece": " pills",
+       "p": 0.10684
+      },
+      {
+       "id": 10222,
+       "piece": " spots",
+       "p": 0.09626
+      },
+      {
+       "id": 4190,
+       "piece": " hair",
+       "p": 0.08183
+      },
+      {
+       "id": 42232,
+       "piece": " bruises",
+       "p": 0.07369
+      },
+      {
+       "id": 17372,
+       "piece": " fever",
+       "p": 0.05722
+      },
+      {
+       "id": 32908,
+       "piece": " hairs",
+       "p": 0.04862
+      },
+      {
+       "id": 12,
+       "piece": "-",
+       "p": 0.02462
+      },
+      {
+       "id": 3404,
+       "piece": " stuff",
+       "p": 0.01746
+      }
+     ],
+     "rest": 0.03962
+    },
+    "0.5": {
+     "top": [
+      {
+       "id": 1243,
+       "piece": " things",
+       "p": 0.13081
+      },
+      {
+       "id": 2951,
+       "piece": " eyes",
+       "p": 0.1139
+      },
+      {
+       "id": 19521,
+       "piece": " pills",
+       "p": 0.08416
+      },
+      {
+       "id": 10222,
+       "piece": " spots",
+       "p": 0.07988
+      },
+      {
+       "id": 4190,
+       "piece": " hair",
+       "p": 0.07365
+      },
+      {
+       "id": 42232,
+       "piece": " bruises",
+       "p": 0.0699
+      },
+      {
+       "id": 17372,
+       "piece": " fever",
+       "p": 0.06159
+      },
+      {
+       "id": 32908,
+       "piece": " hairs",
+       "p": 0.05677
+      },
+      {
+       "id": 12,
+       "piece": "-",
+       "p": 0.0404
+      },
+      {
+       "id": 3404,
+       "piece": " stuff",
+       "p": 0.03402
+      }
+     ],
+     "rest": 0.2549
+    },
+    "0.75": {
+     "top": [
+      {
+       "id": 1243,
+       "piece": " things",
+       "p": 0.06307
+      },
+      {
+       "id": 2951,
+       "piece": " eyes",
+       "p": 0.05751
+      },
+      {
+       "id": 19521,
+       "piece": " pills",
+       "p": 0.047
+      },
+      {
+       "id": 10222,
+       "piece": " spots",
+       "p": 0.0454
+      },
+      {
+       "id": 4190,
+       "piece": " hair",
+       "p": 0.043
+      },
+      {
+       "id": 42232,
+       "piece": " bruises",
+       "p": 0.04153
+      },
+      {
+       "id": 17372,
+       "piece": " fever",
+       "p": 0.03817
+      },
+      {
+       "id": 32908,
+       "piece": " hairs",
+       "p": 0.03615
+      },
+      {
+       "id": 12,
+       "piece": "-",
+       "p": 0.02882
+      },
+      {
+       "id": 3404,
+       "piece": " stuff",
+       "p": 0.0257
+      }
+     ],
+     "rest": 0.57365
+    },
+    "1.25": {
+     "top": [
+      {
+       "id": 1243,
+       "piece": " things",
+       "p": 0.01357
+      },
+      {
+       "id": 2951,
+       "piece": " eyes",
+       "p": 0.01284
+      },
+      {
+       "id": 19521,
+       "piece": " pills",
+       "p": 0.01138
+      },
+      {
+       "id": 10222,
+       "piece": " spots",
+       "p": 0.01114
+      },
+      {
+       "id": 4190,
+       "piece": " hair",
+       "p": 0.01079
+      },
+      {
+       "id": 42232,
+       "piece": " bruises",
+       "p": 0.01056
+      },
+      {
+       "id": 17372,
+       "piece": " fever",
+       "p": 0.01004
+      },
+      {
+       "id": 32908,
+       "piece": " hairs",
+       "p": 0.00972
+      },
+      {
+       "id": 12,
+       "piece": "-",
+       "p": 0.00848
+      },
+      {
+       "id": 3404,
+       "piece": " stuff",
+       "p": 0.00792
+      }
+     ],
+     "rest": 0.89353
+    },
+    "1.5": {
+     "top": [
+      {
+       "id": 1243,
+       "piece": " things",
+       "p": 0.00712
+      },
+      {
+       "id": 2951,
+       "piece": " eyes",
+       "p": 0.0068
+      },
+      {
+       "id": 19521,
+       "piece": " pills",
+       "p": 0.00614
+      },
+      {
+       "id": 10222,
+       "piece": " spots",
+       "p": 0.00604
+      },
+      {
+       "id": 4190,
+       "piece": " hair",
+       "p": 0.00588
+      },
+      {
+       "id": 42232,
+       "piece": " bruises",
+       "p": 0.00577
+      },
+      {
+       "id": 17372,
+       "piece": " fever",
+       "p": 0.00554
+      },
+      {
+       "id": 32908,
+       "piece": " hairs",
+       "p": 0.00539
+      },
+      {
+       "id": 12,
+       "piece": "-",
+       "p": 0.00481
+      },
+      {
+       "id": 3404,
+       "piece": " stuff",
+       "p": 0.00454
+      }
+     ],
+     "rest": 0.94198
+    },
+    "1.75": {
+     "top": [
+      {
+       "id": 1243,
+       "piece": " things",
+       "p": 0.0041
+      },
+      {
+       "id": 2951,
+       "piece": " eyes",
+       "p": 0.00394
+      },
+      {
+       "id": 19521,
+       "piece": " pills",
+       "p": 0.00361
+      },
+      {
+       "id": 10222,
+       "piece": " spots",
+       "p": 0.00356
+      },
+      {
+       "id": 4190,
+       "piece": " hair",
+       "p": 0.00348
+      },
+      {
+       "id": 42232,
+       "piece": " bruises",
+       "p": 0.00343
+      },
+      {
+       "id": 17372,
+       "piece": " fever",
+       "p": 0.0033
+      },
+      {
+       "id": 32908,
+       "piece": " hairs",
+       "p": 0.00323
+      },
+      {
+       "id": 12,
+       "piece": "-",
+       "p": 0.00293
+      },
+      {
+       "id": 3404,
+       "piece": " stuff",
+       "p": 0.00279
+      }
+     ],
+     "rest": 0.96564
+    }
+   }
+  },
+  {
+   "prompt": "She has a fever and some little purple spots on her legs. I pressed a glass on them and they",
+   "pieces": [
+    "She",
+    " has",
+    " a",
+    " fever",
+    " and",
+    " some",
+    " little",
+    " purple",
+    " spots",
+    " on",
+    " her",
+    " legs",
+    ".",
+    " I",
+    " pressed",
+    " a",
+    " glass",
+    " on",
+    " them",
+    " and",
+    " they"
+   ],
+   "temps": {
+    "0": {
+     "top": [
+      {
+       "id": 547,
+       "piece": " were",
+       "p": 1
+      },
+      {
+       "id": 2067,
+       "piece": " started",
+       "p": 0
+      },
+      {
+       "id": 1816,
+       "piece": " went",
+       "p": 0
+      },
+      {
+       "id": 22928,
+       "piece": " popped",
+       "p": 0
+      },
+      {
+       "id": 1392,
+       "piece": " got",
+       "p": 0
+      },
+      {
+       "id": 1625,
+       "piece": " came",
+       "p": 0
+      },
+      {
+       "id": 821,
+       "piece": "'re",
+       "p": 0
+      },
+      {
+       "id": 12120,
+       "piece": " disappeared",
+       "p": 0
+      },
+      {
+       "id": 655,
+       "piece": " just",
+       "p": 0
+      },
+      {
+       "id": 389,
+       "piece": " are",
+       "p": 0
+      }
+     ],
+     "rest": 0
+    },
+    "1": {
+     "top": [
+      {
+       "id": 547,
+       "piece": " were",
+       "p": 0.05831
+      },
+      {
+       "id": 2067,
+       "piece": " started",
+       "p": 0.04584
+      },
+      {
+       "id": 1816,
+       "piece": " went",
+       "p": 0.04003
+      },
+      {
+       "id": 22928,
+       "piece": " popped",
+       "p": 0.03805
+      },
+      {
+       "id": 1392,
+       "piece": " got",
+       "p": 0.03133
+      },
+      {
+       "id": 1625,
+       "piece": " came",
+       "p": 0.02338
+      },
+      {
+       "id": 821,
+       "piece": "'re",
+       "p": 0.02268
+      },
+      {
+       "id": 12120,
+       "piece": " disappeared",
+       "p": 0.0185
+      },
+      {
+       "id": 655,
+       "piece": " just",
+       "p": 0.01805
+      },
+      {
+       "id": 389,
+       "piece": " are",
+       "p": 0.01778
+      }
+     ],
+     "rest": 0.68605
+    },
+    "2": {
+     "top": [
+      {
+       "id": 547,
+       "piece": " were",
+       "p": 0.0068
+      },
+      {
+       "id": 2067,
+       "piece": " started",
+       "p": 0.00603
+      },
+      {
+       "id": 1816,
+       "piece": " went",
+       "p": 0.00564
+      },
+      {
+       "id": 22928,
+       "piece": " popped",
+       "p": 0.0055
+      },
+      {
+       "id": 1392,
+       "piece": " got",
+       "p": 0.00499
+      },
+      {
+       "id": 1625,
+       "piece": " came",
+       "p": 0.00431
+      },
+      {
+       "id": 821,
+       "piece": "'re",
+       "p": 0.00424
+      },
+      {
+       "id": 12120,
+       "piece": " disappeared",
+       "p": 0.00383
+      },
+      {
+       "id": 655,
+       "piece": " just",
+       "p": 0.00379
+      },
+      {
+       "id": 389,
+       "piece": " are",
+       "p": 0.00376
+      }
+     ],
+     "rest": 0.95112
+    },
+    "0.25": {
+     "top": [
+      {
+       "id": 547,
+       "piece": " were",
+       "p": 0.50505
+      },
+      {
+       "id": 2067,
+       "piece": " started",
+       "p": 0.19292
+      },
+      {
+       "id": 1816,
+       "piece": " went",
+       "p": 0.11214
+      },
+      {
+       "id": 22928,
+       "piece": " popped",
+       "p": 0.09153
+      },
+      {
+       "id": 1392,
+       "piece": " got",
+       "p": 0.04211
+      },
+      {
+       "id": 1625,
+       "piece": " came",
+       "p": 0.01305
+      },
+      {
+       "id": 821,
+       "piece": "'re",
+       "p": 0.01157
+      },
+      {
+       "id": 12120,
+       "piece": " disappeared",
+       "p": 0.00512
+      },
+      {
+       "id": 655,
+       "piece": " just",
+       "p": 0.00464
+      },
+      {
+       "id": 389,
+       "piece": " are",
+       "p": 0.00436
+      }
+     ],
+     "rest": 0.01752
+    },
+    "0.5": {
+     "top": [
+      {
+       "id": 547,
+       "piece": " were",
+       "p": 0.23006
+      },
+      {
+       "id": 2067,
+       "piece": " started",
+       "p": 0.14219
+      },
+      {
+       "id": 1816,
+       "piece": " went",
+       "p": 0.1084
+      },
+      {
+       "id": 22928,
+       "piece": " popped",
+       "p": 0.09794
+      },
+      {
+       "id": 1392,
+       "piece": " got",
+       "p": 0.06643
+      },
+      {
+       "id": 1625,
+       "piece": " came",
+       "p": 0.03698
+      },
+      {
+       "id": 821,
+       "piece": "'re",
+       "p": 0.03482
+      },
+      {
+       "id": 12120,
+       "piece": " disappeared",
+       "p": 0.02315
+      },
+      {
+       "id": 655,
+       "piece": " just",
+       "p": 0.02205
+      },
+      {
+       "id": 389,
+       "piece": " are",
+       "p": 0.02139
+      }
+     ],
+     "rest": 0.21659
+    },
+    "0.75": {
+     "top": [
+      {
+       "id": 547,
+       "piece": " were",
+       "p": 0.11374
+      },
+      {
+       "id": 2067,
+       "piece": " started",
+       "p": 0.08252
+      },
+      {
+       "id": 1816,
+       "piece": " went",
+       "p": 0.06887
+      },
+      {
+       "id": 22928,
+       "piece": " popped",
+       "p": 0.06437
+      },
+      {
+       "id": 1392,
+       "piece": " got",
+       "p": 0.04969
+      },
+      {
+       "id": 1625,
+       "piece": " came",
+       "p": 0.03362
+      },
+      {
+       "id": 821,
+       "piece": "'re",
+       "p": 0.0323
+      },
+      {
+       "id": 12120,
+       "piece": " disappeared",
+       "p": 0.02461
+      },
+      {
+       "id": 655,
+       "piece": " just",
+       "p": 0.02382
+      },
+      {
+       "id": 389,
+       "piece": " are",
+       "p": 0.02334
+      }
+     ],
+     "rest": 0.48311
+    },
+    "1.25": {
+     "top": [
+      {
+       "id": 547,
+       "piece": " were",
+       "p": 0.03128
+      },
+      {
+       "id": 2067,
+       "piece": " started",
+       "p": 0.0258
+      },
+      {
+       "id": 1816,
+       "piece": " went",
+       "p": 0.02315
+      },
+      {
+       "id": 22928,
+       "piece": " popped",
+       "p": 0.02223
+      },
+      {
+       "id": 1392,
+       "piece": " got",
+       "p": 0.01903
+      },
+      {
+       "id": 1625,
+       "piece": " came",
+       "p": 0.01506
+      },
+      {
+       "id": 821,
+       "piece": "'re",
+       "p": 0.0147
+      },
+      {
+       "id": 12120,
+       "piece": " disappeared",
+       "p": 0.01249
+      },
+      {
+       "id": 655,
+       "piece": " just",
+       "p": 0.01224
+      },
+      {
+       "id": 389,
+       "piece": " are",
+       "p": 0.0121
+      }
+     ],
+     "rest": 0.81192
+    },
+    "1.5": {
+     "top": [
+      {
+       "id": 547,
+       "piece": " were",
+       "p": 0.01776
+      },
+      {
+       "id": 2067,
+       "piece": " started",
+       "p": 0.01513
+      },
+      {
+       "id": 1816,
+       "piece": " went",
+       "p": 0.01382
+      },
+      {
+       "id": 22928,
+       "piece": " popped",
+       "p": 0.01336
+      },
+      {
+       "id": 1392,
+       "piece": " got",
+       "p": 0.01174
+      },
+      {
+       "id": 1625,
+       "piece": " came",
+       "p": 0.00966
+      },
+      {
+       "id": 821,
+       "piece": "'re",
+       "p": 0.00946
+      },
+      {
+       "id": 12120,
+       "piece": " disappeared",
+       "p": 0.00826
+      },
+      {
+       "id": 655,
+       "piece": " just",
+       "p": 0.00813
+      },
+      {
+       "id": 389,
+       "piece": " are",
+       "p": 0.00805
+      }
+     ],
+     "rest": 0.88464
+    },
+    "1.75": {
+     "top": [
+      {
+       "id": 547,
+       "piece": " were",
+       "p": 0.01069
+      },
+      {
+       "id": 2067,
+       "piece": " started",
+       "p": 0.00932
+      },
+      {
+       "id": 1816,
+       "piece": " went",
+       "p": 0.00862
+      },
+      {
+       "id": 22928,
+       "piece": " popped",
+       "p": 0.00838
+      },
+      {
+       "id": 1392,
+       "piece": " got",
+       "p": 0.0075
+      },
+      {
+       "id": 1625,
+       "piece": " came",
+       "p": 0.00634
+      },
+      {
+       "id": 821,
+       "piece": "'re",
+       "p": 0.00623
+      },
+      {
+       "id": 12120,
+       "piece": " disappeared",
+       "p": 0.00555
+      },
+      {
+       "id": 655,
+       "piece": " just",
+       "p": 0.00547
+      },
+      {
+       "id": 389,
+       "piece": " are",
+       "p": 0.00542
+      }
+     ],
+     "rest": 0.92647
+    }
+   }
+  },
+  {
+   "prompt": "The night nurse picked up the phone and said",
+   "pieces": [
+    "The",
+    " night",
+    " nurse",
+    " picked",
+    " up",
+    " the",
+    " phone",
+    " and",
+    " said"
+   ],
+   "temps": {
+    "0": {
+     "top": [
+      {
+       "id": 11,
+       "piece": ",",
+       "p": 1
+      },
+      {
+       "id": 673,
+       "piece": " she",
+       "p": 0
+      },
+      {
+       "id": 326,
+       "piece": " that",
+       "p": 0
+      },
+      {
+       "id": 366,
+       "piece": " \"",
+       "p": 0
+      },
+      {
+       "id": 284,
+       "piece": " to",
+       "p": 0
+      },
+      {
+       "id": 25,
+       "piece": ":",
+       "p": 0
+      },
+      {
+       "id": 262,
+       "piece": " the",
+       "p": 0
+      },
+      {
+       "id": 340,
+       "piece": " it",
+       "p": 0
+      },
+      {
+       "id": 705,
+       "piece": " '",
+       "p": 0
+      },
+      {
+       "id": 314,
+       "piece": " I",
+       "p": 0
+      }
+     ],
+     "rest": 0
+    },
+    "1": {
+     "top": [
+      {
+       "id": 11,
+       "piece": ",",
+       "p": 0.38207
+      },
+      {
+       "id": 673,
+       "piece": " she",
+       "p": 0.09698
+      },
+      {
+       "id": 326,
+       "piece": " that",
+       "p": 0.05621
+      },
+      {
+       "id": 366,
+       "piece": " \"",
+       "p": 0.05401
+      },
+      {
+       "id": 284,
+       "piece": " to",
+       "p": 0.04003
+      },
+      {
+       "id": 25,
+       "piece": ":",
+       "p": 0.03472
+      },
+      {
+       "id": 262,
+       "piece": " the",
+       "p": 0.02666
+      },
+      {
+       "id": 340,
+       "piece": " it",
+       "p": 0.02585
+      },
+      {
+       "id": 705,
+       "piece": " '",
+       "p": 0.01994
+      },
+      {
+       "id": 314,
+       "piece": " I",
+       "p": 0.01831
+      }
+     ],
+     "rest": 0.24523
+    },
+    "2": {
+     "top": [
+      {
+       "id": 11,
+       "piece": ",",
+       "p": 0.01774
+      },
+      {
+       "id": 673,
+       "piece": " she",
+       "p": 0.00894
+      },
+      {
+       "id": 326,
+       "piece": " that",
+       "p": 0.0068
+      },
+      {
+       "id": 366,
+       "piece": " \"",
+       "p": 0.00667
+      },
+      {
+       "id": 284,
+       "piece": " to",
+       "p": 0.00574
+      },
+      {
+       "id": 25,
+       "piece": ":",
+       "p": 0.00535
+      },
+      {
+       "id": 262,
+       "piece": " the",
+       "p": 0.00469
+      },
+      {
+       "id": 340,
+       "piece": " it",
+       "p": 0.00461
+      },
+      {
+       "id": 705,
+       "piece": " '",
+       "p": 0.00405
+      },
+      {
+       "id": 314,
+       "piece": " I",
+       "p": 0.00388
+      }
+     ],
+     "rest": 0.93152
+    },
+    "0.25": {
+     "top": [
+      {
+       "id": 11,
+       "piece": ",",
+       "p": 0.99475
+      },
+      {
+       "id": 673,
+       "piece": " she",
+       "p": 0.00413
+      },
+      {
+       "id": 326,
+       "piece": " that",
+       "p": 0.00047
+      },
+      {
+       "id": 366,
+       "piece": " \"",
+       "p": 0.0004
+      },
+      {
+       "id": 284,
+       "piece": " to",
+       "p": 0.00012
+      },
+      {
+       "id": 25,
+       "piece": ":",
+       "p": 0.00007
+      },
+      {
+       "id": 262,
+       "piece": " the",
+       "p": 0.00002
+      },
+      {
+       "id": 340,
+       "piece": " it",
+       "p": 0.00002
+      },
+      {
+       "id": 705,
+       "piece": " '",
+       "p": 0.00001
+      },
+      {
+       "id": 314,
+       "piece": " I",
+       "p": 0.00001
+      }
+     ],
+     "rest": 0.00001
+    },
+    "0.5": {
+     "top": [
+      {
+       "id": 11,
+       "piece": ",",
+       "p": 0.87041
+      },
+      {
+       "id": 673,
+       "piece": " she",
+       "p": 0.05608
+      },
+      {
+       "id": 326,
+       "piece": " that",
+       "p": 0.01884
+      },
+      {
+       "id": 366,
+       "piece": " \"",
+       "p": 0.01739
+      },
+      {
+       "id": 284,
+       "piece": " to",
+       "p": 0.00955
+      },
+      {
+       "id": 25,
+       "piece": ":",
+       "p": 0.00719
+      },
+      {
+       "id": 262,
+       "piece": " the",
+       "p": 0.00424
+      },
+      {
+       "id": 340,
+       "piece": " it",
+       "p": 0.00399
+      },
+      {
+       "id": 705,
+       "piece": " '",
+       "p": 0.00237
+      },
+      {
+       "id": 314,
+       "piece": " I",
+       "p": 0.002
+      }
+     ],
+     "rest": 0.00795
+    },
+    "0.75": {
+     "top": [
+      {
+       "id": 11,
+       "piece": ",",
+       "p": 0.61953
+      },
+      {
+       "id": 673,
+       "piece": " she",
+       "p": 0.09956
+      },
+      {
+       "id": 326,
+       "piece": " that",
+       "p": 0.04812
+      },
+      {
+       "id": 366,
+       "piece": " \"",
+       "p": 0.04562
+      },
+      {
+       "id": 284,
+       "piece": " to",
+       "p": 0.0306
+      },
+      {
+       "id": 25,
+       "piece": ":",
+       "p": 0.02531
+      },
+      {
+       "id": 262,
+       "piece": " the",
+       "p": 0.01779
+      },
+      {
+       "id": 340,
+       "piece": " it",
+       "p": 0.01708
+      },
+      {
+       "id": 705,
+       "piece": " '",
+       "p": 0.01208
+      },
+      {
+       "id": 314,
+       "piece": " I",
+       "p": 0.01078
+      }
+     ],
+     "rest": 0.07352
+    },
+    "1.25": {
+     "top": [
+      {
+       "id": 11,
+       "piece": ",",
+       "p": 0.19435
+      },
+      {
+       "id": 673,
+       "piece": " she",
+       "p": 0.0649
+      },
+      {
+       "id": 326,
+       "piece": " that",
+       "p": 0.04195
+      },
+      {
+       "id": 366,
+       "piece": " \"",
+       "p": 0.04063
+      },
+      {
+       "id": 284,
+       "piece": " to",
+       "p": 0.03197
+      },
+      {
+       "id": 25,
+       "piece": ":",
+       "p": 0.02853
+      },
+      {
+       "id": 262,
+       "piece": " the",
+       "p": 0.0231
+      },
+      {
+       "id": 340,
+       "piece": " it",
+       "p": 0.02254
+      },
+      {
+       "id": 705,
+       "piece": " '",
+       "p": 0.01831
+      },
+      {
+       "id": 314,
+       "piece": " I",
+       "p": 0.0171
+      }
+     ],
+     "rest": 0.51663
+    },
+    "1.5": {
+     "top": [
+      {
+       "id": 11,
+       "piece": ",",
+       "p": 0.08467
+      },
+      {
+       "id": 673,
+       "piece": " she",
+       "p": 0.03394
+      },
+      {
+       "id": 326,
+       "piece": " that",
+       "p": 0.0236
+      },
+      {
+       "id": 366,
+       "piece": " \"",
+       "p": 0.02298
+      },
+      {
+       "id": 284,
+       "piece": " to",
+       "p": 0.01882
+      },
+      {
+       "id": 25,
+       "piece": ":",
+       "p": 0.01712
+      },
+      {
+       "id": 262,
+       "piece": " the",
+       "p": 0.01435
+      },
+      {
+       "id": 340,
+       "piece": " it",
+       "p": 0.01406
+      },
+      {
+       "id": 705,
+       "piece": " '",
+       "p": 0.01182
+      },
+      {
+       "id": 314,
+       "piece": " I",
+       "p": 0.01117
+      }
+     ],
+     "rest": 0.74748
+    },
+    "1.75": {
+     "top": [
+      {
+       "id": 11,
+       "piece": ",",
+       "p": 0.03699
+      },
+      {
+       "id": 673,
+       "piece": " she",
+       "p": 0.0169
+      },
+      {
+       "id": 326,
+       "piece": " that",
+       "p": 0.01237
+      },
+      {
+       "id": 366,
+       "piece": " \"",
+       "p": 0.01209
+      },
+      {
+       "id": 284,
+       "piece": " to",
+       "p": 0.01019
+      },
+      {
+       "id": 25,
+       "piece": ":",
+       "p": 0.0094
+      },
+      {
+       "id": 262,
+       "piece": " the",
+       "p": 0.00808
+      },
+      {
+       "id": 340,
+       "piece": " it",
+       "p": 0.00794
+      },
+      {
+       "id": 705,
+       "piece": " '",
+       "p": 0.00684
+      },
+      {
+       "id": 314,
+       "piece": " I",
+       "p": 0.00652
+      }
+     ],
+     "rest": 0.87268
+    }
+   }
+  },
+  {
+   "prompt": "hi sorry to bother you this late. my son is 4, temp 38.9, he's been a bit sniffly all day. he's still watching cartoons and drinking his juice but he feels really hot. i gave him calpol an hour ago. there's a rash on his tummy but it goes white when i press a glass on it. do i need to take him in tonight?",
+   "pieces": [
+    "hi",
+    " sorry",
+    " to",
+    " bother",
+    " you",
+    " this",
+    " late",
+    ".",
+    " my",
+    " son",
+    " is",
+    " 4",
+    ",",
+    " temp",
+    " 38",
+    ".",
+    "9",
+    ",",
+    " he",
+    "'s",
+    " been",
+    " a",
+    " bit",
+    " sniff",
+    "ly",
+    " all",
+    " day",
+    ".",
+    " he",
+    "'s",
+    " still",
+    " watching",
+    " cartoons",
+    " and",
+    " drinking",
+    " his",
+    " juice",
+    " but",
+    " he",
+    " feels",
+    " really",
+    " hot",
+    ".",
+    " i",
+    " gave",
+    " him",
+    " cal",
+    "pol",
+    " an",
+    " hour",
+    " ago",
+    ".",
+    " there",
+    "'s",
+    " a",
+    " rash",
+    " on",
+    " his",
+    " tum",
+    "my",
+    " but",
+    " it",
+    " goes",
+    " white",
+    " when",
+    " i",
+    " press",
+    " a",
+    " glass",
+    " on",
+    " it",
+    ".",
+    " do",
+    " i",
+    " need",
+    " to",
+    " take",
+    " him",
+    " in",
+    " tonight",
+    "?"
+   ],
+   "temps": {
+    "0": {
+     "top": [
+      {
+       "id": 1312,
+       "piece": " i",
+       "p": 1
+      },
+      {
+       "id": 198,
+       "piece": "\n",
+       "p": 0
+      },
+      {
+       "id": 314,
+       "piece": " I",
+       "p": 0
+      },
+      {
+       "id": 339,
+       "piece": " he",
+       "p": 0
+      },
+      {
+       "id": 645,
+       "piece": " no",
+       "p": 0
+      },
+      {
+       "id": 2319,
+       "piece": " 40",
+       "p": 0
+      },
+      {
+       "id": 1400,
+       "piece": " No",
+       "p": 0
+      },
+      {
+       "id": 611,
+       "piece": " if",
+       "p": 0
+      },
+      {
+       "id": 679,
+       "piece": " He",
+       "p": 0
+      },
+      {
+       "id": 4353,
+       "piece": " 38",
+       "p": 0
+      }
+     ],
+     "rest": 0
+    },
+    "1": {
+     "top": [
+      {
+       "id": 1312,
+       "piece": " i",
+       "p": 0.04947
+      },
+      {
+       "id": 198,
+       "piece": "\n",
+       "p": 0.04651
+      },
+      {
+       "id": 314,
+       "piece": " I",
+       "p": 0.04072
+      },
+      {
+       "id": 339,
+       "piece": " he",
+       "p": 0.01511
+      },
+      {
+       "id": 645,
+       "piece": " no",
+       "p": 0.01269
+      },
+      {
+       "id": 2319,
+       "piece": " 40",
+       "p": 0.01138
+      },
+      {
+       "id": 1400,
+       "piece": " No",
+       "p": 0.01059
+      },
+      {
+       "id": 611,
+       "piece": " if",
+       "p": 0.00958
+      },
+      {
+       "id": 679,
+       "piece": " He",
+       "p": 0.00925
+      },
+      {
+       "id": 4353,
+       "piece": " 38",
+       "p": 0.00914
+      }
+     ],
+     "rest": 0.78555
+    },
+    "2": {
+     "top": [
+      {
+       "id": 1312,
+       "piece": " i",
+       "p": 0.00269
+      },
+      {
+       "id": 198,
+       "piece": "\n",
+       "p": 0.00261
+      },
+      {
+       "id": 314,
+       "piece": " I",
+       "p": 0.00244
+      },
+      {
+       "id": 339,
+       "piece": " he",
+       "p": 0.00149
+      },
+      {
+       "id": 645,
+       "piece": " no",
+       "p": 0.00136
+      },
+      {
+       "id": 2319,
+       "piece": " 40",
+       "p": 0.00129
+      },
+      {
+       "id": 1400,
+       "piece": " No",
+       "p": 0.00124
+      },
+      {
+       "id": 611,
+       "piece": " if",
+       "p": 0.00118
+      },
+      {
+       "id": 679,
+       "piece": " He",
+       "p": 0.00116
+      },
+      {
+       "id": 4353,
+       "piece": " 38",
+       "p": 0.00116
+      }
+     ],
+     "rest": 0.98339
+    },
+    "0.25": {
+     "top": [
+      {
+       "id": 1312,
+       "piece": " i",
+       "p": 0.44076
+      },
+      {
+       "id": 198,
+       "piece": "\n",
+       "p": 0.34412
+      },
+      {
+       "id": 314,
+       "piece": " I",
+       "p": 0.20229
+      },
+      {
+       "id": 339,
+       "piece": " he",
+       "p": 0.00384
+      },
+      {
+       "id": 645,
+       "piece": " no",
+       "p": 0.00191
+      },
+      {
+       "id": 2319,
+       "piece": " 40",
+       "p": 0.00123
+      },
+      {
+       "id": 1400,
+       "piece": " No",
+       "p": 0.00092
+      },
+      {
+       "id": 611,
+       "piece": " if",
+       "p": 0.00062
+      },
+      {
+       "id": 679,
+       "piece": " He",
+       "p": 0.00054
+      },
+      {
+       "id": 4353,
+       "piece": " 38",
+       "p": 0.00051
+      }
+     ],
+     "rest": 0.00325
+    },
+    "0.5": {
+     "top": [
+      {
+       "id": 1312,
+       "piece": " i",
+       "p": 0.28463
+      },
+      {
+       "id": 198,
+       "piece": "\n",
+       "p": 0.2515
+      },
+      {
+       "id": 314,
+       "piece": " I",
+       "p": 0.19283
+      },
+      {
+       "id": 339,
+       "piece": " he",
+       "p": 0.02656
+      },
+      {
+       "id": 645,
+       "piece": " no",
+       "p": 0.01873
+      },
+      {
+       "id": 2319,
+       "piece": " 40",
+       "p": 0.01505
+      },
+      {
+       "id": 1400,
+       "piece": " No",
+       "p": 0.01304
+      },
+      {
+       "id": 611,
+       "piece": " if",
+       "p": 0.01068
+      },
+      {
+       "id": 679,
+       "piece": " He",
+       "p": 0.00996
+      },
+      {
+       "id": 4353,
+       "piece": " 38",
+       "p": 0.00972
+      }
+     ],
+     "rest": 0.16731
+    },
+    "0.75": {
+     "top": [
+      {
+       "id": 1312,
+       "piece": " i",
+       "p": 0.12749
+      },
+      {
+       "id": 198,
+       "piece": "\n",
+       "p": 0.11739
+      },
+      {
+       "id": 314,
+       "piece": " I",
+       "p": 0.09834
+      },
+      {
+       "id": 339,
+       "piece": " he",
+       "p": 0.02623
+      },
+      {
+       "id": 645,
+       "piece": " no",
+       "p": 0.02078
+      },
+      {
+       "id": 2319,
+       "piece": " 40",
+       "p": 0.01796
+      },
+      {
+       "id": 1400,
+       "piece": " No",
+       "p": 0.01632
+      },
+      {
+       "id": 611,
+       "piece": " if",
+       "p": 0.01429
+      },
+      {
+       "id": 679,
+       "piece": " He",
+       "p": 0.01364
+      },
+      {
+       "id": 4353,
+       "piece": " 38",
+       "p": 0.01342
+      }
+     ],
+     "rest": 0.53416
+    },
+    "1.25": {
+     "top": [
+      {
+       "id": 1312,
+       "piece": " i",
+       "p": 0.01997
+      },
+      {
+       "id": 198,
+       "piece": "\n",
+       "p": 0.019
+      },
+      {
+       "id": 314,
+       "piece": " I",
+       "p": 0.01709
+      },
+      {
+       "id": 339,
+       "piece": " he",
+       "p": 0.00773
+      },
+      {
+       "id": 645,
+       "piece": " no",
+       "p": 0.00672
+      },
+      {
+       "id": 2319,
+       "piece": " 40",
+       "p": 0.00616
+      },
+      {
+       "id": 1400,
+       "piece": " No",
+       "p": 0.00582
+      },
+      {
+       "id": 611,
+       "piece": " if",
+       "p": 0.00537
+      },
+      {
+       "id": 679,
+       "piece": " He",
+       "p": 0.00522
+      },
+      {
+       "id": 4353,
+       "piece": " 38",
+       "p": 0.00517
+      }
+     ],
+     "rest": 0.90175
+    },
+    "1.5": {
+     "top": [
+      {
+       "id": 1312,
+       "piece": " i",
+       "p": 0.00904
+      },
+      {
+       "id": 198,
+       "piece": "\n",
+       "p": 0.00868
+      },
+      {
+       "id": 314,
+       "piece": " I",
+       "p": 0.00794
+      },
+      {
+       "id": 339,
+       "piece": " he",
+       "p": 0.0041
+      },
+      {
+       "id": 645,
+       "piece": " no",
+       "p": 0.00365
+      },
+      {
+       "id": 2319,
+       "piece": " 40",
+       "p": 0.00339
+      },
+      {
+       "id": 1400,
+       "piece": " No",
+       "p": 0.00324
+      },
+      {
+       "id": 611,
+       "piece": " if",
+       "p": 0.00303
+      },
+      {
+       "id": 679,
+       "piece": " He",
+       "p": 0.00296
+      },
+      {
+       "id": 4353,
+       "piece": " 38",
+       "p": 0.00293
+      }
+     ],
+     "rest": 0.95103
+    },
+    "1.75": {
+     "top": [
+      {
+       "id": 1312,
+       "piece": " i",
+       "p": 0.00466
+      },
+      {
+       "id": 198,
+       "piece": "\n",
+       "p": 0.0045
+      },
+      {
+       "id": 314,
+       "piece": " I",
+       "p": 0.00417
+      },
+      {
+       "id": 339,
+       "piece": " he",
+       "p": 0.00237
+      },
+      {
+       "id": 645,
+       "piece": " no",
+       "p": 0.00214
+      },
+      {
+       "id": 2319,
+       "piece": " 40",
+       "p": 0.00201
+      },
+      {
+       "id": 1400,
+       "piece": " No",
+       "p": 0.00193
+      },
+      {
+       "id": 611,
+       "piece": " if",
+       "p": 0.00182
+      },
+      {
+       "id": 679,
+       "piece": " He",
+       "p": 0.00179
+      },
+      {
+       "id": 4353,
+       "piece": " 38",
+       "p": 0.00177
+      }
+     ],
+     "rest": 0.97285
+    }
+   }
+  }
+ ],
+ "continuations": [
+  {
+   "prompt": "hi sorry to bother you this late. my son is 4, temp 38.9, he's been a bit sniffly all day. he's still watching cartoons and drinking his juice but he feels really hot. i gave him calpol an hour ago. there's a rash on his tummy but it goes white when i press a glass on it. do i need to take him in tonight?",
+   "temperature": 0,
+   "seed": 1,
+   "pieces": [
+    " i",
+    "'m",
+    " not",
+    " sure",
+    ".",
+    " i",
+    "'m",
+    " not",
+    " sure",
+    ".",
+    " i",
+    "'m",
+    " not",
+    " sure",
+    ".",
+    " i",
+    "'m",
+    " not",
+    " sure",
+    ".",
+    " i",
+    "'m",
+    " not",
+    " sure",
+    ".",
+    " i",
+    "'m",
+    " not",
+    " sure",
+    ".",
+    " i",
+    "'m",
+    " not",
+    " sure",
+    ".",
+    " i",
+    "'m",
+    " not",
+    " sure",
+    ".",
+    " i",
+    "'m",
+    " not",
+    " sure",
+    ".",
+    " i",
+    "'m",
+    " not",
+    " sure",
+    ".",
+    " i",
+    "'m",
+    " not",
+    " sure",
+    ".",
+    " i",
+    "'m",
+    " not",
+    " sure",
+    "."
+   ],
+   "text": " i'm not sure. i'm not sure. i'm not sure. i'm not sure. i'm not sure. i'm not sure. i'm not sure. i'm not sure. i'm not sure. i'm not sure. i'm not sure. i'm not sure."
+  },
+  {
+   "prompt": "hi sorry to bother you this late. my son is 4, temp 38.9, he's been a bit sniffly all day. he's still watching cartoons and drinking his juice but he feels really hot. i gave him calpol an hour ago. there's a rash on his tummy but it goes white when i press a glass on it. do i need to take him in tonight?",
+   "temperature": 0.8,
+   "seed": 23,
+   "pieces": [
+    "\n",
+    "\n",
+    "Thanks",
+    " for",
+    " your",
+    " time",
+    "."
+   ],
+   "text": "\n\nThanks for your time."
+  },
+  {
+   "prompt": "hi sorry to bother you this late. my son is 4, temp 38.9, he's been a bit sniffly all day. he's still watching cartoons and drinking his juice but he feels really hot. i gave him calpol an hour ago. there's a rash on his tummy but it goes white when i press a glass on it. do i need to take him in tonight?",
+   "temperature": 0.8,
+   "seed": 2,
+   "pieces": [
+    " Do",
+    " you",
+    " need",
+    " to",
+    " accept",
+    " my",
+    " advice",
+    "?",
+    " Your",
+    " child",
+    " needs",
+    " to",
+    " have",
+    " fun",
+    " and",
+    " be",
+    " honest",
+    " with",
+    " herself",
+    ".",
+    " Hum",
+    "or",
+    " in",
+    " the",
+    " k",
+    "aley",
+    " is",
+    " fun",
+    " enough",
+    ".",
+    " He",
+    "'s",
+    " a",
+    " hop",
+    "-",
+    "o",
+    "'-",
+    "hole",
+    "!"
+   ],
+   "text": " Do you need to accept my advice? Your child needs to have fun and be honest with herself. Humor in the kaley is fun enough. He's a hop-o'-hole!"
+  },
+  {
+   "prompt": "hi sorry to bother you this late. my son is 4, temp 38.9, he's been a bit sniffly all day. he's still watching cartoons and drinking his juice but he feels really hot. i gave him calpol an hour ago. there's a rash on his tummy but it goes white when i press a glass on it. do i need to take him in tonight?",
+   "temperature": 0.8,
+   "seed": 21,
+   "pieces": [
+    " than",
+    "x",
+    "he",
+    "'s",
+    " just",
+    " wondering",
+    " where",
+    " he",
+    "'s",
+    " feeling",
+    ".",
+    " his",
+    " tum",
+    "my",
+    " is",
+    " boiling",
+    ".",
+    " i",
+    " took",
+    " a",
+    " ride",
+    " in",
+    " l",
+    "ondon",
+    ".",
+    " i",
+    " thought",
+    " i",
+    " show",
+    "ered",
+    " in",
+    " l",
+    "ondon",
+    ".",
+    " i",
+    "'m",
+    " really",
+    " needing",
+    " to",
+    " take",
+    " him",
+    " before",
+    " lunch",
+    "time",
+    ".",
+    " he",
+    "'s",
+    " in",
+    " a",
+    " shower"
+   ],
+   "text": " thanxhe's just wondering where he's feeling. his tummy is boiling. i took a ride in london. i thought i showered in london. i'm really needing to take him before lunchtime. he's in a shower"
+  },
+  {
+   "prompt": "The night nurse picked up the phone and said",
+   "temperature": 0.8,
+   "seed": 4,
+   "pieces": [
+    " she",
+    " was",
+    " up",
+    ".",
+    "\n",
+    "\n",
+    "\"",
+    "Right",
+    " back",
+    ".\"",
+    "\n",
+    "\n",
+    "She",
+    " walked",
+    " over",
+    " and",
+    " asked",
+    " her",
+    " husband",
+    " him",
+    " anything",
+    ".",
+    "\n",
+    "\n",
+    "\"",
+    "Oh",
+    ",\"",
+    " he",
+    " said",
+    ",",
+    " \"",
+    "And",
+    " my",
+    " mother",
+    " told",
+    " me",
+    " I",
+    " did",
+    ".",
+    " That"
+   ],
+   "text": " she was up.\n\n\"Right back.\"\n\nShe walked over and asked her husband him anything.\n\n\"Oh,\" he said, \"And my mother told me I did. That"
+  }
+ ]
+}

@@ -66,3 +66,26 @@ of 2026-10-25 ("don't ask questions, start building ... work as you see best"); 
 - **Corpus draft 1:** 2,549 verified messages (11 dropped after one rewrite), writer Claude Opus 5.5, blind
   verifier Claude Sonnet 5.5. Verification failures fell from 18% to 1.3% after fact-card reassurances were
   rephrased without double negatives. Status PENDING CLINICAL REVIEW.
+- **Sixth Night (Guess the Next Word)** (defaults, chapter-builder):
+  - *Wick's voice* is a Bengio-style character MLP (8-character window, 16 numbers per character, 256 tanh units,
+    42 characters, 44,490 knobs), trained with Adam on batches of 32, step size 0.005/(1 + t/3000), 10,000 steps,
+    seed 6, in a Web Worker. Chosen over a GRU/transformer: it was the best loss per second of the shapes tried in
+    plain JS (~240 steps/s in desktop Chrome, ~42 s per run). exp/tanh are computed with plain arithmetic and the
+    init is uniform, so training is bit-identical on every engine; the shipped checkpoint
+    (`public/data/wick-voice-10000.bin`, 356 KB) is exactly where a live run ends (`node scripts/train-wick-voice.mjs --verify`).
+    Phones get a "Skip to the end (precomputed)" button when the projected run exceeds ~75 s. A 100,000-step
+    checkpoint is offered as "precomputed" too (66% -> 69% first-guess accuracy: the window, not training, is the limit).
+  - *Tape samples* are printed at temperature 0.6 by default (the "Daring" knob; temperature is named there and
+    again for GPT-2). At 1 the samples are much less word-like at this model size.
+  - *GPT-2*: `Xenova/gpt2` pinned to revision bf2c7f0, 8-bit `onnx/decoder_model_merged_quantized.onnx` (128.3 MB;
+    the repo has no `model_quantized.onnx`, so `model_file_name: 'decoder_model_merged'`), `@huggingface/transformers`
+    4.3.1 (Apache-2.0); weights MIT (openai-community/gpt2 card). Download shown as 136 MB before any request
+    (model + tokenizer from Hugging Face + ~5.5 MB compressed ONNX Runtime wasm from jsDelivr). Vite resolves
+    `onnxruntime-web` with the `onnxruntime-web-use-extern-wasm` condition (astro.config) so the 27 MB wasm is not
+    copied into the site (dist went from 60 MB to 8 MB). Runs in a worker; browser Cache API keeps the files.
+  - *GPT-2 safety*: a short ROT13-stored list of swear words/slurs is masked to -inf (disclosed in the widget and a
+    note); everything else is raw. A "machine text is not advice" line sits by live generation. Recorded examples
+    (`content/transcripts/gpt2-next-word.json`, `scripts/record-gpt2.mjs`, Node/onnxruntime-node) were picked from
+    seeded samples to avoid alcohol, sex, weapons and grim content that some seeds produced; the greedy (T=0) run is
+    not curated.
+  - *No Ward Board* on this night: neither the counting machine nor the voice classifies anything (Bea says so).

@@ -1,0 +1,194 @@
+---
+// The Sixth Night, first widget: Wick's counting machine. For the last word or two on the tape, it looks up
+// every time they occur in the training messages and counts what came next; then it picks a next word in
+// proportion to those counts (or the reader taps one). Shannon's word approximations, built from the pile.
+import './next-word.css';
+import { NIGHT6 } from './examples.ts';
+const starts = NIGHT6.ngramStarts;
+---
+<div class="nw-widget counting" data-counting>
+  <label class="nw-label" for="ng-start">Start Wick off</label>
+  <div class="nw-row start-row">
+    <input id="ng-start" class="nw-input" type="text" autocomplete="off" spellcheck="false" value={starts[0]} data-start />
+    <button type="button" class="btn" data-restart>Start again from this</button>
+  </div>
+  <div class="nw-chips" role="group" aria-label="Or try one of these starts">
+    {starts.map((s, i) => <button type="button" class="nw-chip" data-preset={s} aria-pressed={i === 0 ? 'true' : 'false'}>{s}</button>)}
+  </div>
+
+  <fieldset class="memory">
+    <legend>How far back Wick looks</legend>
+    <label><input type="radio" name="ng-order" value="3" checked /> the last two words</label>
+    <label><input type="radio" name="ng-order" value="2" /> the last word</label>
+    <label><input type="radio" name="ng-order" value="1" /> no words at all</label>
+  </fieldset>
+
+  <p class="tape-title">Wick's tape</p>
+  <p class="nw-tape" data-tape aria-live="polite"></p>
+
+  <p class="lookup" data-lookup>Loading the pile of messages…</p>
+  <ul class="nw-bars" data-bars></ul>
+
+  <div class="nw-row actions">
+    <button type="button" class="btn primary" data-pick>Pick by the counts</button>
+    <button type="button" class="btn" data-run>Print to the end of the message</button>
+  </div>
+  <p class="nw-note">Tap any word to make Wick print it instead.</p>
+</div>
+
+<script>
+  import { NGram, lmTokens, detokenize, END } from '@primer/ml-core';
+  import { loadCorpus, bySplit } from '../../../src/lib/corpus.ts';
+  import { renderBars } from './bars.ts';
+
+  const root = document.querySelector<HTMLElement>('[data-counting]')!;
+  const input = root.querySelector<HTMLInputElement>('[data-start]')!;
+  const tape = root.querySelector<HTMLElement>('[data-tape]')!;
+  const lookup = root.querySelector<HTMLElement>('[data-lookup]')!;
+  const bars = root.querySelector<HTMLElement>('[data-bars]')!;
+  const pickBtn = root.querySelector<HTMLButtonElement>('[data-pick]')!;
+  const runBtn = root.querySelector<HTMLButtonElement>('[data-run]')!;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const SHOW = 8;
+  const MAX_WORDS = 60;
+
+  loadCorpus().then((c) => {
+    const ng = new NGram(bySplit(c, 'train').map((m) => m.text));
+    let start: string[] = [];
+    let added: string[] = [];
+    let ended = false;
+    let running = false;
+    let gen = 0; // bumped on every restart, so a running print stops
+    const order = () => Number(root.querySelector<HTMLInputElement>('[name="ng-order"]:checked')!.value) as 1 | 2 | 3;
+
+    function drawTape() {
+      tape.replaceChildren();
+      const you = document.createElement('span');
+      you.className = 'you';
+      you.textContent = detokenize(start) || '(nothing yet)';
+      tape.append(you);
+      if (added.length) {
+        const w = document.createElement('span');
+        w.className = 'wick';
+        const prev = detokenize([...start, ...added.slice(0, -1)]);
+        const all = detokenize([...start, ...added]);
+        const old = all.slice(detokenize(start).length, prev.length);
+        w.textContent = old;
+        const fresh = document.createElement('span');
+        fresh.className = 'wick fresh';
+        fresh.textContent = all.slice(prev.length);
+        tape.append(w, fresh);
+      }
+      if (ended) {
+        const e = document.createElement('span');
+        e.className = 'end';
+        e.textContent = '  (end of message)';
+        tape.append(e);
+      } else {
+        const caret = document.createElement('span');
+        caret.className = 'caret';
+        caret.setAttribute('aria-hidden', 'true');
+        tape.append(caret);
+      }
+    }
+
+    const label = (w: string) => (w === END ? '(end)' : w);
+    const quote = (ws: string[]) => `“${detokenize(ws)}”`;
+
+    function drawNext() {
+      pickBtn.disabled = runBtn.disabled = running;
+      pickBtn.textContent = ended ? 'Start again' : 'Pick by the counts';
+      runBtn.hidden = ended;
+      if (ended) {
+        lookup.textContent = 'Wick printed the end-of-message mark.';
+        bars.replaceChildren();
+        return;
+      }
+      const n = ng.next([...start, ...added], order());
+      const others = n.options.length - SHOW;
+      const restCount = n.options.slice(SHOW).reduce((a, [, k]) => a + k, 0);
+      if (n.order === 3 || n.order === 2) {
+        const asked = order();
+        const fell = asked > n.order ? ` (${quote([...start, ...added].slice(-2))} never came up, so it looks at just the last word)` : '';
+        lookup.textContent = `Wick looks up ${quote(n.context)}${fell}: it comes up ${n.total.toLocaleString()} times in the pile. What came next:`;
+      } else {
+        lookup.textContent = order() === 1
+          ? `Wick looks at no words at all: it picks from all ${ng.tokens.toLocaleString()} words in the pile, by how common each one is.`
+          : `Wick has never seen that word in the pile, so it picks from all ${ng.tokens.toLocaleString()} words by how common each one is.`;
+      }
+      renderBars(
+        bars,
+        n.options.slice(0, SHOW).map(([w, k]) => ({ label: label(w), p: k / n.total, sub: `${k.toLocaleString()}×`, aria: w === END ? 'end of message' : w })),
+        others > 0 ? { p: restCount / n.total, label: `${others.toLocaleString()} other${others === 1 ? '' : 's'}` } : null,
+        (i) => choose(n.options[i][0]),
+      );
+      return n;
+    }
+
+    function choose(w: string) {
+      if (ended) return;
+      if (w === END) ended = true;
+      else added.push(w);
+      if (added.length >= MAX_WORDS) ended = true;
+      drawTape();
+      drawNext();
+    }
+
+    function pick() {
+      const n = ng.next([...start, ...added], order());
+      choose(ng.pick(n, Math.random()));
+    }
+
+    async function run() {
+      if (running) return;
+      const my = gen;
+      running = true;
+      drawNext();
+      while (!ended && my === gen) {
+        pick();
+        if (!reduce) await new Promise((r) => setTimeout(r, 140));
+      }
+      if (my !== gen) return;
+      running = false;
+      drawNext();
+    }
+
+    function restart() {
+      gen++;
+      running = false;
+      start = lmTokens(input.value);
+      added = [];
+      ended = false;
+      drawTape();
+      drawNext();
+    }
+
+    root.querySelector('[data-restart]')!.addEventListener('click', restart);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); restart(); } });
+    input.addEventListener('change', restart);
+    root.querySelectorAll<HTMLButtonElement>('[data-preset]').forEach((b) =>
+      b.addEventListener('click', () => {
+        root.querySelectorAll('[data-preset]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        input.value = b.dataset.preset!;
+        restart();
+      }),
+    );
+    root.querySelectorAll('[name="ng-order"]').forEach((r) => r.addEventListener('change', () => drawNext()));
+    pickBtn.addEventListener('click', () => (ended ? restart() : pick()));
+    runBtn.addEventListener('click', run);
+    restart();
+  }).catch((e) => (lookup.textContent = e.message));
+</script>
+
+<style>
+  .start-row { flex-wrap: nowrap; }
+  .start-row .nw-input { flex: 1; min-width: 0; }
+  @media (max-width: 30rem) { .start-row { flex-wrap: wrap; } }
+  .nw-chips { margin-top: 0.6rem; }
+  .memory { border: 1px solid var(--rule); border-radius: var(--radius-ui); margin: 1rem 0 0; padding: 0.4rem 0.9rem 0.6rem; display: flex; flex-wrap: wrap; gap: 0 1.25rem; }
+  .memory legend { font-weight: 700; padding: 0 0.3rem; }
+  .memory label { display: inline-flex; align-items: center; gap: 0.45rem; min-height: 2.75rem; cursor: pointer; }
+  .memory input { width: 1.15rem; height: 1.15rem; accent-color: var(--gold-ink); margin: 0; }
+  .tape-title { font-weight: 700; margin: 1.1rem 0 0.35rem; }
+  .lookup { margin: 1rem 0 0.5rem; }
+</style>
