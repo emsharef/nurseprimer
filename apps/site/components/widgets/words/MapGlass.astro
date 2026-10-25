@@ -2,11 +2,12 @@
 // The Fifth Night, third widget: the map-reader's reading glass. A message's place is the average of its words'
 // places; the glass shows where it lands (its nearest words), how hard each word's place pushes, the verdict,
 // and, for comparison, what the Third Night's bag of words says.
-interface Props { presets?: { label: string; text: string }[]; start?: string }
-const { presets = [], start = '' } = Astro.props;
+// `baseline`: a message to compare against; when the text is the baseline plus more, the glass shows the change.
+interface Props { presets?: { label: string; text: string }[]; start?: string; baseline?: string }
+const { presets = [], start = '', baseline } = Astro.props;
 const uid = `mglass-${Math.random().toString(36).slice(2, 8)}`;
 ---
-<div class="mglass" data-map-glass>
+<div class="mglass" data-map-glass data-baseline={baseline}>
   {presets.length > 0 && (
     <div class="presets" role="group" aria-label="Try a message">
       {presets.map((p) => <button type="button" class="chip-btn" data-preset={p.text}>{p.label}</button>)}
@@ -21,6 +22,7 @@ const uid = `mglass-${Math.random().toString(36).slice(2, 8)}`;
       <div>
         <p class="v-text" data-verdict>Wick is getting ready…</p>
         <p class="v-sub" data-sub></p>
+        <p class="v-base" data-base hidden></p>
         <p class="v-bow" data-bow></p>
       </div>
     </div>
@@ -62,6 +64,13 @@ const uid = `mglass-${Math.random().toString(36).slice(2, 8)}`;
       set('[data-sub]', place.known.length
         ? `${sure(pUrgent)} sure it's urgent, from ${place.known.length} word${place.known.length === 1 ? '' : 's'} on the map.`
         : 'None of these words is on the map, so Wick has only its starting lean.');
+      const base = root.dataset.baseline?.trim();
+      const baseEl = root.querySelector<HTMLElement>('[data-base]')!;
+      if (base && text !== base && text.startsWith(base)) {
+        const added = text.slice(base.length).replace(/^[\s.,]+/, '');
+        baseEl.textContent = `Without "${added}": ${sure(m.pUrgent(base))} sure. With it: ${sure(pUrgent)}.`;
+        baseEl.hidden = false;
+      } else baseEl.hidden = true;
       const b = bow.predict(text);
       set('[data-bow]', `Third Night's bag of words: ${verdictText(b.label)} (${sure(b.pUrgent)} sure it's urgent).`);
       set('[data-lands]', place.known.length ? m.map.nearest(place.vector, 6).map((n) => n.word).join(', ') : '–');
@@ -110,6 +119,7 @@ const uid = `mglass-${Math.random().toString(36).slice(2, 8)}`;
   .face { flex: none; display: inline-flex; }
   .v-text { margin: 0; font-weight: 700; font-size: var(--step-0); }
   .v-sub, .v-bow { margin: 0.1rem 0 0; color: var(--ink-soft); }
+  .v-base { margin: 0.3rem 0 0; font-weight: 700; color: var(--ink); }
   .lands { margin: 1rem 0 0.75rem; }
   .words-title { margin: 0 0 0.4rem; font-weight: 700; }
   .words { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0; }

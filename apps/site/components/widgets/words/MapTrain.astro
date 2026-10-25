@@ -34,7 +34,7 @@
       <table>
         <caption>The Third Night's bag of words and tonight's map-reader, on the same three test sets</caption>
         <thead>
-          <tr><th scope="col">Test set</th><th scope="col">Wick</th><th scope="col">Right</th><th scope="col">Missed emergencies</th><th scope="col">Needless alarms</th></tr>
+          <tr><th scope="col">Wick</th><th scope="col">Right</th><th scope="col">Missed emergencies</th><th scope="col">Needless alarms</th></tr>
         </thead>
         <tbody data-rows></tbody>
       </table>
@@ -117,11 +117,15 @@
     const rows = root.querySelector('[data-rows]')!;
     rows.replaceChildren();
     for (const [split, name] of [['day', 'Day Shift'], ['night', 'Night Shift'], ['two_am', '2 a.m. Set']] as const) {
+      const head = document.createElement('tr');
+      head.className = 'set';
+      head.innerHTML = `<th scope="rowgroup" colspan="4">${name}</th>`;
+      rows.append(head);
       for (const [who, f] of [['Bag of words', (x: string) => bow.predict(x)], ['Map-reader', (x: string) => m.predict(x)]] as const) {
         const s = scoreSplit(c, split, f);
         const tr = document.createElement('tr');
         if (who.startsWith('Map')) tr.className = 'mine';
-        tr.innerHTML = `<th scope="row">${who.startsWith('Bag') ? name : ''}</th><td>${who}</td><td>${pct(s.accuracy)}</td><td class="miss">${s.missedEmergencies}</td><td>${s.unnecessaryEscalations}</td>`;
+        tr.innerHTML = `<th scope="row">${who}</th><td>${pct(s.accuracy)}</td><td class="miss">${s.missedEmergencies}</td><td>${s.unnecessaryEscalations}</td>`;
         rows.append(tr);
       }
     }
@@ -162,14 +166,16 @@
   .scroll { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
   caption { text-align: left; font-weight: 700; margin-bottom: 0.4rem; }
-  th, td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  :global(.map-train th), :global(.map-train td) { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
   thead th { font-size: 0.8rem; color: var(--ink-soft); font-weight: 700; }
   :global(.map-train tr.mine td) { font-weight: 700; }
+  :global(.map-train tbody th[scope='row']) { white-space: nowrap; font-weight: 400; }
+  :global(.map-train tr.mine th[scope='row']) { font-weight: 700; }
+  :global(.map-train tr.set th) { padding-top: 0.7rem; font-weight: 700; border-bottom: 0; }
   :global(.map-train tr.mine) { background: var(--gold-wash); }
   :global(.map-train td.miss) { color: var(--alarm); }
   @media (max-width: 30rem) {
-    thead th:nth-child(1) { width: 4.5rem; }
-    th, td { padding: 0.35rem 0.3rem; font-size: 0.85rem; }
+    :global(.map-train th), :global(.map-train td) { padding: 0.35rem 0.3rem; font-size: 0.85rem; }
   }
   .sub { font-family: var(--font-ui); font-size: var(--step-0); margin: 1.25rem 0 0.5rem; }
   .list { border: 1px solid var(--rule); border-radius: var(--radius-ui); margin-bottom: 0.5rem; background: var(--paper); }

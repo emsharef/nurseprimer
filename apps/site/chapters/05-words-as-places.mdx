@@ -15,9 +15,9 @@ import MapGlass from '../components/widgets/words/MapGlass.astro';
 
 Last night's wires were clever about the wrong thing. They learned the line the Riverside app adds to the bottom
 of its messages instead of anything about the children above it, and on the Night Shift, where nobody uses that
-app, the cleverness went with it.
+app, the cleverness went with it. Even the clean wires had never met *speckles*.
 
-"So stop telling it which words are urgent," says Bea. "It doesn't even know which words are which."
+"Before it learns another thing about urgent," says Bea, "it ought to know which words are which."
 
 At two the queue goes quiet. Bea carries the tray of message slips down the corridor to the empty day room,
 pushes the little chairs back against the wall and tips the slips out across the floor.
@@ -39,15 +39,15 @@ Nobody has marked it. You don't need anyone to. You know which island *speckles*
 
 Wick can't read slips the way you do, but it can count. It takes every word it has seen at least three times, all
 1,987 of them, and for each one it counts which other words turn up within four words of it, in all 2,549
-messages, tonight's included. It reads only the words. It never sees Bea's marks.
+messages: tonight's included, the very messages it will be tested on, though never their marks.
 
 Little words like *the* turn up next to everything, so Wick keeps only the pairs that meet more often than chance
 would bring them together. That leaves each word with a long list, one number for every other word, saying how
 much it likes that word's company. Then Wick squeezes each list down to 200 numbers, keeping as much of the pattern
-as 200 numbers can hold. Those numbers are the word's place on the map. Words whose lists looked alike get places
-close together.
+as 200 numbers can hold. On the floor you had two directions to place a slip, across and along. Wick's floor has
+200, and a word's 200 numbers are its place on it. Words whose lists looked alike get places close together.
 
-Nobody tells Wick what any word means. All it has is who sits next to whom.
+No one tells Wick what any word means. All it has is who sits next to whom.
 
 <Predict
   id="speckles"
@@ -67,20 +67,22 @@ Nobody tells Wick what any word means. All it has is who sits next to whom.
   <WordMap />
 </Widget>
 
-*Speckles* lands among the rash words: *specks*, *pinprick*, *reddish*, *purpley*, *freckle*. Nobody told Wick.
-Parents who write *speckles* also write "little", "on his legs" and "pressed a glass", the company everyone keeps
-when they write about spots.
+*Speckles* lands among the rash words: *specks*, *pinprick*, *reddish*, *purpley*, *freckle*. Parents who write
+*speckles* also write "little", "on his legs" and "pressed a glass", the company everyone keeps when they write
+about spots.
 
 Walk around a little. *Felt* sits with *tip*, *pens*, *drawing* and *colouring*: the map knows a felt-tip is for
 drawing. *Purple* sits with *purpley*, *purplish* and *purply*, and then with *pinprick*, *marks* and *dots*:
 in this pile it keeps the company of spots. *Ki* sits with *korbo*, *parchi*, *bujhte* and *ami*: families who
-slip into Bengali write those words together, so they share a neighbourhood. And *dark* sits with *dots*, *reddy*
-and *tiny*. A dark rash and a child's dark skin get one place between them.
+write partly in Bengali write those words together, so they share a neighbourhood. And *dark* sits with *dots*,
+*reddy* and *tiny*, so a dark rash and a child's dark skin get one place between them. That one matters: in this
+pile every message that mentions a child's darker skin is urgent, because that is how the pile was written, not
+because of anything about the children, and Wick has learned it as a shortcut. Add "her skin is dark so it's hard
+to see" to the calm test messages and 113 of 583 turn urgent; a calm message about a cold goes from under 1% to
+85%.
 
-Each word's 200 numbers are what people call its *embedding*, and the idea that a word's meaning can be spread
-across many numbers, none of which means "rash" on its own, is called a *distributed representation*. The famous
-version, word2vec, learned places like these for words from enormous amounts of text.<NoteRef id="w2v" /> Wick's
-is the counting kind, small enough to see.
+A word's numbers are what people call its *embedding*, and a meaning spread across many numbers, none of which means
+"rash" on its own, is a *distributed representation*.<NoteRef id="w2v" />
 
 ---
 
@@ -90,8 +92,9 @@ A word map isn't a triage machine. So you give Wick a way to read a whole messag
 word in the message, and take the average. That point is the message's place.
 
 Then the knobs come back. Instead of a knob for every word, Wick gets one knob for each of the map's 200
-directions, plus its starting lean. It learns them exactly as it did on the Third Night: three hundred passes over
-Bea's marked pile, a hair's turn downhill each time.
+directions, plus its starting lean: a single row of knobs, like the Third Night's. It learns them the same way,
+three hundred passes over Bea's marked pile, a hair's turn downhill each time (with one adjustment, in the drawer
+below, because some directions are much wider than others).
 
 <Predict
   id="night"
@@ -113,14 +116,19 @@ On the Night Shift the map-reader gets about the same share right as the bag of 
 misses 22 emergencies where the bag of words missed 29, for three more needless alarms. On the 2 a.m. Set it's
 better still: 90% right against 86%, 11 emergencies missed against 18. On the Day Shift it's a shade worse.
 
-Open the first list, the emergencies only the map-reader caught. You'd expect the speckles messages. They aren't
-there. Of the 37 Night Shift messages with the new rash words, the bag of words already missed only three: 36 of
-those parents also wrote about the glass, and Wick knew that word well. The map-reader misses three as well.
+Last night's clean wires still miss fewer on the Night Shift, sixteen. But this Wick has a single row of knobs, like
+the Third Night's; it's that Wick it should be measured against. And on the 2 a.m. Set it beats the wires too, 11
+missed against 15.
+
+Open the first list, the emergencies only the map-reader caught. You'd expect it to be full of speckles messages.
+There's one, "freckle-looking dots". Of the 37 Night Shift messages with new rash words, the bag of words had missed
+only three: 36 of those parents also wrote about the glass, and Wick knew that word well. The map-reader misses
+three too, just not the same three.
 
 What it does catch are warning signs in a parent's own words: hands and feet "cold like ice", a girl who puts her
 hand over her face when the lamp's on, lips "kind of bluey grey", skin "like marbled", a baby who "just turns his
-head away" from every bottle. Look a few of them up on the map: *marbled* sits by *mottled* and *blotchy*, *bluey*
-by *blueish* and *grey*. The unusual ways of saying a thing live near the usual ones.
+head away" from every bottle. Look a few of them up: *marbled* sits by *mottled* and *blotchy*, *bluey* by *blueish*
+and *grey*.
 
 "Better on which messages?" says Bea, and points at the second list. Four emergencies the bag of words caught and
 the map-reader didn't. You'll come back to those.
@@ -128,6 +136,10 @@ the map-reader didn't. You'll come back to those.
 Put the map-reader on the Ward Board.
 
 <WardBoard />
+
+Bea taps the little island of *sent*, *from* and *MyRiverside*. Wick has turned it toward urgent, as the wires did.
+Add the app line to the calm Night Shift messages and twenty-six more of them turn urgent. A map doesn't remove a
+shortcut; it gives it a place.
 
 ---
 
@@ -154,8 +166,6 @@ Bea writes out an old enemy, the message that broke Wick's very first rule.
     presets={[
       { label: 'Purple felt tip', text: "she's covered in purple felt tip" },
       { label: 'Felt tip, said at length', text: 'his legs are covered in purple felt-tip pen, he was drawing on himself' },
-      { label: 'A stiff neck (Night Shift)', text: 'good evening ma my grandson is 4 years he cannot bend his head down to look at his tummy at all his neck is stif he will not do it he has runy nose and sneezin since yesterday please advice what we shud do thank you' },
-      { label: 'The same, with a line of Bengali', text: 'good evening ma my grandson is 4 years he cannot bend his head down to look at his tummy at all his neck is stif he will not do it he has runy nose and sneezin since yesterday please advice what we shud do thank you. ami jani na ki korbo' },
     ]}
   />
 </Widget>
@@ -163,9 +173,9 @@ Bea writes out an old enemy, the message that broke Wick's very first rule.
 Urgent, and nearly certain of it. The bag of words says it can wait.
 
 The message even lands in the right place: its nearest words are *felt*, *tip* and *drawing*. But Wick's knobs
-don't ask where a message lands. They listen to some of the map's directions far harder than others, and
-*purple*'s place is the loudest thing in the message. Look at the word chips: *purple* pushes hard
-toward urgent, *covered* too (people write "covered in spots"), and *felt* and *tip* hardly push at all.
+don't ask which words a message lands near. They listen to some of the map's directions far harder than others,
+and *purple*'s place is the loudest thing in the message. Look at the word chips: *purple* pushes hard toward
+urgent, *covered* too (people write "covered in spots"), and *felt* and *tip* hardly push at all.
 
 <Plate id="ch05-island" size="column" />
 
@@ -176,27 +186,56 @@ was drawing on himself", and it settles down. In six words it can't.
 
 Now the second list. Of the four emergencies the bag of words caught and the map-reader missed, three are written
 in somebody's own mix of languages: an older sibling whose mama "is asking is it wallah serious", signing off
-*Shukran*; a parent who writes "wallahi something is not right"; a step-parent writing in patois about spots that
-"dem nuh fade".
+*Shukran*; a parent who writes "wallahi something is not right"; a step-parent writing in Jamaican Patois about
+spots that "dem nuh fade".
 
-Try the last two buttons in the reading glass. The first is a real Night Shift message: a grandson whose neck is
-so stiff he can't look down at his tummy. The map-reader calls it urgent. The second is the same message with a
-line of Bengali added at the end, *ami jani na ki korbo*: "I don't know what to do". Wick's certainty drops from
-71% to 25%, and the family is told to wait. The bag of words barely moves.
+Here is a real Night Shift message, a grandson whose neck is so stiff he can't look down at his tummy. The
+map-reader calls it urgent, 71% sure.
 
-In Bea's pile the word *ki* turns up in five messages, and all five could wait. The bag of words leaves its knob
-for *ki* near zero: five messages isn't much. But on the map the Bengali words share an island, and Wick has turned
-that whole island toward *can wait*. Add the same line to every emergency the map-reader catches, across all three
-test sets, and 29 of 302 flip to *can wait*. For the bag of words, 2 of 289 flip.
+<Predict
+  id="bengali"
+  question="Same message, plus 'I don't know what to do' in Bengali: ami jani na ki korbo. Wick's certainty…"
+  options={['rises', 'barely moves', 'falls below half']}
+  answer="falls below half"
+  lock
+/>
+
+<Widget
+  title="The same message, three ways"
+  summary="The reading glass with a real Night Shift message about a stiff neck, the same message with 'I don't know what to do' added in Bengali, and the same again in English, each compared with the message on its own."
+  realSystems="Big models learn from far more text, which dilutes accidents like five messages in one pile, but what any system learns about a dialect or a language still depends on the text it happened to see."
+>
+  <MapGlass
+    baseline="good evening ma my grandson is 4 years he cannot bend his head down to look at his tummy at all his neck is stif he will not do it he has runy nose and sneezin since yesterday please advice what we shud do thank you"
+    presets={[
+      { label: 'The message', text: 'good evening ma my grandson is 4 years he cannot bend his head down to look at his tummy at all his neck is stif he will not do it he has runy nose and sneezin since yesterday please advice what we shud do thank you' },
+      { label: '+ a line of Bengali', text: 'good evening ma my grandson is 4 years he cannot bend his head down to look at his tummy at all his neck is stif he will not do it he has runy nose and sneezin since yesterday please advice what we shud do thank you. ami jani na ki korbo' },
+      { label: '+ the same in English', text: "good evening ma my grandson is 4 years he cannot bend his head down to look at his tummy at all his neck is stif he will not do it he has runy nose and sneezin since yesterday please advice what we shud do thank you. I don't know what to do" },
+    ]}
+  />
+</Widget>
+
+From 71% to 25%, and the family is told to wait. The bag of words barely moves. Among fifty word chips the
+culprits are easy to miss: *ki* pushes −0.96, *korbo* −0.92, *ami* −0.43.
+
+In Bea's pile the word *ki* turns up in five messages, and all five could wait. Nothing about Bengali made them
+minor; in this pile the medical facts are always in English, and those five children happened to be fine. The bag
+of words leaves its knob for *ki* near zero: five messages isn't much. But on the map the Bengali words share an
+island, and Wick has turned the whole island toward *can wait*. *Wallah* has the same story: five messages, all can
+wait. Type the line in English instead, "I don't know what to do", and Wick hardly moves (75%). It isn't the
+meaning; it's the place.
+
+Add the Bengali line to every emergency the map-reader catches, across all three test sets, and 29 of 302 flip to
+*can wait*; the English line flips one. For the bag of words, the Bengali line flips 2 of 289. The real emergencies
+in the test sets written partly in Bengali, all five of them, the map-reader happened to catch; the harm shows in
+the edited message, not yet in a real one.
 
 "So a family asks what to do in their own language," says Bea, "and the machine hears that they aren't worried."
 
-Nobody put that in. Five messages in a pile did, and the map spread it across the whole neighbourhood.
+Five messages in a pile did that, and the map spread it across the whole neighbourhood.
 
 There are things the map can't know at all. *Petechiae*, the word a doctor would use, turns up in three messages,
-all of them tonight. The map has barely met it, and its neighbours are *pinkish*, *knocked* and *temprature*.
-A word's place is only as good as the company you've seen it keep. And nothing on this map is about children. It's
-about how 2,549 messages happen to be written.
+all of them tonight. The map has barely met it: its neighbours are *pinkish*, *knocked* and *temprature*.
 
 <MathDrawer title="how the map is made, and how Wick reads it">
   **Company.** For each pair of words $a$ and $b$ (words seen at least three times in the 2,549 messages), $n(a,b)$
@@ -207,8 +246,7 @@ about how 2,549 messages happen to be written.
   \mathrm{PPMI}(a,b) = \max\!\left(0,\ \log \frac{P(a,b)}{P(a)\,P_{0.75}(b)}\right),
   $$
 
-  where $P_{0.75}$ raises each word's total to the power $0.75$ before normalizing, which stops rare words from
-  getting enormous scores.<NoteRef id="ppmi" /> **Squeezing.** A truncated singular value decomposition keeps the
+  where $P_{0.75}$ raises each word's total to the power $0.75$ before normalizing.<NoteRef id="ppmi" /> **Squeezing.** A truncated singular value decomposition keeps the
   200 strongest patterns of the $1987 \times 1987$ PPMI table, $M \approx U_{200}\,\Sigma_{200}\,V_{200}^{\top}$;
   word $a$'s place is the row $U_a \Sigma^{1/2}$, scaled to length 1, and closeness is the cosine between places.
   It is computed offline by `scripts/wordmap.mjs` with subspace iteration (no labels used), and the flat picture
@@ -222,29 +260,34 @@ about how 2,549 messages happen to be written.
   $$
 
   trained by plain full-batch gradient descent on the log loss with a small penalty on the knobs, as on the Third
-  Night ($\eta = 1$, $\lambda = 0.001$, 300 steps), after rescaling each direction to mean 0 and spread 1 over the
-  training messages (the knobs are folded back afterwards). A word's push in a message is $\theta \cdot x_w$ divided
+  Night ($\eta = 1$, $\lambda = 0.001$, 300 steps). The one adjustment: each direction is first rescaled to mean 0
+  and spread 1 over the training messages, because some directions are far wider than others and one step size
+  can't suit them all; the knobs are folded back afterwards. A word's push in a message is $\theta \cdot x_w$ divided
   by the number of words on the map in that message.
 
-  The map reads the words of all three test sets but never their labels. Drawn from Bea's marked pile alone, it
-  still misses fewer Night Shift emergencies than the bag of words, 24, but it has no place for *speckles* at all.
+  The map reads the words of all three test sets but never their labels. Is that a fair comparison? Drawn from
+  Bea's marked pile alone, the map-reader gets 95% of the Day Shift right with 14 missed, misses 24 on the Night
+  Shift and 12 on the 2 a.m. Set (the bag of words: 29 and 18), and the Bengali line still flips 28 of 300
+  caught emergencies. But that map has no place for *speckles* at all.
 </MathDrawer>
 
 <NightNote>
   <Line who="young">It put speckles with the spots. Nobody told it to.</Line>
   <Line who="charge">It put purple there too. And it put Bengali on an island of its own and decided the whole island could wait.</Line>
   <Line who="young">It's a map of how people in this pile write.</Line>
-  <Line who="charge">Not of what's wrong with their children. Remember that on the nights it's right, too.</Line>
+  <Line who="charge">And of who happened to be in the pile. Remember that on the nights it's right, too.</Line>
   <Line who="young">*(You pick up the speckles slip and fold it into your pocket.)* Next to each other on the map, though. Spots, dots, speckles. Like it knows what comes with what.</Line>
   <Line who="charge">Does it? If words are places, what comes after "little purple"?</Line>
 </NightNote>
 
 <Notes>
-  <NoteDef id="w2v">Mikolov and colleagues' word2vec<Cite k="mikolov2013" /> trained small networks to predict a
-  word from the words around it (or the other way round), and used the network's knobs as each word's place. Places from counting, as here,
-  and places from prediction turned out to work about as well as each other once they were given the same
-  tricks.<Cite k="levy2015" /></NoteDef>
-  <NoteDef id="ppmi">The power of 0.75 is a standard smoothing setting for this kind of counting. The window of
+  <NoteDef id="w2v">The best-known places like these came from Mikolov and colleagues' method, released as
+  word2vec,<Cite k="mikolov2013" /> which trained small networks to predict a word from the words around it (or the
+  other way round) on enormous amounts of text, and used the network's knobs as each word's place. Wick's map is the
+  counting kind, small enough to see. Places from counting and places from prediction turned out to work about as
+  well as each other once they were given the same tricks.<Cite k="levy2015" /></NoteDef>
+  <NoteDef id="ppmi">The power of 0.75 is one of those tricks, borrowed from word2vec: it stops rare words from
+  getting enormous scores.<Cite k="levy2015" /> The window of
   four words and the 200 directions came from a handful of settings tried while building this page. The others
   (100 or 300 directions, windows of two or six words) gave similar results: all missed fewer Night Shift and 2 a.m.
   emergencies than the bag of words, and none beat it on the Day Shift.</NoteDef>

@@ -186,3 +186,14 @@ of 2026-10-25 ("don't ask questions, start building ... work as you see best"); 
     seeded samples to avoid alcohol, sex, weapons and grim content that some seeds produced; the greedy (T=0) run is
     not curated.
   - *No Ward Board* on this night: neither the counting machine nor the voice classifies anything (Bea says so).
+- **Fifth Night, review pass.** Applied the night-5 review: corrected "they aren't there" (one new-rash-word message,
+  "freckle-looking dots", is among the map-reader's rescues; the two Wicks miss different threes); compared against
+  Night 4's clean wires (16 Night Shift misses, 15 on the 2 a.m. Set vs 22 and 11); stated that the map-reader
+  leans on the app line too (26 more calm Night Shift messages turn urgent when it's added; counted as messages
+  that were can-wait before and urgent after, since 4 were already urgent); added the English control (71% to 75%,
+  flips 1 of 302), *wallah*, the "accident of the pile" (6 of 7 Bengali-mixing training messages were minor), and
+  that all 5 real Bengali-mixing emergencies in the test sets were caught; split the bias demo into its own reading
+  glass behind a guess, with a with/without comparison line; one honest line on the darker-skin shortcut (all 98
+  such messages urgent by design; 113 of 583 calm test messages flip). The "Bengali-mixing" set is defined by a
+  word list in the claims test. Word map: starts zoomed on its selection, marks undrawn neighbours, keeps keyboard
+  focus. Citations checked in full text (Mikolov §3.1-3.2; Levy §3.2 for the 0.75 smoothing).
