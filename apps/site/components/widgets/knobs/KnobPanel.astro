@@ -97,7 +97,7 @@ const knobs = [...HAND_WORDS.map((w) => ({ id: w, label: `"${w}"` })), { id: '__
             <p class="msg-meta">
               <span class="tag ${p.label}">Wick: ${verdictText(p.label)}</span>
               <span class="tag truth">Bea: ${verdictText(m.label)}</span>
-              <span class="mark">${p.label === m.label ? 'agrees' : 'disagrees'}</span>
+              <span class="mark ${p.label === m.label ? '' : 'differ'}">${p.label === m.label ? '✓ agrees' : '✗ disagrees'}</span>
             </p>`;
           li.querySelector('.msg-text')!.textContent = m.text.length > 220 ? m.text.slice(0, 220) + '…' : m.text;
           if (lit.length) {
@@ -156,7 +156,7 @@ const knobs = [...HAND_WORDS.map((w) => ({ id: w, label: `"${w}"` })), { id: '__
   .stat strong { font-size: var(--step-1); font-variant-numeric: tabular-nums; margin-right: 0.2rem; }
   .stat.miss strong { color: var(--alarm); }
 
-  .knobs { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); gap: 1rem 0.75rem; }
+  .knobs { display: grid; grid-template-columns: repeat(auto-fill, minmax(max(6.5rem, calc((100% - 4 * 0.75rem) / 5)), 1fr)); gap: 1rem 0.75rem; }
   .knob { display: grid; justify-items: center; gap: 0.2rem; text-align: center; }
   .knob.lean { border-left: 1px dashed var(--rule); padding-left: 0.5rem; }
   .dial { width: 3.6rem; height: 3.6rem; }
@@ -167,7 +167,7 @@ const knobs = [...HAND_WORDS.map((w) => ({ id: w, label: `"${w}"` })), { id: '__
   .pointer { stroke: var(--ink); stroke-width: 3; stroke-linecap: round; transform-origin: 32px 32px; transition: transform 120ms; }
   .word { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700; }
   .lean .word { font-family: var(--font-ui); }
-  input[type='range'] { width: 100%; accent-color: var(--ink); margin: 0; min-height: 1.75rem; }
+  input[type='range'] { width: 100%; accent-color: var(--ink); margin: 0; min-height: 2.75rem; }
   .val { font-variant-numeric: tabular-nums; color: var(--ink-soft); font-size: 0.8rem; }
   .gloss { font-size: 0.72rem; color: var(--ink-soft); max-width: 8rem; line-height: 1.25; }
   .legend { display: flex; justify-content: space-between; margin: 0.5rem 0 0; font-size: 0.8rem; }
@@ -179,8 +179,8 @@ const knobs = [...HAND_WORDS.map((w) => ({ id: w, label: `"${w}"` })), { id: '__
   .tray-title { font-family: var(--font-ui); font-size: var(--step-0); font-weight: 700; margin: 1.5rem 0 0.5rem; }
   .tray { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
   :global(.knob-panel .msg) { border: 1px solid var(--rule); border-left-width: 4px; border-radius: var(--radius-ui); padding: 0.6rem 0.8rem; background: var(--paper); }
-  :global(.knob-panel .msg.wrong) { border-left-color: var(--alarm); }
-  :global(.knob-panel .msg.right) { border-left-color: var(--calm); }
+  :global(.knob-panel .msg.wrong) { border-left-color: var(--gold); border-left-style: double; border-left-width: 5px; }
+  :global(.knob-panel .msg.right) { border-left-color: var(--rule); }
   :global(.knob-panel .msg-text) { margin: 0 0 0.4rem; font-family: var(--font-read); font-size: 0.95rem; }
   :global(.knob-panel .msg-meta) { margin: 0; display: flex; flex-wrap: wrap; gap: 0.4rem 0.6rem; align-items: center; font-size: 0.8rem; }
   :global(.knob-panel .tag) { border-radius: 999px; padding: 0.05rem 0.55rem; font-weight: 700; border: 1px solid var(--rule); }
@@ -188,6 +188,7 @@ const knobs = [...HAND_WORDS.map((w) => ({ id: w, label: `"${w}"` })), { id: '__
   :global(.knob-panel .tag.can_wait) { background: var(--calm-wash); color: var(--calm); border-color: var(--calm); }
   :global(.knob-panel .tag.truth) { font-weight: 400; }
   :global(.knob-panel .mark) { color: var(--ink-soft); }
+  :global(.knob-panel .mark.differ) { color: var(--gold-ink); font-weight: 700; }
   :global(.knob-panel .lit) { color: var(--ink-soft); font-family: var(--font-mono); }
   .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 1.25rem; }
   .saved { color: var(--calm); font-weight: 700; }

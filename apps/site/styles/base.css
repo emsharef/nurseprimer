@@ -108,3 +108,12 @@ blockquote {
   font-family: var(--font-ui); color: var(--ink);
 }
 blockquote p:last-child { margin-bottom: 0; }
+
+/* Wide formulas scroll inside their box, with a soft edge to show there's more. */
+.katex-display {
+  background:
+    linear-gradient(to right, var(--card) 30%, transparent) left / 1.5rem 100% no-repeat local,
+    linear-gradient(to left, var(--card) 30%, transparent) right / 1.5rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgb(0 0 0 / 0.18), transparent) left / 0.6rem 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgb(0 0 0 / 0.18), transparent) right / 0.6rem 100% no-repeat scroll;
+}

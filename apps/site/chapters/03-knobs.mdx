@@ -208,7 +208,11 @@ message as a bag of loose words. Turn them all night. It still can't see which w
 
   $$
   \theta_w \leftarrow \theta_w - \eta \left( \frac{1}{N}\sum_{i:\, w \in W(x_i)} \big(p(x_i) - y_i\big) + \lambda\,\theta_w \right),
-  \qquad
+  $$
+
+  and the lean moves the same way, summed over every message:
+
+  $$
   b \leftarrow b - \frac{\eta}{N}\sum_{i} \big(p(x_i) - y_i\big).
   $$
 

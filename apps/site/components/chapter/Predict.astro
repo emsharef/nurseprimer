@@ -1,7 +1,8 @@
 ---
-// Predict before reveal (plan 4.2): the reader commits to a guess; only then does the answer (the slot) show.
-// Options are short strings. `answer` (optional) marks which option was right, shown after the guess.
-// With `lock`, the element right after this one (usually a widget) stays locked until the reader guesses.
+// Predict before reveal (plan 4.2): the reader commits to a guess before seeing a result.
+// With `lock`, the widget right after this box stays locked (with a visible note) until the reader guesses.
+// With `answer`, the right answer is NOT shown at guess time: a "check my guess" bar appears after the widget,
+// so the reader finds out by doing first. The slot is a short instruction shown once they've guessed.
 interface Props { id: string; question: string; options: string[]; answer?: string; lock?: boolean }
 const { id, question, options, answer, lock = false } = Astro.props;
 ---
@@ -15,27 +16,53 @@ const { id, question, options, answer, lock = false } = Astro.props;
 </div>
 
 <script>
+  // The next real element after the box (skipping the scripts and styles Astro may place in between).
+  function nextWidget(el: Element): HTMLElement | null {
+    let n = el.nextElementSibling;
+    while (n && (n.tagName === 'SCRIPT' || n.tagName === 'STYLE')) n = n.nextElementSibling;
+    return n as HTMLElement | null;
+  }
+
   document.querySelectorAll<HTMLElement>('[data-predict]').forEach((root) => {
     const answer = root.dataset.answer;
-    const verdict = root.querySelector<HTMLElement>("[data-predict-verdict]")!;
+    const verdict = root.querySelector<HTMLElement>('[data-predict-verdict]')!;
     const reveal = root.querySelector<HTMLElement>('[data-reveal]')!;
-    const locked = root.hasAttribute('data-lock') ? (root.nextElementSibling as HTMLElement | null) : null;
+    const locked = root.hasAttribute('data-lock') ? nextWidget(root) : null;
+    let note: HTMLElement | null = null;
     if (locked) {
       locked.classList.add('predict-locked');
-      locked.inert = true;
-      locked.dataset.lockNote = 'Make your guess above first.';
+      locked.setAttribute('inert', '');
+      note = document.createElement('p');
+      note.className = 'lock-note';
+      note.textContent = 'Make your guess above to unlock this.';
+      locked.prepend(note);
     }
+    let check: HTMLElement | null = null;
+
     root.querySelectorAll<HTMLButtonElement>('[data-option]').forEach((b) =>
       b.addEventListener('click', () => {
         root.querySelectorAll('[data-option]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
         const guess = b.dataset.option!;
-        verdict.textContent = answer
-          ? guess === answer ? `You guessed "${guess}". That's right.` : `You guessed "${guess}". The answer is "${answer}".`
-          : `You guessed "${guess}". Now see what happens.`;
-        reveal.hidden = !reveal.textContent?.trim() && !reveal.children.length;
+        verdict.textContent = `You guessed "${guess}". Now try it.`;
+        reveal.hidden = !reveal.textContent?.trim();
         if (locked) {
-          locked.inert = false;
+          locked.removeAttribute('inert');
           locked.classList.remove('predict-locked');
+          note?.remove();
+        }
+        if (answer && !check) {
+          // Offer the answer after the widget, once the reader has had a go.
+          check = document.createElement('div');
+          check.className = 'predict-check';
+          check.innerHTML = `<button type="button" class="btn">Check my guess</button><p aria-live="polite"></p>`;
+          if (locked?.classList.contains('wide')) check.classList.add('wide');
+          (locked ?? root).after(check);
+          check.querySelector('button')!.addEventListener('click', () => {
+            const g = root.querySelector<HTMLElement>('[aria-pressed="true"]')?.dataset.option ?? guess;
+            check!.querySelector('p')!.textContent =
+              g === answer ? `You guessed "${g}". You were right.` : `You guessed "${g}". It was "${answer}".`;
+            check!.querySelector('button')!.remove();
+          });
         }
         root.dispatchEvent(new CustomEvent('primer:revealed', { bubbles: true, detail: { guess } }));
       }),
@@ -46,22 +73,31 @@ const { id, question, options, answer, lock = false } = Astro.props;
 <style>
   .predict {
     margin-block: 2rem; padding: 1rem 1.25rem; border-radius: var(--radius-ui);
-    border: 2px solid var(--gold-ink); background: var(--card);
+    border: 2px solid var(--gold); background: var(--card);
   }
   .q { margin: 0 0 0.75rem; }
   .options { display: flex; flex-wrap: wrap; gap: 0.5rem; font-family: var(--font-ui); }
   button {
     border: 1px solid var(--rule); background: var(--paper); border-radius: var(--radius-ui);
-    padding: 0.45rem 0.9rem; cursor: pointer; min-height: 2.5rem; font-size: var(--step--1);
+    padding: 0.45rem 0.9rem; cursor: pointer; min-height: 2.75rem; font-size: var(--step--1); text-align: left;
   }
   button[aria-pressed='true'] { background: var(--gold-wash); border-color: var(--gold-ink); font-weight: 700; }
   .verdict { font-family: var(--font-ui); font-size: var(--step--1); margin: 0.75rem 0 0; }
   .verdict:empty { display: none; }
-  .reveal { margin-top: 1rem; }
-  :global(.predict-locked) { position: relative; opacity: 0.35; filter: grayscale(0.6); }
-  :global(.predict-locked)::after {
-    content: attr(data-lock-note); position: absolute; inset: 0; display: grid; place-items: center;
-    font-family: var(--font-ui); font-weight: 700; color: var(--ink); font-size: var(--step-0);
-  }
+  .reveal { margin-top: 0.75rem; }
   .reveal :global(> :last-child) { margin-bottom: 0; }
+  :global(.predict-locked) { position: relative; }
+  :global(.predict-locked > :not(.lock-note)) { opacity: 0.3; filter: grayscale(0.7); pointer-events: none; }
+  :global(.lock-note) {
+    position: sticky; top: 0.75rem; z-index: 2; margin: 0; padding: 0.75rem 1rem;
+    background: var(--gold-wash); color: var(--ink); border-bottom: 1px solid var(--gold-ink);
+    font-family: var(--font-ui); font-weight: 700; text-align: center;
+  }
+  :global(.predict-check) {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1rem;
+    margin: -1.5rem 0 2.5rem; padding: 0.75rem 1rem; border: 2px solid var(--gold); border-top: 0;
+    border-radius: 0 0 var(--radius-ui) var(--radius-ui); font-family: var(--font-ui);
+  }
+  :global(.predict-check p) { margin: 0; font-weight: 700; }
+  :global(.predict-check p:empty) { display: none; }
 </style>

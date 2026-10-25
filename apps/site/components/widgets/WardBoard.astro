@@ -2,15 +2,16 @@
 // The Ward Board (plan 6.4): every model the reader has built, scored on the same three test sets.
 // Rendered on the client from the notebook, so it carries across chapters. One test set at a time keeps it
 // readable on a phone; the reader switches between Day Shift, Night Shift and the 2 a.m. Set.
-interface Props { compact?: boolean }
-const { compact = false } = Astro.props;
+interface Props { compact?: boolean; calibration?: boolean }
+// `calibration` shows the calibration-error column; it is only explained on the Eleventh Night.
+const { compact = false, calibration = false } = Astro.props;
 const sets = [
   { split: 'day', name: 'Day Shift', note: 'Ordinary nights: messages like the ones in Bea\'s training pile.' },
   { split: 'night', name: 'Night Shift', note: 'New clinics, new words, voice-to-text and dialects Wick has never seen.' },
   { split: 'two_am', name: '2 a.m. Set', note: 'The rare, hard, high-stakes ones. A missed emergency here is the worst outcome on the board.' },
 ];
 ---
-<section class:list={['ward-board', 'wide', { compact }]} aria-labelledby="ward-board-title" data-ward-board>
+<section class:list={['ward-board', 'wide', { compact }]} aria-labelledby="ward-board-title" data-ward-board data-calibration={calibration ? '' : undefined}>
   <div class="head">
     <h2 id="ward-board-title">The Ward Board</h2>
     <div class="sets" role="radiogroup" aria-label="Test set">
@@ -60,14 +61,14 @@ const sets = [
     root.querySelector<HTMLElement>('[data-empty]')!.hidden = models.length > 0;
     const body = root.querySelector('[data-body]')!;
     const setName = TEST_SETS.find((t) => t.split === split)?.name ?? split;
-    root.querySelector('[data-caption]')!.textContent = `Scores on the ${setName} for every machine you have built`;
+    root.querySelector('[data-caption]')!.textContent = `Scores on the ${setName.replace(/^The /, '')} for every machine you have built`;
     if (error) {
       body.innerHTML = `<tr><td colspan="4" class="loading"></td></tr>`;
       body.querySelector('td')!.textContent = error;
       return;
     }
     if (!baselines.length) return;
-    const showCal = rows.some((r) => r.scores[split]?.calibrationError != null);
+    const showCal = root.hasAttribute('data-calibration') && rows.some((r) => r.scores[split]?.calibrationError != null);
     root.querySelector<HTMLElement>('[data-cal-col]')!.hidden = !showCal;
     body.replaceChildren(
       ...rows.map((r) => {
@@ -86,9 +87,11 @@ const sets = [
               ...(showCal ? [[s.calibrationError == null ? '–' : s.calibrationError.toFixed(2), ''] as [string, string]] : []),
             ]
           : [['–', ''], ['–', ''], ['–', '']];
-        for (const [text, cls] of cells) {
+        const labels = ['Right', 'Missed emergencies', 'Needless alarms', 'Calibration error'];
+        for (const [k, [text, cls]] of cells.entries()) {
           const td = document.createElement('td');
           td.textContent = text;
+          td.dataset.label = labels[k];
           if (cls) td.className = cls;
           tr.append(td);
         }
@@ -143,7 +146,7 @@ const sets = [
   .compact h2 { font-size: var(--step-1); }
   .sets { display: inline-flex; border: 1px solid var(--ink); border-radius: 999px; overflow: hidden; }
   .sets button {
-    border: 0; background: transparent; padding: 0.35rem 0.85rem; cursor: pointer; min-height: 2.25rem;
+    border: 0; background: transparent; padding: 0.35rem 0.85rem; cursor: pointer; min-height: 2.75rem;
     font-size: var(--step--1);
   }
   .sets button + button { border-left: 1px solid var(--ink); }
@@ -161,4 +164,16 @@ const sets = [
   :global(.ward-board tr.reference) { color: var(--ink-soft); }
   :global(.ward-board tr.reference th) { font-weight: 400; font-style: italic; }
   :global(.ward-board td.loading) { text-align: left; color: var(--ink-soft); }
+  /* Phones: each machine becomes a small card instead of a wide row. */
+  @media (max-width: 34rem) {
+    .sets { width: 100%; }
+    .sets button { flex: 1; padding-inline: 0.4rem; }
+    thead { display: none; }
+    table, :global(.ward-board tbody), :global(.ward-board tr) { display: block; }
+    :global(.ward-board tr) { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.25rem 0.5rem; padding: 0.6rem 0; border-bottom: 1px solid var(--rule); }
+    :global(.ward-board tbody th) { grid-column: 1 / -1; border: 0; padding: 0; }
+    :global(.ward-board td) { border: 0; padding: 0; text-align: left; font-size: var(--step-0); font-weight: 700; }
+    :global(.ward-board td::before) { content: attr(data-label); display: block; font-size: 0.72rem; font-weight: 400; color: var(--ink-soft); }
+    :global(.ward-board td.loading::before) { content: none; }
+  }
 </style>

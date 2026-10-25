@@ -21,7 +21,7 @@ export async function serve(dist) {
 export async function settle(page) {
   await page.evaluate(async () => {
     document.querySelectorAll('img[loading="lazy"]').forEach((i) => (i.loading = 'eager'));
-    await Promise.all([...document.images].map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; }))));
-    await document.fonts.ready;
+    const imgs = Promise.all([...document.images].map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; }))));
+    await Promise.race([Promise.all([imgs, document.fonts.ready]), new Promise((r) => setTimeout(r, 5000))]);
   });
 }

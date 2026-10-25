@@ -12,7 +12,8 @@ import { HAND_WORDS } from './store.ts';
 
   <div class="grid">
     <figure class="chart">
-      <svg viewBox="0 0 560 210" role="img" aria-labelledby="loss-title loss-desc" data-chart>
+      <figcaption class="chart-title">Wick's average wrongness, pass by pass</figcaption>
+      <svg viewBox="0 0 560 182" role="img" aria-labelledby="loss-title loss-desc" data-chart>
         <title id="loss-title">Wrongness during training</title>
         <desc id="loss-desc" data-chart-desc>Empty chart. Press the button to start training.</desc>
         <defs>
@@ -22,14 +23,12 @@ import { HAND_WORDS } from './store.ts';
         </defs>
         <line x1="44" y1="24" x2="44" y2="170" class="axis" />
         <line x1="44" y1="170" x2="548" y2="170" class="axis" />
-        <text x="38" y="30" class="tick" text-anchor="end">a lot</text>
-        <text x="38" y="174" class="tick" text-anchor="end">none</text>
-        <text x="548" y="192" class="tick" text-anchor="end">300 passes</text>
-        <text x="44" y="192" class="tick" text-anchor="start">start</text>
-        <text x="44" y="12" class="tick label">Wick's average wrongness</text>
+        <text x="38" y="34" class="tick" text-anchor="end">high</text>
+        <text x="38" y="174" class="tick" text-anchor="end">0</text>
         <path d="" class="area" data-area />
         <path d="" class="line" data-line />
       </svg>
+      <p class="axis-x"><span>first pass</span><span>pass 300</span></p>
     </figure>
 
     <div class="knob-readout">
@@ -137,12 +136,18 @@ import { HAND_WORDS } from './store.ts';
     const train = bySplit(c, 'train');
     drawBars({ weight: () => 0 });
 
+    let running = false;
     async function run() {
-      btn.disabled = true;
+      if (running) return;
+      running = true;
+      btn.setAttribute('aria-disabled', 'true');
+      const chart = root.querySelector('.chart')!;
+      const r = chart.getBoundingClientRect();
+      if (r.top < 0 || r.bottom > innerHeight) chart.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
       root.querySelector<HTMLElement>('[data-after]')!.hidden = true;
       const t = new Trainer(train, TRAIN);
       const losses: number[] = [];
-      const perFrame = reduce ? TRAIN.epochs : 3;
+      const perFrame = reduce ? TRAIN.epochs : 1;
       await new Promise<void>((done) => {
         const tick = () => {
           for (let k = 0; k < perFrame && t.epoch < TRAIN.epochs; k++) losses.push(t.step());
@@ -172,8 +177,9 @@ import { HAND_WORDS } from './store.ts';
       list('[data-top-urgent]', top.urgent);
       list('[data-top-calm]', top.canWait);
       root.querySelector<HTMLElement>('[data-after]')!.hidden = false;
-      btn.disabled = false;
+      btn.removeAttribute('aria-disabled');
       btn.textContent = 'Watch it again';
+      running = false;
     }
 
     btn.addEventListener('click', run);
@@ -197,7 +203,9 @@ import { HAND_WORDS } from './store.ts';
   .chart { margin: 0; }
   svg { width: 100%; height: auto; overflow: visible; }
   .axis { stroke: var(--ink); stroke-width: 1; }
-  .tick { font-family: var(--font-ui); font-size: 12px; fill: var(--ink-soft); }
+  .tick { font-family: var(--font-ui); font-size: 22px; fill: var(--ink-soft); }
+  .chart-title { font-weight: 700; margin-bottom: 0.3rem; }
+  .axis-x { display: flex; justify-content: space-between; margin: 0.2rem 0 0 8%; color: var(--ink-soft); font-size: 0.8rem; }
   .tick.label { font-weight: 700; fill: var(--ink); }
   .line { fill: none; stroke: var(--phosphor-ink); stroke-width: 2; }
   .area { fill: url(#hatch); }
@@ -224,7 +232,7 @@ import { HAND_WORDS } from './store.ts';
   .lookup { margin-top: 1.25rem; }
   .lookup label { font-weight: 700; display: block; margin-bottom: 0.3rem; }
   .lookup-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; }
-  .lookup input { font: inherit; font-family: var(--font-mono); padding: 0.4rem 0.6rem; border: 1px solid var(--ink); border-radius: var(--radius-ui); background: var(--paper); color: var(--ink); width: 12rem; }
+  .lookup input { font: inherit; font-size: 16px; min-height: 2.75rem; font-family: var(--font-mono); padding: 0.4rem 0.6rem; border: 1px solid var(--ink); border-radius: var(--radius-ui); background: var(--paper); color: var(--ink); width: 12rem; }
   .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 1.25rem; }
   .saved { color: var(--calm); font-weight: 700; }
 </style>

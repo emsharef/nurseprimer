@@ -81,9 +81,10 @@ const uid = `glass-${Math.random().toString(36).slice(2, 8)}`;
       }));
     }
 
-    input.addEventListener('input', render);
+    const grow = () => { input.style.height = 'auto'; input.style.height = `${input.scrollHeight + 2}px`; };
+    input.addEventListener('input', () => { grow(); render(); });
     root.querySelectorAll<HTMLButtonElement>('[data-preset]').forEach((b) =>
-      b.addEventListener('click', () => { input.value = b.dataset.preset!; render(); input.focus(); }),
+      b.addEventListener('click', () => { input.value = b.dataset.preset!; grow(); render(); }),
     );
     onChange(render);
     ensureTrained().then(render).catch((e) => (root.querySelector('[data-verdict]')!.textContent = e.message));
@@ -94,7 +95,7 @@ const uid = `glass-${Math.random().toString(36).slice(2, 8)}`;
   .presets { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.9rem; }
   .chip-btn {
     border: 1px solid var(--ink); background: var(--paper); border-radius: 999px; padding: 0.3rem 0.8rem;
-    cursor: pointer; min-height: 2.25rem; font-size: var(--step--1);
+    cursor: pointer; min-height: 2.75rem; font-size: var(--step--1);
   }
   .chip-btn:hover { background: var(--gold-wash); }
   .lbl { display: block; font-weight: 700; margin-bottom: 0.3rem; }
