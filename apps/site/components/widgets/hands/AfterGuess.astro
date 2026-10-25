@@ -1,0 +1,42 @@
+---
+// The Tenth Night: story text that answers a guess, kept out of sight until the reader has made the guess and
+// (if `trace` is given) stepped a recorded run to the end, optionally under given permissions and on a given line.
+// Without JavaScript the text is simply shown.
+interface Props { guess: string; trace?: string; perms?: string; model?: string; hint?: string }
+const { guess, trace, perms, model, hint = 'Make your guess above, then step through the run to read on.' } = Astro.props;
+---
+<div class="after-guess" data-after-guess={guess} data-ag-trace={trace} data-ag-perms={perms} data-ag-model={model}>
+  <p class="ag-hint" data-ag-hint hidden>{hint}</p>
+  <div class="ag-body" data-ag-body><slot /></div>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-after-guess]').forEach((root) => {
+    const body = root.querySelector<HTMLElement>('[data-ag-body]')!;
+    const hint = root.querySelector<HTMLElement>('[data-ag-hint]')!;
+    const { afterGuess, agTrace: trace, agPerms: perms, agModel: model } = root.dataset;
+    let guessed = false;
+    let ran = !trace;
+    const update = () => {
+      const open = guessed && ran;
+      body.hidden = !open;
+      hint.hidden = open;
+    };
+    document.querySelector(`[data-predict="${afterGuess}"]`)?.addEventListener('primer:revealed', () => { guessed = true; update(); });
+    document.addEventListener('primer:run-done', (e) => {
+      const d = (e as CustomEvent).detail as { trace: string; perms: string; model: string };
+      if (d.trace === trace && (!perms || d.perms === perms) && (!model || d.model === model)) { ran = true; update(); }
+    });
+    update();
+  });
+</script>
+
+<style>
+  .ag-hint {
+    margin: 1.5rem 0; padding: 0.6rem 1rem; border: 1px dashed var(--gold-ink); border-radius: var(--radius-ui);
+    font-family: var(--font-ui); font-size: var(--step--1); color: var(--gold-ink); font-weight: 700;
+  }
+  .ag-hint[hidden], .ag-body[hidden] { display: none; }
+  /* Widgets inside break out of the reading column, as they do everywhere else. */
+  .ag-body > :global(.wide) { width: min(var(--wide), 100vw - 2 * var(--gutter)); margin-inline: calc(50% - min(var(--wide), 100vw - 2 * var(--gutter)) / 2); }
+</style>

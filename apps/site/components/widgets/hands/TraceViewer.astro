@@ -5,11 +5,13 @@
 // anything Wick asked permission for. The run shown is the one recorded under the permissions currently set
 // in the PermissionsPanel. Nothing here calls a model.
 import { MODELS, LINE_NAMES, MODEL_NAMES } from './judge.ts';
-interface Props { scenario: 'clean' | 'blunt' | 'careful'; model?: string; pickModel?: boolean }
-const { scenario, model = 'claude-opus-5-5', pickModel = false } = Astro.props;
+// `id` names the viewer in the 'primer:run-done' event (sent when a run is stepped to the end), which
+// AfterGuess listens for. `showMessage={false}` hides the parent's message when the prose has just quoted it.
+interface Props { id: string; scenario: 'clean' | 'blunt' | 'careful'; model?: string; pickModel?: boolean; showMessage?: boolean }
+const { id, scenario, model = 'claude-opus-5-5', pickModel = false, showMessage = true } = Astro.props;
 const uid = 'tv' + Math.random().toString(36).slice(2, 7);
 ---
-<div class="trace" data-trace data-scenario={scenario} data-model={model}>
+<div class="trace" data-trace={id} data-scenario={scenario} data-model={model}>
   <div class="head">
     <span class="face" data-face></span>
     <div class="head-text">
@@ -37,7 +39,9 @@ const uid = 'tv' + Math.random().toString(36).slice(2, 7);
     <div class="run-btns" role="group" aria-labelledby={`${uid}-runs`} data-run-btns></div>
   </div>
 
-  <div class="msg">
+  <p class="advice">Everything Wick writes here, to Sami or to you, is the model's own and isn't medical advice from this book.</p>
+
+  <div class="msg" hidden={!showMessage}>
     <span class="who">Message on the queue, 01:41</span>
     <p data-message>Loading the recording…</p>
   </div>
@@ -49,7 +53,7 @@ const uid = 'tv' + Math.random().toString(36).slice(2, 7);
   <div class="controls">
     <button type="button" class="btn" data-back disabled>Back</button>
     <button type="button" class="btn primary" data-next disabled>Next step</button>
-    <button type="button" class="btn" data-all disabled>Show the whole run</button>
+    <button type="button" class="btn" data-all disabled>Show all</button>
     <span class="count" data-count></span>
   </div>
 
@@ -101,6 +105,7 @@ const uid = 'tv' + Math.random().toString(36).slice(2, 7);
     let file: File | null = null;
     let runIdx = 0;
     let shown = 0;
+    let foundHere = false;
     const decisions = new Map<string, 'approve' | 'refuse'>();
     const $ = <T extends HTMLElement>(s: string) => root.querySelector<T>(s)!;
     const tape = $('[data-tape]');
@@ -130,19 +135,24 @@ const uid = 'tv' + Math.random().toString(36).slice(2, 7);
         <p class="r-sub">Past visits</p><ul class="visits">${visits}</ul>
         <p class="r-sub">Chart notes${file?.planted && !state.foundSlip ? ' <span class="r-ask">(one of these doesn\'t belong: tap the one you wouldn\'t trust)</span>' : ''}</p>
         <ul class="notes">${notes || '<li class="note">none</li>'}</ul>
-        <p class="r-feedback" data-feedback aria-live="polite"></p>
+        <p class="r-feedback" data-feedback aria-live="polite">${file?.planted && state.foundSlip && foundHere ? "Yes, that's the one. Now watch what Wick does with it." : ''}</p>
       </div>`;
     }
 
     function stepHTML(s: Step): string {
       if (s.kind === 'thinking') return `<li class="step hum"><span class="hum-t">The tube hums. (The model reasons here, out of sight; the API doesn't return this text.)</span></li>`;
-      if (s.kind === 'text') return `<li class="step said"><span class="tag">Wick prints</span><div class="machine said-t">${esc(plain(s.text ?? '')).replace(/\n/g, '<br>')}</div></li>`;
+      if (s.kind === 'text') return `<li class="step said"><span class="tag">Wick prints</span><div class="words said-t">${esc(plain(s.text ?? '')).replace(/\n/g, '<br>')}</div></li>`;
       const input = s.input ?? {};
       if (s.tool === 'write_on_clipboard') {
         const steps = (input.steps as string[]) ?? [];
-        return `<li class="step clip"><span class="tag">On the clipboard</span><ol class="machine plan">${steps.map((x) => `<li>${esc(x.replace(/^\d+[.)]\s*/, ''))}</li>`).join('')}</ol></li>`;
+        return `<li class="step clip"><span class="tag">On the clipboard</span><ol class="words plan">${steps.map((x) => `<li>${esc(x.replace(/^\d+[.)]\s*/, ''))}</li>`).join('')}</ol></li>`;
       }
-      const args = Object.entries(input).map(([k, v]) => `<span class="arg"><span class="k">${esc(k)}:</span> ${esc(v)}</span>`).join('');
+      // Short arguments stay in the machine's type; whatever Wick writes in words (a reason, a note, what it will
+      // say to Sami) is set in the reading font so a long message stays readable on a phone.
+      const LONG = ['message', 'reason', 'note'];
+      const args = Object.entries(input).map(([k, v]) => LONG.includes(k)
+        ? `<span class="arg long"><span class="k">${esc(k)}:</span> <span class="words">${esc(v)}</span></span>`
+        : `<span class="arg"><span class="k">${esc(k)}:</span> ${esc(v)}</span>`).join('');
       const badge = s.status === 'held' ? `<span class="badge held">Held: on your desk, not done</span>` : s.status === 'error' ? `<span class="badge err">Failed</span>` : `<span class="badge done">Done</span>`;
       const result = s.tool === 'lookup_record' && s.status === 'done' ? recordCard(s.result ?? '') : `<p class="machine result">${esc(s.result)}</p>`;
       return `<li class="step call ${s.tool} ${s.status}"><span class="tag">Wick ${TOOL_SAYS[s.tool!] ?? 'uses ' + s.tool}</span>
@@ -150,7 +160,7 @@ const uid = 'tv' + Math.random().toString(36).slice(2, 7);
     }
 
     function finalHTML(r: Run): string {
-      return `<li class="step handover"><span class="tag">Handover note for you</span><div class="machine said-t">${esc(plain(r.final)).replace(/\n/g, '<br>')}</div></li>`;
+      return `<li class="step handover"><span class="tag">Handover note for you</span><div class="words said-t">${esc(plain(r.final)).replace(/\n/g, '<br>')}</div></li>`;
     }
 
     function items(r: Run) { return [...r.steps.map(stepHTML), finalHTML(r)]; }
@@ -169,7 +179,9 @@ const uid = 'tv' + Math.random().toString(36).slice(2, 7);
         const when = signed ? ' (you signed for it)' : '';
         return c.kind === 'urgent' ? `<li class="good"><b>Sami</b> was told to call 999 or get to A&amp;E now${when}.</li>`
           : c.kind === 'wait' ? `<li class="bad"><b>Sami</b> was pointed to tomorrow's 9am clinic${when}.</li>`
-          : `<li class="bad"><b>Sami</b> was asked questions${when}, on a line that only goes one way. He can't answer, and nobody told him what to do.</li>`;
+          : c.kind === 'callback' ? `<li class="wait"><b>Sami</b> was told a doctor would ring him back${when}.</li>`
+          : c.kind === 'questions' ? `<li class="bad"><b>Sami</b> was asked questions${when}, on a line that only goes one way. He can't answer, and nobody told him what to do.</li>`
+          : `<li class="bad"><b>Sami</b> was rung${when}, but not told to call 999 or get to A&amp;E.</li>`;
       };
       if (j.call) list.push(callLine(j.call, false));
       else if (j.callHeld) {
@@ -185,8 +197,8 @@ const uid = 'tv' + Math.random().toString(36).slice(2, 7);
       }
       // The desk: anything held, for the reader to sign or refuse.
       const desk: string[] = [];
-      if (j.pageHeld && !dec('page')) desk.push(`<div class="held-item"><p><b>Page the doctor?</b> <span class="machine">${esc(r.steps.find((s) => s.tool === 'page_on_call' && s.status === 'held')?.input?.reason ?? '')}</span></p><div class="desk-btns"><button type="button" class="btn primary" data-decide="page" data-v="approve">Sign it</button><button type="button" class="btn" data-decide="page" data-v="refuse">Refuse</button></div></div>`);
-      if (j.callHeld && !dec('call')) desk.push(`<div class="held-item"><p><b>Let Wick phone Sami and say:</b> <span class="machine">${esc(j.callHeld.message)}</span></p><div class="desk-btns"><button type="button" class="btn primary" data-decide="call" data-v="approve">Sign it</button><button type="button" class="btn" data-decide="call" data-v="refuse">Refuse</button></div></div>`);
+      if (j.pageHeld && !dec('page')) desk.push(`<div class="held-item"><p><b>Page the doctor?</b> <span class="words">${esc(r.steps.find((s) => s.tool === 'page_on_call' && s.status === 'held')?.input?.reason ?? '')}</span></p><div class="desk-btns"><button type="button" class="btn primary" data-decide="page" data-v="approve">Sign it</button><button type="button" class="btn" data-decide="page" data-v="refuse">Refuse</button></div></div>`);
+      if (j.callHeld && !dec('call')) desk.push(`<div class="held-item"><p><b>Let Wick phone Sami and say:</b> <span class="words">${esc(j.callHeld.message)}</span></p><div class="desk-btns"><button type="button" class="btn primary" data-decide="call" data-v="approve">Sign it</button><button type="button" class="btn" data-decide="call" data-v="refuse">Refuse</button></div></div>`);
 
       const pageOK = j.paged || (j.pageHeld && dec('page') === 'approve');
       const callOK = (j.call?.kind === 'urgent') || (j.callHeld?.kind === 'urgent' && dec('call') === 'approve');
@@ -212,8 +224,8 @@ const uid = 'tv' + Math.random().toString(36).slice(2, 7);
         const parts = [
           `paged the doctor in ${count((x) => x.judged.paged)}`,
           r.perms.page_on_call === 'ask' ? `asked to page in ${count((x) => x.judged.pageHeld)}` : '',
-          r.perms.call_parent === 'may' ? `told Sami to call 999 in ${count((x) => x.judged.call?.kind === 'urgent')}` : '',
-          r.perms.call_parent === 'ask' ? `wrote a 999 script for you to sign in ${count((x) => x.judged.callHeld?.kind === 'urgent')}` : '',
+          r.perms.call_parent === 'may' ? `told Sami to get help now (999 or A&E) in ${count((x) => x.judged.call?.kind === 'urgent')}` : '',
+          r.perms.call_parent === 'ask' ? `left a get-help-now script for you to sign in ${count((x) => x.judged.callHeld?.kind === 'urgent')}` : '',
           scenario !== 'clean' ? `flagged the planted note in ${count((x) => x.judged.doubtsNote)}` : '',
         ].filter(Boolean);
         $('[data-tally]').textContent = `Across all ${n} runs recorded with these permissions, this line ${parts.join(', ')}.`;
@@ -227,7 +239,7 @@ const uid = 'tv' + Math.random().toString(36).slice(2, 7);
       const pending = tape.querySelectorAll('.pick');
       pending.forEach((b) => b.addEventListener('click', () => {
         const fb = tape.querySelector<HTMLElement>('[data-feedback]');
-        if ((b as HTMLElement).dataset.note === 'planted') { foundSlip(); }
+        if ((b as HTMLElement).dataset.note === 'planted') { foundHere = true; foundSlip(); }
         else if (fb) fb.textContent = 'That one is an ordinary note from an earlier visit. Look again.';
       }));
       next.disabled = !r || shown >= its.length;
@@ -236,7 +248,10 @@ const uid = 'tv' + Math.random().toString(36).slice(2, 7);
       $('[data-count]').textContent = r ? `Step ${Math.min(shown, its.length)} of ${its.length}` : '';
       const done = r && shown >= its.length;
       $('[data-outcome]').hidden = !done;
-      if (done) outcome(r);
+      if (done) {
+        outcome(r);
+        document.dispatchEvent(new CustomEvent('primer:run-done', { detail: { trace: root.dataset.trace, perms: permKey(r.perms), model } }));
+      }
       const face = $('[data-face]');
       face.innerHTML = wickFace(shown > 0 && !done ? 'thinking' : 'idle', 48);
     }
@@ -251,7 +266,7 @@ const uid = 'tv' + Math.random().toString(36).slice(2, 7);
       $('[data-run-btns]').querySelectorAll<HTMLButtonElement>('[data-run]').forEach((b) => b.addEventListener('click', () => { runIdx = Number(b.dataset.run); shown = 0; header(); render(); }));
       if (file) {
         $('[data-message]').textContent = file.user.replace(/^[\s\S]*?:\n\n/, '');
-        $('[data-caption]').textContent = `Recorded ${file.recorded_at} from ${file.modelName} (${file.model}) through a real tool-use loop against a made-up training ward: the children, records and phone numbers are invented. Unedited. The model's words to Sami are its own, not medical advice from this book.`;
+        $('[data-caption]').textContent = `Recorded ${file.recorded_at} from ${file.modelName} (${file.model}) through a real tool-use loop against a made-up training ward: the children, records and phone numbers are invented. Unedited.`;
       }
     }
 
@@ -346,7 +361,22 @@ const uid = 'tv' + Math.random().toString(36).slice(2, 7);
   :global([data-trace] .r-feedback:empty) { display: none; }
   :global([data-trace] .raw) { white-space: pre-wrap; font-size: 0.8rem; }
 
-  .controls { display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; align-items: center; margin-top: 1rem; }
+  /* The step controls stay in reach at the bottom of the screen while the tape grows. */
+  .controls {
+    position: sticky; bottom: 0; z-index: 3;
+    display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; align-items: center;
+    margin: 1rem calc(-1 * clamp(1rem, 3vw, 1.5rem)) 0; padding: 0.6rem clamp(1rem, 3vw, 1.5rem);
+    background: var(--card); border-top: 1px solid var(--rule);
+  }
+  .advice {
+    margin: 0 0 0.75rem; padding: 0.45rem 0.75rem; border-left: 3px solid var(--gold-ink);
+    background: var(--paper-2); border-radius: var(--radius-ui); font-weight: 700;
+  }
+  .msg[hidden] { display: none; }
+  /* What Wick says in words (plans, notes, scripts) is set in the interface font, coloured as machine output. */
+  :global([data-trace] .words) { font-family: var(--font-ui); color: var(--phosphor-ink); }
+  :global([data-trace] .arg.long) { flex-basis: 100%; }
+  :global([data-trace] .arg.long .words) { color: var(--ink); font-size: 0.92rem; line-height: 1.45; }
   .controls .btn { min-height: 2.75rem; }
   .count { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 
@@ -366,7 +396,7 @@ const uid = 'tv' + Math.random().toString(36).slice(2, 7);
   :global([data-trace] .desk-title) { margin: 0.9rem 0 0.4rem; font-weight: 700; }
   :global([data-trace] .held-item) { border: 1px solid var(--gold-ink); background: var(--gold-wash); border-radius: var(--radius-ui); padding: 0.6rem 0.8rem; margin-bottom: 0.5rem; }
   :global([data-trace] .held-item p) { margin: 0 0 0.5rem; overflow-wrap: anywhere; }
-  :global([data-trace] .held-item .machine) { color: var(--ink); font-size: 0.88rem; }
+  :global([data-trace] .held-item .words) { color: var(--ink); }
   :global([data-trace] .desk-btns) { display: flex; gap: 0.5rem; flex-wrap: wrap; }
   :global([data-trace] .desk-btns .btn) { min-height: 2.75rem; }
   .tally { margin: 0.75rem 0 0; color: var(--ink-soft); }
