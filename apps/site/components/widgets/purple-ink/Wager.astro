@@ -45,12 +45,12 @@ const ticks = Array.from({ length: MAX / 5 + 1 }, (_, i) => i * 5);
     </div>
     <div class="actions">
       <button type="button" class="btn primary" data-lock>Lock in my wager</button>
-      <span class="status" data-status aria-live="polite"></span>
+      <span class="status" data-status aria-live="polite" tabindex="-1"></span>
     </div>
   </div>
 
   <div class="after" data-after hidden>
-    <p class="big" data-result></p>
+    <p class="big" data-result tabindex="-1"></p>
     <p data-remark></p>
     <div class="actions">
       <button type="button" class="btn" data-save>Put Wick with wires on the Ward Board</button>
@@ -93,11 +93,37 @@ const ticks = Array.from({ length: MAX / 5 + 1 }, (_, i) => i * 5);
     const a = Math.atan2(Math.max(y, 0), x);
     setGuess(Math.round(MAX * (1 - a / Math.PI)));
   }
+  // A mouse or pen sets the needle at once. A finger only starts dragging after a clearly sideways movement,
+  // so a thumb scrolling down the page over the dial scrolls (the dial is touch-action: pan-y) and leaves the
+  // wager alone.
   let dragging = false;
-  dial.addEventListener('pointerdown', (e) => { if (locked) return; dragging = true; dial.setPointerCapture(e.pointerId); fromPointer(e); });
-  dial.addEventListener('pointermove', (e) => { if (dragging) fromPointer(e); });
-  dial.addEventListener('pointerup', () => (dragging = false));
-  dial.addEventListener('pointercancel', () => (dragging = false));
+  let start: { x: number; y: number; id: number } | null = null;
+  dial.addEventListener('pointerdown', (e) => {
+    if (locked) return;
+    if (e.pointerType === 'touch') { start = { x: e.clientX, y: e.clientY, id: e.pointerId }; return; }
+    dragging = true;
+    dial.setPointerCapture(e.pointerId);
+    fromPointer(e);
+  });
+  dial.addEventListener('pointermove', (e) => {
+    if (dragging) { fromPointer(e); return; }
+    if (!start || e.pointerId !== start.id) return;
+    const dx = Math.abs(e.clientX - start.x), dy = Math.abs(e.clientY - start.y);
+    if (dy > 10 && dy > dx) { start = null; return; }
+    if (dx > 10 && dx > dy * 1.5) {
+      dragging = true;
+      start = null;
+      dial.setPointerCapture(e.pointerId);
+      fromPointer(e);
+    }
+  });
+  const stop = () => { dragging = false; start = null; };
+  dial.addEventListener('pointerup', stop);
+  dial.addEventListener('pointercancel', stop);
+
+  // The story's reaction to the result is held back until the wager is locked (it works without JavaScript).
+  const afterWager = [...document.querySelectorAll<HTMLElement>('[data-after-wager]')];
+  afterWager.forEach((el) => (el.hidden = true));
 
   lockBtn.addEventListener('click', async () => {
     if (locked) return;
@@ -107,6 +133,7 @@ const ticks = Array.from({ length: MAX / 5 + 1 }, (_, i) => i * 5);
     lockBtn.disabled = true;
     root.classList.add('locked');
     status.textContent = 'Locked in. Bea opens the Night Shift envelope…';
+    status.focus({ preventScroll: true });
     const c = await corpus();
     const net = await ensureNet('wired');
     const night = bySplit(c, 'night');
@@ -138,9 +165,11 @@ const ticks = Array.from({ length: MAX / 5 + 1 }, (_, i) => i * 5);
     const diff = missed - g;
     root.querySelector('[data-remark]')!.textContent =
       Math.abs(diff) <= 3 ? `Close. You didn't trust its Day Shift score, and you were right not to. It still got ${Math.round((right / night.length) * 100)}% of the messages right overall.`
-      : diff > 0 ? `You trusted it more than it deserved. On the Day Shift it missed 14; here, nearly twice as many, though it still got ${Math.round((right / night.length) * 100)}% of the messages right overall.`
-      : `You expected worse. It missed nearly twice as many as on the Day Shift, but it still got ${Math.round((right / night.length) * 100)}% of the messages right overall.`;
+      : diff > 0 ? `You trusted it more than it deserved. On the Day Shift it missed 14; here, ${missed - 14} more, though it still got ${Math.round((right / night.length) * 100)}% of the messages right overall.`
+      : `You expected worse. It missed ${missed - 14} more than on the Day Shift, but it still got ${Math.round((right / night.length) * 100)}% of the messages right overall.`;
     root.querySelector<HTMLElement>('[data-after]')!.hidden = false;
+    afterWager.forEach((el) => (el.hidden = false));
+    root.querySelector<HTMLElement>('[data-result]')!.focus({ preventScroll: true });
     root.querySelector('[data-save]')!.addEventListener('click', () => {
       saveToBoard(c, net, 'wired');
       root.querySelector('[data-saved]')!.textContent = 'On the board.';
@@ -152,7 +181,8 @@ const ticks = Array.from({ length: MAX / 5 + 1 }, (_, i) => i * 5);
   .wager { display: grid; gap: 1.25rem; }
   @media (min-width: 46rem) { .wager { grid-template-columns: 1fr 1fr; align-items: center; } .after { grid-column: 1 / -1; } }
   .dial-wrap { max-width: 26rem; width: 100%; margin-inline: auto; }
-  .dial { width: 100%; height: auto; touch-action: none; cursor: grab; display: block; }
+  .dial { width: 100%; height: auto; touch-action: pan-y; cursor: grab; display: block; }
+  [data-result]:focus { outline: none; }
   .locked .dial { cursor: default; }
   .face { fill: var(--gold-wash); stroke: var(--ink); stroke-width: 1.5; }
   .arc { fill: none; stroke: var(--ink); stroke-width: 1.5; }

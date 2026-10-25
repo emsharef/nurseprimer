@@ -37,7 +37,7 @@ const label = kind === 'wired' ? 'Wire Wick up and train it' : 'Delete the line 
       <div class="loud">
         <p class="sub">The five words pushing hardest toward <span class="u">urgent</span>, right now</p>
         <ol class="top" data-loud><li class="empty">Nothing yet: every knob starts near zero.</li></ol>
-        <p class="key"><span class="ink">purple</span> = a word from the app line</p>
+        <p class="key"><span class="ink">highlighted</span> words come from the app line</p>
         <div class="snap" data-snap-wrap hidden>
           <p class="sub" data-snap-title></p>
           <ol class="top" data-snap></ol>
@@ -53,6 +53,7 @@ const label = kind === 'wired' ? 'Wire Wick up and train it' : 'Delete the line 
         <p><strong>Day Shift:</strong> <span data-day></span></p>
         <p class="compare" data-compare></p>
         <p class="compare" data-sig-rank></p>
+        <div data-rogues></div>
       </div>
     ) : (
       <div class="scroll">
@@ -78,6 +79,7 @@ const label = kind === 'wired' ? 'Wire Wick up and train it' : 'Delete the line 
   import { NET, corpus, newTrainer, setNet, ensureNet, getNet, score, saveToBoard, trainingPile, type Kind } from './store.ts';
   import { bySplit } from '../../../src/lib/corpus.ts';
   import { TRAIN } from '../knobs/store.ts';
+  import { mountRogues } from '../../../src/lib/rogues.ts';
 
   const ord = (n: number) => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
   const SIG_WORDS = new Set(['sent', 'from', 'myriverside', 'health', 'app']);
@@ -208,6 +210,8 @@ const label = kind === 'wired' ? 'Wire Wick up and train it' : 'Delete the line 
           };
           q('[data-cmp]').replaceChildren(row('Day Shift', day), row('Night Shift', night), row('2 a.m. Set', twoAm));
         }
+        const rogues = root.querySelector<HTMLElement>('[data-rogues]');
+        if (rogues && !rogues.dataset.mounted) { rogues.dataset.mounted = '1'; mountRogues(rogues, (text) => net.predict(text).label, 'Wick with wires (the Fourth Night)'); }
         q('[data-after]').hidden = false;
         btn.removeAttribute('aria-disabled');
         btn.textContent = 'Watch it again';
