@@ -95,3 +95,17 @@ references:
     # Claim checked against the abstract: adversaries can inject prompts "into data likely to be retrieved", and
     # LLM-integrated applications "blur the line between data and instructions".
     verified: { by: arXiv abstract page read (Claude), on: 2026-10-25, scope: claim }
+  mikolov2013:
+    authors: Mikolov, T.; Chen, K.; Corrado, G.; Dean, J.
+    year: 2013
+    title: Efficient Estimation of Word Representations in Vector Space
+    venue: arXiv preprint (ICLR 2013 workshop)
+    url: https://arxiv.org/abs/1301.3781
+    verified: { by: arXiv abstract page (Claude), on: 2026-10-25, scope: claim }
+  levy2015:
+    authors: Levy, O.; Goldberg, Y.; Dagan, I.
+    year: 2015
+    title: Improving Distributional Similarity with Lessons Learned from Word Embeddings
+    venue: Transactions of the Association for Computational Linguistics 3, 211-225
+    doi: 10.1162/tacl_a_00134
+    verified: { by: ACL Anthology abstract page (Claude), on: 2026-10-25, scope: claim }

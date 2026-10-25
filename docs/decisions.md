@@ -138,3 +138,23 @@ of 2026-10-25 ("don't ask questions, start building ... work as you see best"); 
   - *Recordings ship* as `/data/agent/<scenario>-<model>.json` built by a static endpoint and fetched on demand
     (~150 KB each before compression) rather than inlined in the page.
   - *Halting:* one paragraph, scoped to open-ended agents, explicitly not to a fixed finite-context model (plan 10.3).
+- **Fifth Night (Words as Places), chapter-builder default.** The word map is count-based (co-occurrence within
+  four words weighted 1/distance, PPMI with context smoothing 0.75, truncated SVD to 200 directions by subspace
+  iteration), computed offline by `scripts/wordmap.mjs` into `public/data/wordmap.json` (575 KB, int8 per word with
+  a per-word scale; deterministic). It reads the text of every split, test sets included, but no labels; the
+  chapter says so, and pins that a map drawn from train alone still misses fewer Night Shift emergencies (24) but
+  has no place for "speckles". The map-reader (average of unit word vectors, one knob per direction, standardized
+  then folded back) trains in the browser with the Third Night's settings. Window 4 / 200 dims were picked from a
+  small grid while building; every setting tried (100/300 dims, window 2/6) beat the bag of words on Night and 2 a.m.
+  missed emergencies and none beat it on Day (pinned in the claims test). The picture is a seeded t-SNE of 276
+  words (step size 1: the usual t-SNE step sizes diverge on this small set).
+- **What turned out true, and the story follows it:** "speckles" does land among the rash words, but the new rash
+  words were not where the bag of words failed (it caught 34 of 37; 36 mention the glass), and the map-reader gains
+  on paraphrased warning signs instead (Night 22 missed vs 29, 2 a.m. 11 vs 18, Day slightly worse). The break:
+  "she's covered in purple felt tip" is urgent (>99%) although it lands nearest felt/tip/drawing; and the measured
+  bias: code-switched Bengali words share an island that leans can-wait (all 5 training messages with "ki" could
+  wait), so appending "ami jani na ki korbo" flips 29 of 302 caught emergencies (bag of words: 2 of 289), and 3 of
+  the 4 Night Shift emergencies the map-reader newly misses are code-switched or dialect. Firth is not quoted or
+  cited (unverified); the idea is paraphrased.
+- **Ward Board:** saving the map-reader also puts the Third Night's bag of words on the board (same id
+  `ch3-trained`) if the reader has not, so the comparison is visible to readers who start at this chapter.

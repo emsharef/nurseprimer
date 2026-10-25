@@ -5,3 +5,4 @@ export * from './bow.ts';
 export * from './tape.ts';
 export * from './rules.ts';
 export * from './mlp.ts';
+export * from './embed.ts';
