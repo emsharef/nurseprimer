@@ -17,8 +17,8 @@ the setting, not the subject.
   in the Night Note at the end of each chapter.
 - **Wick** is the machine you build: a small clockwork owl made of brass, paper tape and spare parts from the
   supply cupboard, who sits on the corner of the nurses' desk under the lamp. Wick starts (night 1) as a
-  tape-reading contraption with an owl's face and gains parts each night: a rulebook (night 4), a row of
-  knobs on its chest (night 5), a tangle of wires inside (night 6), and later a voice. Wick is earnest, eager,
+  tape-reading contraption with an owl's face and gains parts each night: a rulebook (night 2), a row of
+  knobs on its chest (night 3), a tangle of wires inside (night 4), and later a voice. Wick is earnest, eager,
   sometimes spectacularly wrong, and never a person. Wick does not talk in early chapters; it clicks, whirs
   and prints. From night 9 it "speaks" by printing next words on tape.
 - **The 2 a.m. message** returns every night: a parent writes about a feverish three-year-old with little

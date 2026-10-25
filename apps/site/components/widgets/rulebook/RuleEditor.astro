@@ -16,15 +16,17 @@ const src = book === 'three' ? THREE_OCLOCK : FIRST_RULE;
 const uid = `rules-${book}`;
 ---
 <div class="rule-editor" data-rule-editor data-book={book} data-save-id={saveId} data-save-name={saveName} data-goal={goal ? JSON.stringify(goal) : undefined}>
+  <!-- Stays in view while the reader scrolls or types (on a phone the keyboard hides most of the widget). -->
   <div class="status">
     <span class="face" data-face></span>
-    <div>
+    <div class="status-text">
       <p class="stats-title">Wick on the <span data-set-name>Day Shift</span> <span class="n" data-n></span></p>
       <p class="stat-row" aria-live="polite">
         <span class="stat"><strong data-acc>–</strong> right</span>
         <span class="stat miss"><strong data-miss>–</strong> missed emergencies</span>
         <span class="stat"><strong data-esc>–</strong> needless alarms</span>
       </p>
+      <p class="last" data-last></p>
     </div>
   </div>
 
@@ -39,13 +41,13 @@ const uid = `rules-${book}`;
     <div class="patches">
       <p class="patches-title">Bea's patches (each goes on top, so it is read first)</p>
       <div class="patch-row">
-        {PATCHES.map((p) => <button type="button" class="chip-btn" data-patch={p.line}><span class="plus" aria-hidden="true">+</span> <code>{p.line}</code></button>)}
+        {PATCHES.map((p) => <button type="button" class="chip-btn" data-patch={p.line}><span class="plus" aria-hidden="true">+</span><span class="added" aria-hidden="true">✓ added</span> <code>{p.line}</code></button>)}
       </div>
     </div>
   )}
 
-  <label for={uid} class="lbl">Wick's rulebook <span class="hint">(edit freely; first rule that matches wins)</span></label>
-  <textarea id={uid} data-src spellcheck="false" autocapitalize="none" autocomplete="off" rows={book === 'three' ? 12 : 6}>{src}</textarea>
+  <label for={uid} class="lbl">Wick's rulebook <span class="hint">{book === 'three' ? '(one card per line; scroll sideways to read the long ones)' : '(edit freely; first rule that matches wins)'}</span></label>
+  <textarea id={uid} data-src spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" wrap={book === 'three' ? 'off' : 'soft'} class:list={[{ nowrap: book === 'three' }]} rows={book === 'three' ? 12 : 6}>{src}</textarea>
   <ul class="errors" data-errors aria-live="polite"></ul>
 
   <p class="diff" data-diff aria-live="polite"></p>
@@ -123,7 +125,7 @@ const uid = `rules-${book}`;
     let last: Map<string, RuleVerdict> | null = null;
     let lastSplit = split;
     let current: { msgs: CorpusMessage[]; v: Map<string, RuleVerdict> } | null = null;
-    root.querySelector('[data-face]')!.innerHTML = wickFace('idle', 52);
+    root.querySelector('[data-face]')!.innerHTML = wickFace('idle', 44);
 
     // Grow with the text (lines wrap on a phone), up to most of the screen; then it scrolls.
     const grow = () => {
@@ -171,7 +173,7 @@ const uid = `rules-${book}`;
         root.querySelector('[data-acc]')!.textContent = `${Math.round(s.accuracy * 100)}%`;
         root.querySelector('[data-miss]')!.textContent = String(s.missedEmergencies);
         root.querySelector('[data-esc]')!.textContent = String(s.unnecessaryEscalations);
-        root.querySelector('[data-face]')!.innerHTML = wickFace('thinking', 52);
+        root.querySelector('[data-face]')!.innerHTML = wickFace('thinking', 44);
 
         const errs = root.querySelector('[data-errors]')!;
         errs.replaceChildren(...rb.parsed.errors.map((e) => {
@@ -190,6 +192,7 @@ const uid = `rules-${book}`;
             if (!was && now) fixed.push(m);
             if (was && !now) broken.push(m);
           }
+          root.querySelector('[data-last]')!.textContent = `Last change: fixed ${fixed.length}, broke ${broken.length}`;
           diff.className = `diff ${broken.length ? 'bad' : fixed.length ? 'good' : ''}`;
           diff.textContent = fixed.length || broken.length
             ? `That change fixed ${fixed.length} ${fixed.length === 1 ? 'message' : 'messages'} and broke ${broken.length}.${broken.length ? ' The ones it broke:' : ''}`
@@ -210,6 +213,7 @@ const uid = `rules-${book}`;
             broke.append(li);
           }
         } else if (!fromEdit) {
+          root.querySelector('[data-last]')!.textContent = '';
           diff.textContent = '';
           broke.replaceChildren();
         }
@@ -336,12 +340,22 @@ const uid = `rules-${book}`;
 </script>
 
 <style>
-  .status { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  .status {
+    display: flex; gap: 0.75rem; align-items: center; margin: 0 0 1rem;
+    position: sticky; top: 0; z-index: 3; background: var(--card); padding: 0.5rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
   .face { flex: none; display: inline-flex; }
-  .stats-title { margin: 0; font-weight: 700; }
+  .stats-title { margin: 0; font-weight: 700; font-size: 0.85rem; }
   .n { font-weight: 400; color: var(--ink-soft); }
-  .stat-row { margin: 0.2rem 0 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1.1rem; }
-  .stat strong { font-size: var(--step-1); font-variant-numeric: tabular-nums; margin-right: 0.2rem; }
+  .stat-row { margin: 0.1rem 0 0; display: flex; flex-wrap: wrap; gap: 0 0.9rem; }
+  .stat strong { font-size: var(--step-0); font-variant-numeric: tabular-nums; margin-right: 0.2rem; }
+  .last { margin: 0.1rem 0 0; font-size: 0.8rem; color: var(--ink-soft); }
+  .last:empty { display: none; }
+  @media (max-width: 30rem) {
+    .face :global(svg) { width: 36px; height: 36px; }
+    .stat { font-size: 0.8rem; }
+  }
   .stat.miss strong { color: var(--alarm); }
 
   .sets { display: inline-flex; border: 1px solid var(--ink); border-radius: 999px; overflow: hidden; margin-bottom: 1rem; }
@@ -358,8 +372,11 @@ const uid = `rules-${book}`;
   }
   .chip-btn:hover { background: var(--gold-wash); }
   .chip-btn code { font-family: var(--font-mono); font-size: 0.82rem; overflow-wrap: anywhere; }
-  .chip-btn:disabled { opacity: 0.5; cursor: default; text-decoration: line-through; }
+  .chip-btn:disabled { cursor: default; background: var(--calm-wash); border-color: var(--calm); color: var(--ink); }
   .plus { font-weight: 700; color: var(--gold-ink); }
+  .added { display: none; font-weight: 700; color: var(--calm); font-family: var(--font-ui); font-size: 0.8rem; margin-right: 0.3rem; }
+  .chip-btn:disabled .plus { display: none; }
+  .chip-btn:disabled .added { display: inline; }
 
   .lbl { display: block; font-weight: 700; margin-bottom: 0.3rem; }
   .hint { font-weight: 400; color: var(--ink-soft); }
@@ -369,6 +386,7 @@ const uid = `rules-${book}`;
     background: var(--paper); color: var(--ink); resize: vertical; white-space: pre-wrap; overflow-wrap: anywhere;
   }
   @media (min-width: 40rem) { textarea { font-size: 0.9rem; } }
+  textarea.nowrap { white-space: pre; overflow-wrap: normal; overflow-x: auto; }
   .errors { margin: 0.4rem 0 0; padding-left: 1.2rem; color: var(--gold-ink); font-weight: 700; }
   .errors:empty { display: none; }
 

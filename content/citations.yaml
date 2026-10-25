@@ -25,7 +25,7 @@ references:
     authors: Turing, A. M.
     year: 1936
     title: 'On computable numbers, with an application to the Entscheidungsproblem'
-    venue: Proceedings of the London Mathematical Society s2-42(1), 230-265 (received 28 May 1936, read 12 November 1936; printed 1937)
+    venue: Proceedings of the London Mathematical Society s2-42 (1936-37), 230-265; published in two parts, pt. 3 (30 November 1936, pp. 230-240) and pt. 4 (23 December 1936, pp. 241-265); received 28 May 1936, read 12 November 1936
     doi: 10.1112/plms/s2-42.1.230
     verified:
       by: Claude (Crossref metadata; passages read in the Oxford e-library transcription, cs.ox.ac.uk/activities/ieg/e-library/sources/tp2-ie.pdf)
@@ -36,7 +36,8 @@ references:
         "scanned symbol" at a time; its behaviour is determined by the m-configuration and the scanned symbol; it
         writes, erases, moves one square left or right. §6 (pp. 241-242): "It is possible to invent a single
         machine which can be used to compute any computable sequence", given a tape on the beginning of which is
-        written the standard description of another machine.
+        written the standard description of another machine. Part dates (30 Nov and 23 Dec 1936) from the
+        Christie's and Bauman Rare Books catalogue descriptions of the original parts, not checked in the parts.
   rumelhart1986:
     authors: Rumelhart, D. E.; Hinton, G. E.; Williams, R. J.
     year: 1986

@@ -46,7 +46,8 @@ export function verdict(m: TapeMachine, text: string): 'urgent' | 'can_wait' {
 export function saveToBoard(messages: CorpusMessage[], w = word) {
   const m = machine(w);
   saveModel({
-    id: 'ch1-one-rule',
+    // Bea's word and the reader's own word get separate places on the board.
+    id: w === DEFAULT_WORD ? 'ch1-one-rule' : 'ch1-own-rule',
     name: `Wick, one rule: “${w}”`,
     chapter: 1,
     scores: scoreModel(messages, (x) => ({ label: verdict(m, x.text) })),

@@ -7,7 +7,7 @@ import { chromium } from 'playwright';
 const dist = 'apps/site/dist', out = process.argv[2] ?? '.';
 const srv = await serve(dist);
 const b = await chromium.launch();
-for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'phone', 'light'], [390, 844, 'phone-dark', 'dark']]) {
+for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'phone', 'light'], [390, 844, 'phone-dark', 'dark'], [360, 740, 'phone360', 'light']]) {
   const phone = w < 500;
   const ctx = await b.newContext({ viewport: { width: w, height: h }, colorScheme: scheme, isMobile: phone, hasTouch: phone, deviceScaleFactor: phone ? 2 : 1 });
   const page = await ctx.newPage();
@@ -29,6 +29,8 @@ for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'pho
   }
   await ed.locator('[data-diff]').scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${out}/ch2-${tag}-patched.png` });
+  await ed.locator('[data-src]').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `${out}/ch2-${tag}-editing.png` });
   await page.locator('.predict-check button').first().click();
   console.log(tag, 'check:', await page.locator('.predict-check p').first().innerText());
 
@@ -58,6 +60,8 @@ for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'pho
   console.log(tag, 'three night:', await stats(three));
   await three.locator('.status').scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${out}/ch2-${tag}-night.png` });
+  await three.locator('[data-src]').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `${out}/ch2-${tag}-three-book.png` });
   await three.locator('[data-save]').click();
   await page.locator('.predict-check button').last().click();
   console.log(tag, 'check2:', await page.locator('.predict-check p').last().innerText());
@@ -65,6 +69,7 @@ for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'pho
   await page.locator('[data-ward-board]').first().scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${out}/ch2-${tag}-board.png` });
 
+  await page.click('[data-predict="speckly"] [data-option="No"]');
   const tester = page.locator('[data-rule-tester]');
   console.log(tag, 'speckly/three:', (await tester.locator('.out').innerText()).replace(/\n/g, ' | '));
   await tester.locator('[data-book="yours"]').click();

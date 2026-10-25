@@ -20,6 +20,12 @@ describe('the First Night, on the shared corpus', () => {
 
   it('turns "purple" into eighteen rows, and prints URGENT for the test card on the 38th step', () => {
     expect(m.rules.length).toBe(18);
+    // six forward, six "anything else", five where the word starts again halfway, one for the end of the tape
+    const forward = new Set(['start>p', 'p>pu', 'pu>pur', 'pur>purp', 'purp>purpl', 'purpl>stop']);
+    expect(m.rules.filter((r) => forward.has(`${r.state}>${r.next}`)).length).toBe(6);
+    expect(m.rules.filter((r) => r.read === '*').length).toBe(6);
+    expect(m.rules.filter((r) => r.read !== '*' && r.read !== '' && !forward.has(`${r.state}>${r.next}`)).length).toBe(5);
+    expect(m.rules.filter((r) => r.read === '').length).toBe(1);
     const r = runTape(m, TEST_CARD);
     expect(r.output).toBe('URGENT');
     expect(r.steps).toBe(38);
@@ -41,6 +47,10 @@ describe('the First Night, on the shared corpus', () => {
     expect(Math.round(s.accuracy * 10)).toBe(7);
     expect(s.accuracy).toBeGreaterThan(wait.accuracy);
     expect(s.accuracy - wait.accuracy).toBeLessThan(0.06);
+    // "72 right in a hundred to their 68"
+    expect(Math.round(s.accuracy * 100)).toBe(72);
+    expect(Math.round(wait.accuracy * 100)).toBe(68);
+    expect(chapter).toContain("72 right in a hundred to their 68");
     expect(day.filter((x) => x.label === 'urgent').length).toBe(126);
     expect(s.missedEmergencies).toBe(102);
     expect(s.unnecessaryEscalations).toBe(9);

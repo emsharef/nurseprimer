@@ -29,45 +29,29 @@ something to follow them. She never got round to writing the card."
 So you write it. The card has room for rows like this one: *if you're in this state and you see this letter, move
 on and go to that state.* The states are all the memory Wick has: which letters it has just seen.
 
-Bea taps the index card on the noticeboard. Little purple spots. "Start with purple."
+Bea taps the index card on the noticeboard. Little purple spots. "Start with purple." Punch her word onto the card,
+then step Wick along the tape, or let it run.
 
 <Widget
   title="Wick's tape reader"
-  summary="Write a word for Wick's first rule; the rule card is built from it, one row per state and letter. Step or run the read head along the tape for Bea's test card, watch the state change, the matching letters light up and the rule row in use highlighted, and see what Wick prints. A button shows the same rule card written out as plain symbols."
+  summary="Punch Bea's word onto Wick's rule card; the card is built from it, one row per state and letter. Step or run the read head along the tape for Bea's test card, watch the state change, the matching letters light up and the rule row in use highlighted, and see what Wick prints. A button shows the same rule card punched as tape."
   realSystems="A real computer keeps its symbols in electronic memory rather than on paper, takes billions of steps a second, and fetches its rules (the program) from the same memory as the data; but each step is still one small rule applied to symbols."
 >
-  <TapeMachine editable turnOver presets={[{ label: "Bea's test card", text: 'she has a fever and some little purple spots on her legs. i pressed a glass on them like my mum said and they dont fade.' }]} />
+  <TapeMachine editable turnOver reveal="card" presets={[{ label: "Bea's test card", text: 'she has a fever and some little purple spots on her legs. i pressed a glass on them like my mum said and they dont fade.' }]} />
 </Widget>
 
-Punch the rule and step through it. Six letters became eighteen rows: one to move forward for each letter of
-*purple*, one in each state to give up and start again on any other letter, a few for when a *p* turns up halfway through, and
-one for the end of the tape. Wick ticks along the tape past *she has a fever and some little*, and on its
-thirty-eighth step, at the *e* of *purple*, it prints URGENT.
+<div data-after-run="card">
+
+Six letters became eighteen rows: one to move forward for each letter of *purple*, one in each state to give up
+and start again on any other letter, five for when the word starts again halfway, and one for the end of the
+tape. Wick ticks along the tape past *she has a fever and some little*, and on its thirty-eighth step, at the *e*
+of *purple*, it prints URGENT.
 
 Bea reads the strip of tape, tears it off and pins it next to her card. "Well," she says. "That's one."
 
 It is a small triumph and you should enjoy it. The message is the one she never forgot, and Wick got it right.
 
----
-
-## What Wick knows
-
-Now look at what actually happened. Wick read a *p* and went into a state you could call "just seen p". It read a
-*u* and went into "seen pu". The space before the word sent it back to the start, and so did every other letter
-that didn't fit. Nothing in Wick has ever met a child, or a leg, or the colour purple. It moved from state to
-state by a card of rows, and the rows only mention letters.
-
-That, at bottom, is what every computer does. In 1936 the mathematician Alan Turing described a machine with a
-tape divided into squares, a head that is aware of one symbol at a time, a fixed set of states, and a table that
-says what to do for each state and symbol: write, move one square left or right, change state.<Cite k="turing1936" />
-Wick's card never writes and only moves right, so it's the simplest kind. Every computer since, from the one
-on the hospital's front desk to whatever is at the far end of Lyceum's cable, runs on a clock that ticks it
-through small rules about symbols like these, just very fast.
-
-Turing showed one more thing that matters for Wick. Press *Turn the card over* in the widget: the card is only
-symbols too, so it could be punched onto the front of the tape. One machine with the right rules could read
-another machine's card off its tape and then do whatever that machine would have done. That's why your phone
-can run a program somebody else wrote this morning. The rules are just more tape.<NoteRef id="universal" />
+</div>
 
 ---
 
@@ -94,8 +78,10 @@ At ten to one a message comes in about a five-year-old boy. You feed it to Wick 
   summary="The same tape reader and rule card, loaded with a Day Shift message about a boy who drew on his legs with felt-tip pens."
   realSystems="Real programs that look for words in text (spam filters, keyword alerts) fail exactly like this unless something more than the word is considered."
 >
-  <TapeMachine presets={[{ label: 'The ten-to-one message', text: "Not sure if I'm overthinking this, I'm shattered. Nephew, 5, temp 38.8 tonight. He was sick once around tea time but he's kept all his drinks down since, no more of that. When the calpol or nurofen kicks in he's back to himself, playing with his cars and chatting non stop, drinking fine. I did panic for a second when I got him changed because his legs were covered in purple marks, turns out he'd been drawing on himself with his felt tips, it all came off with a baby wipe, so that's not it lol. I think he's ok? Just want to check if I need to do anything else or just keep alternating" }]} />
+  <TapeMachine reveal="felttip" presets={[{ label: 'The ten-to-one message', text: "Not sure if I'm overthinking this, I'm shattered. Nephew, 5, temp 38.8 tonight. He was sick once around tea time but he's kept all his drinks down since, no more of that. When the calpol or nurofen kicks in he's back to himself, playing with his cars and chatting non stop, drinking fine. I did panic for a second when I got him changed because his legs were covered in purple marks, turns out he'd been drawing on himself with his felt tips, it all came off with a baby wipe, so that's not it lol. I think he's ok? Just want to check if I need to do anything else or just keep alternating" }]} />
 </Widget>
+
+<div data-after-run="felttip">
 
 <Plate id="ch01-felttip" size="column" />
 
@@ -105,9 +91,31 @@ somewhere on the tape, those six letters in that order.
 
 "Felt tip," says Bea. She doesn't laugh, quite.
 
-Here is the thing to hold on to. When Wick got the test card right, it felt as if Wick understood it. It didn't
-understand that message either. You knew that purple spots matter, so you wrote a rule about purple, and Wick
-followed it. The meaning was yours the whole time. The machine only ever had the letters.
+</div>
+
+---
+
+## What Wick knows
+
+When Wick got the test card right, it felt as if Wick understood it. It didn't understand either message. You
+knew purple spots matter, so you wrote a rule about purple, and Wick followed it. Look at what actually happened.
+Wick read a *p* and went into a state you could call "just seen p". It read a *u* and went into "seen pu". The
+space before the word sent it back to the start, and so did every other letter that didn't fit. Nothing in Wick
+has ever met a child, or a leg, or the colour purple. It moved from state to state by a card of rows, and the
+rows only mention letters. The meaning was yours the whole time.
+
+In 1936 the mathematician Alan Turing described a machine with a tape divided into squares, a head that is aware
+of one symbol at a time, a fixed set of states, and a table that says what to do for each state and symbol:
+write, move one square left or right, change state.<Cite k="turing1936" /> Wick's card never writes and only
+moves right, so it's the simplest kind. Anything a computer does can be broken into steps like these, and every
+computer since, from the one on the hospital's front desk to whatever is at the far end of Lyceum's cable, runs
+on a clock that ticks it through small rules about symbols, just very fast.
+
+Turing showed one more thing that matters for Wick. Go back to the tape reader and press *Turn the card over*:
+the card is only symbols too, so it could be punched onto the front of the tape. One machine with the right
+rules could read another machine's card off its tape and then do whatever that machine would have done. That
+idea is why your phone can run a program somebody else wrote this morning. The rules are just more
+tape.<NoteRef id="universal" />
 
 ---
 
@@ -126,20 +134,20 @@ seen. "Let's see how your one rule does on all of them."
 
 <Widget
   title="The Day Shift through the tape reader"
-  summary="Every Day Shift message is fed through Wick's tape reader with your rule. The result is shown next to the machine that says everything can wait, with the calm messages Wick sent an ambulance to."
+  summary="Every Day Shift message is fed through Wick's tape reader with Bea's word. The result is shown next to the machine that says everything can wait, with the calm messages Wick sent an ambulance to. Afterwards you can punch a word of your own and feed the tray through again."
   realSystems="Real software is tested on held-out examples in just this way; a single keyword rule is a common first baseline, and usually a weak one."
 >
   <TapeScore />
 </Widget>
 
 Wick reads over a hundred and fifty thousand symbols and gets about seven messages in ten right, a few more than
-the machine that tells everyone to wait. Nine of its alarms are false: six children decorated in felt tip, three
-with blackcurrant juice round their mouths. That isn't the worst of it. Of the hundred and twenty-six emergencies
-in the tray, Wick catches twenty-four and misses a hundred and two. Thirteen of the parents it missed wrote that
-the spots were *purply* or *purplish*. Wick's card has a row for *purpl* followed by an *e*. Anything else and it
-goes back to the start.
+the machine that tells everyone to wait. The false alarms aren't the worst of it. Of the hundred and twenty-six
+emergencies in the tray, Wick catches twenty-four and misses a hundred and two. Thirteen of the parents it missed
+wrote that the spots were *purply* or *purplish*. Wick's card has a row for *purpl* followed by an *e*. Anything
+else and it goes back to the start.
 
-Put Wick on the Ward Board. It sits just above *Everything can wait*, and not by much.
+Put Wick on the Ward Board. Its score edges past *Everything can wait*'s: 72 right in a hundred to their 68. Then
+try a word of your own on the tray, and see whether any single word does much better.
 
 <WardBoard />
 

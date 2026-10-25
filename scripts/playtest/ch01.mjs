@@ -6,7 +6,7 @@ import { chromium } from 'playwright';
 const dist = 'apps/site/dist', out = process.argv[2] ?? '.';
 const srv = await serve(dist);
 const b = await chromium.launch();
-for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'phone', 'light'], [390, 844, 'phone-dark', 'dark']]) {
+for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'phone', 'light'], [390, 844, 'phone-dark', 'dark'], [360, 740, 'phone360', 'light']]) {
   const phone = w < 500;
   const ctx = await b.newContext({ viewport: { width: w, height: h }, colorScheme: scheme, isMobile: phone, hasTouch: phone, deviceScaleFactor: phone ? 2 : 1 });
   const page = await ctx.newPage();
@@ -14,7 +14,7 @@ for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'pho
   await page.goto(`${srv.origin}/chapters/01-tape/`);
   await page.waitForTimeout(600);
   const first = page.locator('[data-tape-machine]').first();
-  await first.locator('[data-word]').fill('purple');
+  console.log(tag, 'after-run hidden before run:', await page.locator('[data-after-run="card"]').isHidden(), await page.locator('[data-after-run="felttip"]').isHidden());
   await first.locator('button[type=submit]').click();
   console.log(tag, 'punched:', await first.locator('[data-form-msg]').innerText());
   for (let i = 0; i < 4; i++) await first.locator('[data-step]').click();
@@ -27,9 +27,14 @@ for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'pho
   await first.locator('[data-turn]').click();
   await first.locator('.console').scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${out}/ch1-${tag}-tape-done.png` });
+  await first.locator('[data-encoded]').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `${out}/ch1-${tag}-turnover.png` });
+  console.log(tag, 'card text shown after run:', await page.locator('[data-after-run="card"]').isVisible());
 
   const lockedBefore = await page.locator('.predict-locked').count();
   await page.locator('[data-predict="felt-tip"]').scrollIntoViewIfNeeded();
+  await page.mouse.wheel(0, 500);
+  await page.waitForTimeout(200);
   await page.screenshot({ path: `${out}/ch1-${tag}-locked.png` });
   await page.click('[data-predict="felt-tip"] [data-option="URGENT"]');
   const second = page.locator('[data-tape-machine]').nth(1);
@@ -38,6 +43,8 @@ for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'pho
   console.log(tag, 'locked before:', lockedBefore, '| felt tip:', await second.locator('[data-printout]').innerText(), '| read', await second.locator('[data-steps]').innerText());
   await second.locator('.console').scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${out}/ch1-${tag}-felttip.png` });
+  await page.locator('[data-after-run="felttip"]').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `${out}/ch1-${tag}-felttip-after.png` });
   await page.locator('.predict-check button').first().click();
   console.log(tag, 'check:', await page.locator('.predict-check p').first().innerText());
 
@@ -52,6 +59,13 @@ for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'pho
   await page.screenshot({ path: `${out}/ch1-${tag}-score.png` });
   await page.locator('[data-ward-board]').first().scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${out}/ch1-${tag}-board.png` });
+  await page.fill('[data-own-word]', 'glass');
+  await page.click('[data-own] button');
+  await page.waitForTimeout(1500);
+  console.log(tag, 'own word:', (await page.locator('[data-tape-score] .results').innerText()).replace(/\n/g, ' | '));
+  await page.click('[data-tape-score] [data-save]');
+  await page.locator('[data-own]').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `${out}/ch1-${tag}-own.png` });
   await settle(page);
   await page.screenshot({ path: `${out}/ch1-${tag}.png`, fullPage: true, scale: 'css' });
   console.log(tag, 'errors:', errs);

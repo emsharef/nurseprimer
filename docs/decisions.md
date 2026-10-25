@@ -138,3 +138,8 @@ of 2026-10-25 ("don't ask questions, start building ... work as you see best"); 
   - *Recordings ship* as `/data/agent/<scenario>-<model>.json` built by a static endpoint and fetched on demand
     (~150 KB each before compression) rather than inlined in the page.
   - *Halting:* one paragraph, scoped to open-ended agents, explicitly not to a fixed finite-context model (plan 10.3).
+- **Nights 1-2 after review (chapter-builder):** Night 1's first rule card is fixed to Bea's word (read-only);
+  the reader's own word comes after the tray, saved to the board under a separate id. Prose reacting to a tape
+  run stays hidden until that machine stops (`reveal` / `data-after-run`, visible without JS). Night 2's first
+  card is `"purple*"` (reproduces the tape's 102 missed / 9 alarms). Site-wide: `.btn` min-height 2.75rem,
+  `details.hint` summaries 44px, larger note/cite tap targets, and code blocks wrap instead of scrolling.
