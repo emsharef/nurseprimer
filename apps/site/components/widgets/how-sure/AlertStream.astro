@@ -10,7 +10,11 @@ import { STREAM } from './store.ts';
     <p>
       {STREAM.length} slips from the Night Shift and the 2 a.m. Set. A new one is pinned to the board every four
       seconds. For each, read the message and Wick's call, then <strong>agree</strong> or <strong>overrule</strong>.
-      You can pause whenever you like.
+    </p>
+    <p class="warn">
+      Nobody can read a slip properly in four seconds. You will fall behind; that's the point, not a test you can
+      fail. You can pause whenever you like, and nothing times out. On a keyboard, <kbd>A</kbd> agrees and
+      <kbd>O</kbd> overrules.
     </p>
     <button type="button" class="btn primary" data-start disabled>Start the hour</button>
     <span class="status" data-status aria-live="polite">Loading the night's messages…</span>
@@ -19,10 +23,13 @@ import { STREAM } from './store.ts';
   <div class="run" data-run hidden>
     <div class="topbar">
       <span class="clock" data-clock aria-hidden="true">0:00</span>
-      <span class="queue" data-queue aria-live="polite"></span>
+      <span class="queue" data-queue></span>
       <button type="button" class="btn" data-pause aria-pressed="false">Pause</button>
     </div>
-    <div class="board" data-board aria-hidden="true"></div>
+    <div class="board-row">
+      <span class="waiting-n" data-waiting-n aria-live="polite"></span>
+      <div class="board" data-board aria-hidden="true"></div>
+    </div>
 
     <article class="slip" data-slip aria-live="polite" aria-atomic="true">
       <p class="slip-head" data-slip-head></p>
@@ -33,7 +40,7 @@ import { STREAM } from './store.ts';
         <button type="button" class="btn choice" data-overrule>Overrule</button>
       </div>
     </article>
-    <p class="paused-note" data-paused-note hidden>Paused. The clock has stopped and no slips arrive.</p>
+    <p class="paused-note" data-paused-note hidden>Paused. The clock has stopped and no new slips arrive. Take your time with this one.</p>
   </div>
 
   <div class="done" data-done hidden tabindex="-1">
@@ -96,8 +103,12 @@ import { STREAM } from './store.ts';
   function show() {
     const i = decisions.length;
     const waiting = arrived - i;
-    $('[data-queue]').textContent = i >= slips.length ? '' :
-      `Slip ${Math.min(i + 1, slips.length)} of ${slips.length} · ${waiting > 1 ? `${waiting - 1} more waiting on the board` : 'none waiting'}`;
+    $('[data-queue]').textContent = i >= slips.length ? '' : `Slip ${Math.min(i + 1, slips.length)} of ${slips.length}`;
+    const behind = Math.max(0, waiting - 1);
+    const wn = $('[data-waiting-n]');
+    const text = behind ? `${behind} more waiting on the board` : 'Nothing else waiting';
+    if (wn.textContent !== text) wn.textContent = text;
+    wn.classList.toggle('behind', behind >= 3);
     const board = $('[data-board]');
     board.replaceChildren(...Array.from({ length: Math.max(0, waiting - 1) }, () => {
       const d = document.createElement('span');
@@ -108,7 +119,8 @@ import { STREAM } from './store.ts';
     const has = i < arrived && i < slips.length;
     // The slip box stays in place while the board is clear, so the page doesn't jump under your thumb.
     slipEl.classList.toggle('empty', !has);
-    root.querySelectorAll<HTMLButtonElement>('.choice').forEach((b) => (b.disabled = !has || paused));
+    // aria-disabled rather than disabled, so keyboard focus stays on the button between slips.
+    root.querySelectorAll<HTMLButtonElement>('.choice').forEach((b) => b.setAttribute('aria-disabled', String(!has)));
     if (!has) {
       if (slipEl.dataset.id !== '') {
         slipEl.dataset.id = '';
@@ -126,7 +138,7 @@ import { STREAM } from './store.ts';
       $('[data-slip-text]').textContent = s.text;
       $('[data-face]').innerHTML = wickFace(s.wick, 40);
       const call = $('[data-call]');
-      call.textContent = `Wick: ${word(s.wick)} · needle ${pct(s.p)}`;
+      call.textContent = `Wick: ${word(s.wick)} · needle ${pct(s.p)} · line 1%`;
       call.className = `call-text machine ${s.wick}`;
       if (!reduce) { slipEl.classList.remove('enter'); void slipEl.offsetWidth; slipEl.classList.add('enter'); }
     }
@@ -145,7 +157,7 @@ import { STREAM } from './store.ts';
   }
 
   function decide(agreed: boolean) {
-    if (!running || paused) return;
+    if (!running) return;
     const i = decisions.length;
     if (i >= arrived) return;
     tick();
@@ -285,6 +297,17 @@ import { STREAM } from './store.ts';
   });
   $('[data-agree]').addEventListener('click', () => decide(true));
   $('[data-overrule]').addEventListener('click', () => decide(false));
+  document.addEventListener('keydown', (e) => {
+    if (!running || e.altKey || e.ctrlKey || e.metaKey) return;
+    const t = e.target as HTMLElement;
+    if (t.closest('input, textarea, select, [contenteditable]')) return;
+    const k = e.key.toLowerCase();
+    if (k !== 'a' && k !== 'o') return;
+    e.preventDefault();
+    const b = $<HTMLButtonElement>(k === 'a' ? '[data-agree]' : '[data-overrule]');
+    b.focus({ preventScroll: true });
+    decide(k === 'a');
+  });
   $('[data-start]').addEventListener('click', start);
   $('[data-again]').addEventListener('click', start);
   document.addEventListener('visibilitychange', () => {
@@ -313,13 +336,18 @@ import { STREAM } from './store.ts';
   .topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; margin-bottom: 0.6rem; }
   .clock { font-family: var(--font-mono); font-size: var(--step-1); font-variant-numeric: tabular-nums; }
   .queue { flex: 1 1 10rem; color: var(--ink-soft); }
-  .board { display: flex; flex-wrap: wrap; gap: 4px; min-height: 18px; margin-bottom: 0.75rem; }
-  :global(.stream .pin) { width: 22px; height: 16px; background: var(--paper); border: 1px solid var(--ink-soft); border-top: 3px solid var(--gold); border-radius: 1px; }
+  .board-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.75rem; min-height: 2rem; margin-bottom: 0.75rem; }
+  .waiting-n { font-weight: 700; }
+  :global(.stream .waiting-n.behind) { color: var(--gold-ink); }
+  .board { display: flex; flex-wrap: wrap; gap: 5px; }
+  :global(.stream .pin) { width: 30px; height: 22px; background: var(--paper); border: 1px solid var(--ink-soft); border-top: 4px solid var(--gold); border-radius: 1px; box-shadow: 1px 1px 0 var(--rule); }
+  .warn { margin: 0 0 1rem; padding: 0.5rem 0.75rem; background: var(--gold-wash); border-radius: var(--radius-ui); }
+  kbd { font-family: var(--font-mono); border: 1px solid var(--ink-soft); border-radius: 3px; padding: 0 0.3em; background: var(--card); }
+  .choice[aria-disabled='true'] { opacity: 0.55; cursor: default; }
   .slip { border: 1px solid var(--ink); border-radius: var(--radius-ui); background: var(--paper); padding: 0.9rem 1rem; }
   .slip[hidden] { display: none; }
   :global(.stream .slip.enter) { animation: slip-in 260ms ease-out; }
   @keyframes slip-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
-  .is-paused .slip { opacity: 0.5; }
   .slip-head { margin: 0 0 0.4rem; color: var(--ink-soft); font-size: 0.85rem; }
   .slip-text { margin: 0 0 0.75rem; font-family: var(--font-read); font-size: 1.02rem; line-height: 1.5; }
   .call { display: flex; align-items: center; gap: 0.6rem; margin: 0 0 0.9rem; }

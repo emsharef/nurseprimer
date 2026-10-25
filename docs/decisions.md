@@ -186,3 +186,12 @@ of 2026-10-25 ("don't ask questions, start building ... work as you see best"); 
     seeded samples to avoid alcohol, sex, weapons and grim content that some seeds produced; the greedy (T=0) run is
     not curated.
   - *No Ward Board* on this night: neither the counting machine nor the voice classifies anything (Bea says so).
+
+- **Eleventh Night revisions (editor + playtest).** Answers now wait for the reader: a small
+  `components/chapter/Reveal.astro` (imported per chapter) holds prose until a named Predict is answered and,
+  optionally, a widget event fires (here `primer:poured` from the jars); the jars keep Night and 2 a.m. closed
+  until the night guess. The bell is set up on two signals, and the chapter says honestly how far the second goes:
+  `unknownShare` (share of a message's words with no knob; flag at 5%, in `how-sure/store.ts`) catches 3 of the
+  2 a.m. Set's 4 calm, sure misses at the 9% line (28 of 160 messages flagged) but only 1 of the Night Shift's 6,
+  whose misses are no stranger than the calm messages Wick got right; 5 of those 6 are febrile babies of a few
+  months (an age and a number, not strange words). Pinned in ch11-claims.test.ts for Night 12 to build on.

@@ -26,6 +26,7 @@ const CX = 110, CY = 104, R = 84;
       <circle cx={CX} cy={CY} r="7" class="dial-hub" />
       <text x={CX - R} y={CY + 22} class="dial-t" text-anchor="middle">0</text>
       <text x={CX + R} y={CY + 22} class="dial-t" text-anchor="middle">100%</text>
+      <text x={CX} y={CY - 26} class="dial-t dial-you" text-anchor="middle" data-you-label>your line</text>
     </svg>
     <p class="line-text" data-line-text aria-live="polite"></p>
   </div>
@@ -37,7 +38,7 @@ const CX = 110, CY = 104, R = 84;
   </div>
 
   <figure class="chart">
-    <figcaption class="chart-title" data-chart-title>Every line Wick could have, on the Day Shift</figcaption>
+    <figcaption class="chart-title" data-chart-title>Lines from 1% to 50%, on the Day Shift</figcaption>
     <svg viewBox="0 0 600 330" role="img" aria-labelledby="tradeoff-title tradeoff-desc">
       <title id="tradeoff-title">Missed emergencies against needless alarms</title>
       <desc id="tradeoff-desc" data-desc>Loading.</desc>
@@ -73,7 +74,7 @@ const CX = 110, CY = 104, R = 84;
 
 <script>
   import { thresholdSweep, atThreshold, defaultGrid } from '@primer/ward-board';
-  import { CHANGE_EVENT } from '@primer/notebook';
+  import { CHANGE_EVENT, load } from '@primer/notebook';
   import { mountRogues } from '../../../src/lib/rogues.ts';
   import { wickReadings, SETS, RATIOS, costsFor, lineFor, getRatio, setRatio, onRatio, saveHandover, type TestSplit } from './store.ts';
 
@@ -105,12 +106,19 @@ const CX = 110, CY = 104, R = 84;
       const mark = root.querySelector('[data-mark]')!;
       mark.setAttribute('x1', nx.toFixed(1)); mark.setAttribute('y1', ny.toFixed(1));
       mark.setAttribute('x2', mx.toFixed(1)); mark.setAttribute('y2', my.toFixed(1));
+      // "your line" sits just inside the tick.
+      const [lx, ly] = dialPoint(t, R - 30);
+      const label = root.querySelector('[data-you-label]')!;
+      label.setAttribute('x', (lx + (t < 0.35 ? -4 : 0)).toFixed(1));
+      label.setAttribute('y', (Math.min(ly, CY - 18) + 4).toFixed(1));
+      label.setAttribute('text-anchor', t < 0.35 ? 'start' : 'middle');
     }
 
     function drawChart(t: number, r: number) {
       const items = readings[split];
-      // Every line from 1% to 99%, plus yours (the board's line sits just under 1%).
-      const grid = [...new Set([...defaultGrid(), t])].sort((x, y) => x - y);
+      // Every line from 1% to 50% (above the middle nothing interesting happens), plus yours: the board's
+      // line sits just under 1%. The axes fit that range, so the curve fills the box instead of hugging it.
+      const grid = [...new Set([...defaultGrid().filter((g) => g <= 0.5), t])].sort((x, y) => x - y);
       const sweep = thresholdSweep(items, costsFor(r), grid);
       const low = sweep[0], high = sweep.at(-1)!;
       const xMax = Math.max(10, Math.ceil(low.alarms / 10) * 10);
@@ -137,9 +145,9 @@ const CX = 110, CY = 104, R = 84;
       };
       place('[data-half]', '[data-half-t]', half, Math.abs(t - 0.5) < 0.005 ? '' : '50% line');
       place('[data-you]', '[data-you-t]', you, `your line, ${pct(t)}`);
-      root.querySelector('[data-chart-title]')!.textContent = `Every line Wick could have, on the ${setName(split).replace(/^The /, '')}`;
+      root.querySelector('[data-chart-title]')!.textContent = `Lines from 1% to 50%, on the ${setName(split).replace(/^The /, '')}`;
       root.querySelector('[data-desc]')!.textContent =
-        `A curve from ${high.missed} missed emergencies and ${high.alarms} needless alarms (line at 99%) to ${low.missed} missed and ${low.alarms} needless alarms (line at ${pct(low.threshold)}). At the 50% line: ${half.missed} missed, ${half.alarms} needless. At your line of ${pct(t)}: ${you.missed} missed, ${you.alarms} needless.`;
+        `A curve from ${high.missed} missed emergencies and ${high.alarms} needless alarms (line at 50%) to ${low.missed} missed and ${low.alarms} needless alarms (line at ${pct(low.threshold)}). At the 50% line: ${half.missed} missed, ${half.alarms} needless. At your line of ${pct(t)}: ${you.missed} missed, ${you.alarms} needless.`;
     }
 
     function table(t: number, r: number) {
@@ -194,7 +202,12 @@ const CX = 110, CY = 104, R = 84;
       saveHandover(c, wick, getRatio());
       root.querySelector('[data-saved]')!.textContent = `On the board, with its line at ${pct(lineFor(getRatio()))}.`;
     });
-    mountRogues(root.querySelector('[data-rogues]')!, (text) => (wick.pUrgent(text) >= lineFor(getRatio()) ? 'urgent' : 'can_wait'), 'Wick with your handover line');
+    // Only show the Rogues' Gallery to readers who have one (it's filled on the Third Night).
+    const roguesEl = root.querySelector<HTMLElement>('[data-rogues]')!;
+    const showRogues = () => (roguesEl.hidden = !(load().rogues ?? []).length);
+    mountRogues(roguesEl, (text) => (wick.pUrgent(text) >= lineFor(getRatio()) ? 'urgent' : 'can_wait'), 'Wick with your handover line');
+    showRogues();
+    addEventListener(CHANGE_EVENT, showRogues);
     update();
   }).catch((e) => (root.querySelector('[data-line-text]')!.textContent = e.message));
 </script>
@@ -214,6 +227,8 @@ const CX = 110, CY = 104, R = 84;
   .dial-line { stroke: var(--ink); stroke-width: 3; }
   .dial-hub { fill: var(--gold); stroke: var(--ink); stroke-width: 1.5; }
   .dial-t { font-family: var(--font-ui); font-size: 15px; fill: var(--ink-soft); }
+  .dial-you { fill: var(--ink); font-weight: 700; }
+  .rogues[hidden] { display: none; }
   .line-text { flex: 1 1 14rem; margin: 0; }
   .sets { display: inline-flex; border: 1px solid var(--ink); border-radius: 999px; overflow: hidden; margin-bottom: 0.75rem; }
   .sets button { border: 0; background: transparent; padding: 0.35rem 1rem; min-height: 2.75rem; cursor: pointer; font-size: var(--step--1); }

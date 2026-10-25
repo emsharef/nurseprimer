@@ -3,7 +3,7 @@
 // the reader sets with the cost slider. Module state is shared because every widget imports this one module.
 import { scoreModel, thresholdForCosts, type Scored } from '@primer/ward-board';
 import { saveModel } from '@primer/notebook';
-import type { BagOfWords } from '@primer/ml-core';
+import { bag, type BagOfWords } from '@primer/ml-core';
 import { ensureTrained } from '../knobs/store.ts';
 import { loadCorpus, type Corpus, type CorpusMessage } from '../../../src/lib/corpus.ts';
 
@@ -22,6 +22,17 @@ export const BOARD_RATIO = 100;
 
 export const costsFor = (ratio: number) => ({ missCost: ratio, escalationCost: 1 });
 export const lineFor = (ratio: number) => thresholdForCosts(costsFor(ratio));
+
+/**
+ * Share of a message's distinct words that Wick has no knob for: a second "I don't know" signal beside the
+ * needle. Measured on the Eleventh Night: a share of 5% or more flags 3 of the 2 a.m. Set's 4 quiet misses at
+ * the 9% line, but only 1 of the Night Shift's 6. For the Twelfth Night's handover bell to build on.
+ */
+export function unknownShare(wick: BagOfWords, text: string): number {
+  const words = [...bag(text)];
+  return words.length ? words.filter((w) => !wick.weights.has(w)).length / words.length : 0;
+}
+export const UNKNOWN_SHARE_FLAG = 0.05;
 
 export interface Reading extends Scored {
   m: CorpusMessage;
