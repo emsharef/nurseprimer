@@ -1,29 +1,89 @@
 ---
 import Base from '../layouts/Base.astro';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+const base = import.meta.env.BASE_URL;
+// Builds run from apps/site.
+const corpus = JSON.parse(readFileSync(join(process.cwd(), 'public/data/corpus.json'), 'utf8'));
+const n = corpus.messages.length;
 ---
-<Base title="About: A Young Nurse's Illustrated Primer">
-  <div class="column">
+<Base title="How this book was made: A Young Nurse's Illustrated Primer">
+  <div class="column about">
     <h1>How this book was made</h1>
+
     <h2>What it is, and what it isn't</h2>
     <p>
       This is a story about how modern AI works, for anyone curious. You build a little machine, one idea at a
-      time, that tries to read worried messages on a children's night line. It is not medical advice, and the
-      machines you build in it are not safe to triage anyone. Every message in it is made up; no real patient
-      data is used anywhere.
+      time, that tries to read worried messages on a children's night line, and you watch each version work and
+      then fail. It is a teaching book, not medical advice, and none of the machines in it is safe to triage
+      anyone. If you're worried about a child, call your local emergency number or a nurse line.
     </p>
-    <h2>How it was written</h2>
     <p>
-      Drafts of the prose were written with AI help (Claude, made by Anthropic). Any chapter that has not yet had a
-      human edit says so at the top, as does any chapter whose medical content a clinician has not yet reviewed.
+      The name is borrowed from the <em>Young Lady's Illustrated Primer</em> in Neal Stephenson's novel
+      <em>The Diamond Age</em>: a book that teaches by telling you a story in which you are the hero.
     </p>
-    <p>The book's illustrations were made with an image model (Nano Banana 2.1, from Google) and chosen by hand. Every chart and diagram is drawn from the real data in your browser, never by an image model.</p>
-    <p><code>TODO(review)</code> Name the human editor and the clinical reviewers here once they have signed off.</p>
+
+    <h2>The messages</h2>
+    <p>
+      Every message in the book is made up. There are {n.toLocaleString('en-GB')} of them, written by an AI model
+      (Claude Opus 5.5) from structured fact cards, then checked by a second model (Claude Sonnet 5.5) that read each
+      one without seeing its card. Each message is labelled <em>urgent</em> or <em>can wait</em> by a fixed rule
+      based on NHS public guidance about meningitis, sepsis and fever in children; the label comes from the fact
+      card, never from a model's opinion. No real patient data is used anywhere. The full method, the guidance
+      pages and their review dates, and the corpus's known flaws are in the
+      <a href="https://github.com/emsharef/nurseprimer/blob/main/data/datacard.md">datacard</a>.
+    </p>
+    <p><code>TODO(review)</code> A clinician has not yet reviewed the labels or the messages.</p>
+
+    <h2>The machines</h2>
+    <p>
+      The small machines you build (rules, knobs, little networks) are written from scratch for this book and run
+      entirely in your browser; nothing you type is sent anywhere. Some nights download a small real language model
+      (GPT-2 from OpenAI, SmolLM2 from Hugging Face) to run in your browser, and always say how big the download is
+      first. Lyceum, the company with the speaking tube, is invented. Whenever its machine speaks, the words are a
+      recording of a real model's unedited answer, and the page says which model and when.
+    </p>
+
+    <h2>The pictures</h2>
+    <p>
+      The illustrations were made with an image model (Nano Banana 2.1, from Google) from written descriptions and
+      character sheets, and chosen by hand. Every chart and diagram is drawn from the real data in your browser,
+      never by an image model.
+    </p>
+
+    <h2>The writing</h2>
+    <p>
+      The text was drafted with AI help (Claude, made by Anthropic) and reviewed by AI critics for story, accuracy
+      and readability. Any chapter that has not yet had a human edit says so at the top, as does any chapter whose
+      medical details a clinician has not checked.
+    </p>
+    <p><code>TODO(review)</code> Name the human editor and the clinical reviewer here once they have signed off.</p>
+
     <h2>Sources</h2>
     <p>
       Every chapter lists its sources at the end. The book cites primary sources only, and a check runs on every
       build to make sure each source is cited and each citation has a source.
     </p>
+
+    <h2>Your notebook</h2>
+    <p>
+      The machines you build and the messages you keep for your Rogues' Gallery are saved in your browser only. To
+      start again, clear this site's data in your browser.
+    </p>
+
+    <h2>Licence and code</h2>
+    <p>
+      The code is MIT-licensed; the story, pictures and dataset are CC BY-NC 4.0. Everything is on
+      <a href="https://github.com/emsharef/nurseprimer">GitHub</a>.
+    </p>
+
     <h2>Edition</h2>
     <p>This is edition <span data-version>{__PRIMER_VERSION__}</span>. Every page shows the same edition stamp.</p>
+    <p><a href={base}>Back to the beginning</a></p>
   </div>
 </Base>
+
+<style>
+  .about { padding-top: clamp(2rem, 6vw, 4rem); }
+  h1 { font-size: clamp(var(--step-3), 7vw, var(--step-4)); margin: 0 0 1rem; }
+</style>
