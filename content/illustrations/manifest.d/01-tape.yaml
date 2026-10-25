@@ -1,0 +1,24 @@
+# The First Night: The Tape
+images:
+  - id: ch01-opener
+    aspect: '16:9'
+    refs: [sheet-you, sheet-bea, sheet-wick]
+    alt: Late at night under the desk lamp, Wick the clockwork owl sits on the desk with a small brass paper-tape reader fitted into its chest. You feed a strip of punched paper tape into it; Bea watches over her mug, an index card pinned on the noticeboard behind her.
+    prompt: >
+      Night scene at the nurses' desk under a warm desk lamp. The little clockwork owl from the reference sheet
+      sits on the desk; its chest panel is open and a small brass paper-tape reader has been fitted inside it:
+      two little rollers and a tiny read head over a narrow strip of punched paper tape (rows of small round
+      holes, no letters). The young nurse feeds the long paper tape into the owl's chest slot with both hands,
+      concentrating; the tape loops across the desk. The charge nurse sits beside, mug of tea in hand, watching
+      with a faint wry smile. Behind them a corkboard noticeboard with a single small blank index card pinned
+      to it. Owl's eyes glow a soft teal. Midnight-blue shadows, a computer screen glowing faintly. No text.
+  - id: ch01-felttip
+    aspect: '3:2'
+    refs: [sheet-wick]
+    alt: Wick sits alone on the desk with a curl of printed tape spilling from its chest, beside a child's felt-tip pen with its cap off and a few purple scribbles on a scrap of paper.
+    prompt: >
+      Close still-life at the nurses' desk at night: the little clockwork owl from the reference sheet stands
+      proudly, a short curl of paper tape pushed out of its chest slot, eyes glowing a little red-amber with
+      alarm. Next to it on the desk lies a child's chunky purple felt-tip pen with its cap off, and a scrap of
+      paper with loose childish purple scribbles (no letters, no shapes of words). Lamplight, deep blue
+      shadow, gently comic. No text.

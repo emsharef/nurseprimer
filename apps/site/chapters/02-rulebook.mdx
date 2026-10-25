@@ -1,0 +1,160 @@
+---
+number: 2
+title: The Rulebook
+lesson: Every rule mends one message and breaks another
+summary: One rule wasn't enough, so tonight Wick gets a rulebook. You patch it all night, and the Night Shift brings words you never wrote down.
+plate: ch02-opener
+review:
+  prose: ai-draft
+  medical: unreviewed
+---
+
+import RuleEditor from '../components/widgets/rulebook/RuleEditor.astro';
+import RuleTester from '../components/widgets/rulebook/RuleTester.astro';
+import { SPECKLY } from '../components/widgets/rulebook/books.ts';
+
+Last night's tape is still pinned to the noticeboard, URGENT in Wick's square capitals, next to the felt-tip
+one. On the Ward Board, one-rule Wick sits a whisker above *Everything can wait*.
+
+You come in early with a brass card drawer from the back of the supply cupboard, the kind that used to hold the
+ward's index of patients, and fit it into Wick's side where a panel was missing. One card wasn't enough. Tonight
+Wick gets a whole drawer of them.
+
+"A rulebook," says Bea. She sets her tea down. "Go on, then. Write down what I know."
+
+The rules go in a little language Wick can follow. Each one starts with *if*, names some words in quotes, and
+ends with an arrow and a verdict:
+
+```
+if "glass" and "dont" -> urgent
+if any of "fit", "floppy" -> urgent
+if "rash" and not "fade" -> urgent
+```
+
+Wick reads the drawer from the front. The first rule that matches decides, and if none does, the last line
+answers. A word in quotes matches a whole word, so *"purple"* doesn't match *purplish* unless you write
+*"purpl\*"*. Apostrophes are dropped, so *don't* is *dont*. That's the whole language.
+
+The drawer starts with last night's one rule. Bea has three patches ready for you, on index cards, and each new
+card goes in at the front, so Wick reads it first.
+
+<Predict
+  id="glass-patch"
+  question='Try the felt-tip patch first. Then the second card, if "glass" and "dont" -> urgent: will it break any messages Wick was getting right?'
+  options={['No, it only adds catches', 'Yes, a few', 'Yes, more than it fixes']}
+  answer="Yes, a few"
+  lock
+/>
+
+<Widget
+  title="Wick's rulebook"
+  summary="A rule editor scored as you type on all 395 Day Shift messages: right, missed emergencies and needless alarms. After each change it says how many messages the change fixed and broke and shows the broken ones. Lists show the emergencies Wick misses and the calm messages it escalates, with the rule that decided each one."
+  realSystems="Rule-based 'expert systems' were built like this, by sitting with specialists and writing down what they said they did. They worked in narrow corners and became hard to keep straight as the rules piled up. Real triage protocols are rulebooks too, but a nurse applies them, asks questions, and uses judgement the rules don't hold."
+>
+  <RuleEditor book="yours" patches saveId="ch2-yours" saveName="Wick, your rulebook" goal={{ missed: 40, alarms: 40 }} />
+</Widget>
+
+The felt-tip card is free: five messages fixed and nothing broken. Enjoy it, because it's the last patch that
+comes free.
+
+The glass card fixes twenty-three emergencies and breaks ten calm messages. Read the ones it broke. A grandparent
+asks how much medicine to give because *I dont want to get it wrong*, and mentions that the rash on her
+granddaughter's arms goes pale under a glass. *Glass*, and *dont*: both present and correct. Wick has no idea the
+*don't* belongs to the medicine. Bea's third card, for fits and floppiness, fixes thirteen and breaks six, and
+every one of the six is a parent writing that there has been *no fit*, or that the child is *not floppy*.
+
+Now write your own. Bea's challenge is in the panel. Look through the emergencies Wick misses, find a phrase that
+catches some, and watch what it breaks. Open *Which rules did the work* to see each rule's record.
+
+<details class="hint">
+  <summary>Stuck? Some phrases from the pile.</summary>
+
+  Parents write *stiff neck*, but also *won't put her chin down*. They write *floppy*, *hard to wake* and *not
+  answering me properly*. Breathing is *fast*, *grunting*, *sucking in under his ribs*. A cry is *high pitched* or
+  *thin*. Skin is *mottled*, *blotchy*, *grey*; nappies are *dry*. Each of those is a sign in the NHS guidance the
+  labels follow, and each can be written a dozen other ways.
+</details>
+
+When you're happy with it, or tired of it, put your rulebook on the Ward Board.
+
+---
+
+## Three o'clock
+
+You don't stop. Every time Wick misses an emergency you write a rule for it, and every time a rule sends an
+ambulance to a child with a bit of blackcurrant on her chin you write another rule above it. Rules for babies
+under three months (Wick can't read a temperature, so you list *38*, *39* and *40* as words). Rules for *mottled*
+and *bluish* and *bone dry*. A rule for anyone who has already typed the word *ambulance*.
+
+<Plate id="ch02-three" size="column" />
+
+By three o'clock the drawer holds forty-one cards, and on the Day Shift Wick is better than it has ever been:
+96% right, three missed emergencies, thirteen needless alarms. You have read most of those 395 messages twice.
+
+Bea reads the Day Shift numbers over your shoulder. Then she goes to the cabinet and comes back with a different
+tray. "The Night Shift," she says. "Two clinics we've never had messages from. Voice-to-text, a lot of it. Plenty of
+families writing in two languages at once." She puts it down in front of Wick. "You didn't write your rules
+for these."
+
+<Predict
+  id="night-shift"
+  question="On the Day Shift the three o'clock rulebook misses 3 emergencies. How many will it miss on the Night Shift?"
+  options={['About the same', 'About twice as many', 'About five times as many']}
+  answer="About five times as many"
+  lock
+/>
+
+<Widget
+  title="The rulebook at three o'clock"
+  summary="The forty-one rules written by three o'clock, in the same editor. Switch between the Day Shift and the Night Shift to compare; the lists show which emergencies each misses and which rule let them through."
+  realSystems="Real systems built by hand from rules meet this every time they leave the place they were written: new words, new spellings, new ways of saying the same thing."
+>
+  <RuleEditor book="three" night saveId="ch2-three" saveName="Wick, 41 rules (3 a.m.)" />
+</Widget>
+
+Switch to the Night Shift and open the missed emergencies. Fifteen of them, where the Day Shift had three. Read
+them and they're not hard. A foster carer writes *petechiae*. A grandparent writes that the spots are
+*non-blanching, it seems*. A childminder pressed a glass on a little girl's spots and *dem nuh fade*. A boy's neck
+is *stif*. Another boy's hands and feet are *freezin cauld*. Any nurse on this line would have known each of them
+for an emergency by the end of the first sentence. Wick has cards for *dont fade* and *didnt go* and *still
+there*, and none of these families said it the way the cards do.
+
+Put the three o'clock rulebook on the board next to yours, then switch the board to the Night Shift.
+
+<WardBoard />
+
+People who build machines call this *brittle*. A rulebook works exactly as far as its author thought ahead, and
+stops dead one word past it. Every patch is written for the messages you've seen, so it sits a little better on
+the Day Shift and is no help at all to the next new word. You can always add one more card, and there is always
+one more word.
+
+---
+
+## Ten past three
+
+At ten past three a message comes in from a mother. You read it and your stomach turns over, and you feed it to
+Wick anyway.
+
+<Widget
+  title="Ten past three"
+  summary="One message at a time through a rulebook: the three o'clock rulebook or your own. Wick prints its verdict and the rule that decided, or says that no rule matched."
+  realSystems="Real rule-based systems fall through to a default when nothing matches, exactly like this, and the default is a choice someone made in advance."
+>
+  <RuleTester start={SPECKLY} />
+</Widget>
+
+Wick knows *spots* and *dots* and *rash*. It has never met *speckly*. It prints CAN WAIT.
+
+Try her message on your own rulebook too. If yours catches it, change one word, *speckly* to *freckly*, or *glass*
+to *tumbler*, and try again.
+
+You are already reaching for a blank card. Bea is reading the tape.
+
+<NightNote>
+  <Line who="young">I'll add speckly. And freckly. And petechiae.</Line>
+  <Line who="charge">And tomorrow somebody's nan will call them something we've never heard.</Line>
+  <Line who="young">How do you know them all? You must have rules.</Line>
+  <Line who="charge">I didn't learn rules. I learned from ten thousand calls. Ask me to write it down and I'll get the first page right, and the rest of it is just… knowing.</Line>
+  <Line who="young">Then that's what Wick needs. Not rules. The calls.</Line>
+  <Line who="charge">Then you'd better find a way for a box of brass to learn from them.</Line>
+</NightNote>

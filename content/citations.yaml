@@ -20,3 +20,20 @@ references:
     venue: Psychological Review 65(6), 386-408
     doi: 10.1037/h0042519
     verified: { by: Crossref metadata lookup (Claude), on: 2026-10-25, scope: metadata }
+
+  turing1936:
+    authors: Turing, A. M.
+    year: 1936
+    title: 'On computable numbers, with an application to the Entscheidungsproblem'
+    venue: Proceedings of the London Mathematical Society s2-42(1), 230-265 (received 28 May 1936, read 12 November 1936; printed 1937)
+    doi: 10.1112/plms/s2-42.1.230
+    verified:
+      by: Claude (Crossref metadata; passages read in the Oxford e-library transcription, cs.ox.ac.uk/activities/ieg/e-library/sources/tp2-ie.pdf)
+      on: 2026-10-25
+      scope: claim
+      note: >
+        §1 (pp. 231-232): a machine with a finite number of m-configurations, a tape divided into squares, one
+        "scanned symbol" at a time; its behaviour is determined by the m-configuration and the scanned symbol; it
+        writes, erases, moves one square left or right. §6 (pp. 241-242): "It is possible to invent a single
+        machine which can be used to compute any computable sequence", given a tape on the beginning of which is
+        written the standard description of another machine.

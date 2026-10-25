@@ -1,0 +1,412 @@
+---
+// The Second Night's rule editor: write Wick's rulebook in a tiny rule language (packages/ml-core/src/rules.ts)
+// and see it scored, as you type, on every message of the Day Shift (or the Night Shift). Each change reports
+// which messages it fixed and which it broke.
+import { FIRST_RULE, THREE_OCLOCK, PATCHES } from './books.ts';
+interface Props {
+  book: 'yours' | 'three';
+  patches?: boolean;
+  night?: boolean;
+  saveId: string;
+  saveName: string;
+  goal?: { missed: number; alarms: number };
+}
+const { book, patches = false, night = false, saveId, saveName, goal } = Astro.props;
+const src = book === 'three' ? THREE_OCLOCK : FIRST_RULE;
+const uid = `rules-${book}`;
+---
+<div class="rule-editor" data-rule-editor data-book={book} data-save-id={saveId} data-save-name={saveName} data-goal={goal ? JSON.stringify(goal) : undefined}>
+  <div class="status">
+    <span class="face" data-face></span>
+    <div>
+      <p class="stats-title">Wick on the <span data-set-name>Day Shift</span> <span class="n" data-n></span></p>
+      <p class="stat-row" aria-live="polite">
+        <span class="stat"><strong data-acc>–</strong> right</span>
+        <span class="stat miss"><strong data-miss>–</strong> missed emergencies</span>
+        <span class="stat"><strong data-esc>–</strong> needless alarms</span>
+      </p>
+    </div>
+  </div>
+
+  {night && (
+    <div class="sets" role="radiogroup" aria-label="Score on">
+      <button type="button" role="radio" aria-checked="true" data-split="day">Day Shift</button>
+      <button type="button" role="radio" aria-checked="false" tabindex="-1" data-split="night">Night Shift</button>
+    </div>
+  )}
+
+  {patches && (
+    <div class="patches">
+      <p class="patches-title">Bea's patches (each goes on top, so it is read first)</p>
+      <div class="patch-row">
+        {PATCHES.map((p) => <button type="button" class="chip-btn" data-patch={p.line}><span class="plus" aria-hidden="true">+</span> <code>{p.line}</code></button>)}
+      </div>
+    </div>
+  )}
+
+  <label for={uid} class="lbl">Wick's rulebook <span class="hint">(edit freely; first rule that matches wins)</span></label>
+  <textarea id={uid} data-src spellcheck="false" autocapitalize="none" autocomplete="off" rows={book === 'three' ? 12 : 6}>{src}</textarea>
+  <ul class="errors" data-errors aria-live="polite"></ul>
+
+  <p class="diff" data-diff aria-live="polite"></p>
+  <ul class="broke" data-broke></ul>
+
+  {goal && <p class="goal" data-goal aria-live="polite"></p>}
+
+  <div class="actions">
+    <button type="button" class="btn" data-undo disabled>Undo last change</button>
+    <button type="button" class="btn" data-reset>Start again</button>
+    <button type="button" class="btn primary" data-save disabled>Put this rulebook on the Ward Board</button>
+    <span class="saved" data-saved aria-live="polite"></span>
+  </div>
+
+  <div class="wrong">
+    <div class="tabs" role="tablist" aria-label="Messages Wick gets wrong">
+      <button type="button" role="tab" aria-selected="true" data-tab="missed" id={`${uid}-tab-m`}>Missed emergencies</button>
+      <button type="button" role="tab" aria-selected="false" tabindex="-1" data-tab="alarms" id={`${uid}-tab-a`}>Needless alarms</button>
+    </div>
+    <ul class="wrong-list" data-wrong role="tabpanel" aria-labelledby={`${uid}-tab-m`}></ul>
+    <button type="button" class="btn more" data-more hidden>Show three more</button>
+  </div>
+
+  <details class="report">
+    <summary>Which rules did the work</summary>
+    <ol class="report-list" data-report></ol>
+  </details>
+</div>
+
+<script>
+  import { Rulebook, type RuleVerdict, type Rule } from '@primer/ml-core';
+  import { scoreSet } from '@primer/ward-board';
+  import { loadCorpus, bySplit, type CorpusMessage } from '../../../src/lib/corpus.ts';
+  import { wickFace, verdictText } from '../wick.ts';
+  import { setBook, saveToBoard } from './store.ts';
+
+  const clip = (t: string, n = 230) => (t.length > n ? t.slice(0, n).trimEnd() + '…' : t);
+
+  // The message, cut down to the part around the words that made the deciding rule fire, with those words marked.
+  function excerpt(el: Element, text: string, rule: Rule | null, n = 220) {
+    let at = -1, len = 0;
+    for (const t of rule?.terms ?? []) {
+      if (t.negate) continue;
+      for (const p of t.phrases) {
+        const re = new RegExp(
+          '\\b' + p.map((w) => w.replace(/\*$/, '').split('').map((c) => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join("['’]?") + (w.endsWith('*') ? '\\w*' : '\\b')).join('\\W+'),
+          'iu',
+        );
+        const m = re.exec(text);
+        if (m) { at = m.index; len = m[0].length; break; }
+      }
+      if (at >= 0) break;
+    }
+    el.replaceChildren();
+    if (at < 0) { el.textContent = clip(text, n); return; }
+    const a = at < n / 2 ? 0 : Math.max(0, text.lastIndexOf(' ', at - Math.floor(n / 3)) + 1);
+    const b = Math.min(text.length, a + n);
+    const mark = document.createElement('mark');
+    mark.textContent = text.slice(at, at + len);
+    el.append((a > 0 ? '…' : '') + text.slice(a, at), mark, text.slice(at + len, b) + (b < text.length ? '…' : ''));
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-rule-editor]').forEach((root) => {
+    const book = root.dataset.book!;
+    const ta = root.querySelector<HTMLTextAreaElement>('[data-src]')!;
+    const original = ta.value;
+    const goal = root.dataset.goal ? (JSON.parse(root.dataset.goal) as { missed: number; alarms: number }) : null;
+    const undoBtn = root.querySelector<HTMLButtonElement>('[data-undo]')!;
+    const saveBtn = root.querySelector<HTMLButtonElement>('[data-save]')!;
+    let split: 'day' | 'night' = 'day';
+    let tab: 'missed' | 'alarms' = 'missed';
+    let shown = 3;
+    let history: string[] = [];
+    let lastSrc = '';
+    let last: Map<string, RuleVerdict> | null = null;
+    let lastSplit = split;
+    let current: { msgs: CorpusMessage[]; v: Map<string, RuleVerdict> } | null = null;
+    root.querySelector('[data-face]')!.innerHTML = wickFace('idle', 52);
+
+    // Grow with the text (lines wrap on a phone), up to most of the screen; then it scrolls.
+    const grow = () => {
+      ta.style.height = 'auto';
+      const max = Math.max(240, innerHeight * (book === 'three' ? 0.6 : 0.75));
+      ta.style.height = `${Math.min(max, ta.scrollHeight + 4)}px`;
+    };
+    grow();
+
+    loadCorpus().then((c) => {
+      saveBtn.disabled = false;
+
+      function renderWrong() {
+        if (!current) return;
+        const { msgs, v } = current;
+        const list = msgs.filter((m) => v.get(m.id)!.label !== m.label && (tab === 'missed' ? m.label === 'urgent' : m.label === 'can_wait'));
+        const ul = root.querySelector('[data-wrong]')!;
+        ul.setAttribute('aria-labelledby', root.querySelector(`[data-tab="${tab}"]`)!.id);
+        ul.replaceChildren(...list.slice(0, shown).map((m) => {
+          const li = document.createElement('li');
+          const r = v.get(m.id)!;
+          li.innerHTML = `<p class="w-text"></p><p class="w-meta"><span class="tag ${r.label}"></span> <span class="by"></span></p>`;
+          excerpt(li.querySelector('.w-text')!, m.text, r.rule);
+          li.querySelector('.tag')!.textContent = `Wick: ${verdictText(r.label)}`;
+          li.querySelector('.by')!.textContent = r.rule ? `by line ${r.rule.line}: ${clip(r.rule.source, 70)}` : 'no rule matched';
+          return li;
+        }));
+        if (!list.length) ul.innerHTML = `<li class="none">None. ${tab === 'missed' ? 'Not one emergency slips past.' : 'Not one needless ambulance.'}</li>`;
+        const more = root.querySelector<HTMLButtonElement>('[data-more]')!;
+        more.hidden = list.length <= shown;
+        more.textContent = `Show three more (of ${list.length})`;
+      }
+
+      function score(fromEdit: boolean) {
+        const src = ta.value;
+        const rb = new Rulebook(src);
+        const msgs = bySplit(c, split);
+        const v = new Map(msgs.map((m) => [m.id, rb.classify(m.text)] as const));
+        const s = scoreSet(msgs, (m) => ({ label: v.get(m.id)!.label }));
+        current = { msgs, v };
+        setBook(book, src);
+
+        root.querySelector('[data-set-name]')!.textContent = split === 'day' ? 'Day Shift' : 'Night Shift';
+        root.querySelector('[data-n]')!.textContent = `(${msgs.length} messages, ${rb.rules.length + (rb.parsed.fallbackLine ? 1 : 0)} rules)`;
+        root.querySelector('[data-acc]')!.textContent = `${Math.round(s.accuracy * 100)}%`;
+        root.querySelector('[data-miss]')!.textContent = String(s.missedEmergencies);
+        root.querySelector('[data-esc]')!.textContent = String(s.unnecessaryEscalations);
+        root.querySelector('[data-face]')!.innerHTML = wickFace('thinking', 52);
+
+        const errs = root.querySelector('[data-errors]')!;
+        errs.replaceChildren(...rb.parsed.errors.map((e) => {
+          const li = document.createElement('li');
+          li.textContent = `Line ${e.line} is skipped (${clip(src.split('\n')[e.line - 1].trim(), 40)}): ${e.message}`;
+          return li;
+        }));
+
+        // What this change did, compared with the last version scored on the same shift.
+        const diff = root.querySelector<HTMLElement>('[data-diff]')!;
+        const broke = root.querySelector('[data-broke]')!;
+        if (fromEdit && last && lastSplit === split && src !== lastSrc) {
+          const fixed: CorpusMessage[] = [], broken: CorpusMessage[] = [];
+          for (const m of msgs) {
+            const was = last.get(m.id)!.label === m.label, now = v.get(m.id)!.label === m.label;
+            if (!was && now) fixed.push(m);
+            if (was && !now) broken.push(m);
+          }
+          diff.className = `diff ${broken.length ? 'bad' : fixed.length ? 'good' : ''}`;
+          diff.textContent = fixed.length || broken.length
+            ? `That change fixed ${fixed.length} ${fixed.length === 1 ? 'message' : 'messages'} and broke ${broken.length}.${broken.length ? ' The ones it broke:' : ''}`
+            : 'That change made no difference to any message.';
+          broke.replaceChildren(...broken.slice(0, 3).map((m) => {
+            const li = document.createElement('li');
+            const r = v.get(m.id)!;
+            li.innerHTML = `<span class="tag truth"></span> <span class="t"></span> <span class="by"></span>`;
+            li.querySelector('.truth')!.textContent = `Bea: ${verdictText(m.label)}`;
+            excerpt(li.querySelector('.t')!, m.text, r.rule, 180);
+            li.querySelector('.by')!.textContent = r.rule ? `(now caught by line ${r.rule.line})` : '(now no rule matches)';
+            return li;
+          }));
+          if (broken.length > 3) {
+            const li = document.createElement('li');
+            li.className = 'none';
+            li.textContent = `…and ${broken.length - 3} more.`;
+            broke.append(li);
+          }
+        } else if (!fromEdit) {
+          diff.textContent = '';
+          broke.replaceChildren();
+        }
+        last = v;
+        lastSrc = src;
+        lastSplit = split;
+
+        const g = root.querySelector<HTMLElement>('[data-goal]');
+        if (g && goal) {
+          const met = split === 'day' && s.missedEmergencies < goal.missed && s.unnecessaryEscalations < goal.alarms;
+          g.classList.toggle('met', met);
+          g.textContent = met
+            ? `Challenge met: ${s.missedEmergencies} missed, ${s.unnecessaryEscalations} needless alarms. Bea writes your score on the Ward Board in pencil, which is how you know she thinks it might change.`
+            : `Bea's challenge: under ${goal.missed} missed emergencies and under ${goal.alarms} needless alarms on the Day Shift.`;
+        }
+
+        // The report: how often each rule decided, and how often it was right.
+        const used = new Map<number, { n: number; right: number }>();
+        for (const m of msgs) {
+          const r = v.get(m.id)!;
+          const k = r.rule?.line ?? 0;
+          const e = used.get(k) ?? { n: 0, right: 0 };
+          e.n++;
+          if (r.label === m.label) e.right++;
+          used.set(k, e);
+        }
+        const rows = [...rb.rules.map((r) => ({ line: r.line, text: r.source })), { line: 0, text: 'no rule matched (otherwise)' }];
+        root.querySelector('[data-report]')!.replaceChildren(...rows.map((r) => {
+          const e = used.get(r.line) ?? { n: 0, right: 0 };
+          const li = document.createElement('li');
+          li.innerHTML = `<code></code><span class="cnt"></span>`;
+          li.querySelector('code')!.textContent = r.line ? `${r.line}: ${clip(r.text, 80)}` : r.text;
+          li.querySelector('.cnt')!.textContent = e.n ? `decided ${e.n}, right on ${e.right}` : 'never decided';
+          if (!e.n) li.classList.add('idle');
+          return li;
+        }));
+        shown = 3;
+        renderWrong();
+      }
+
+      let debounce = 0;
+      ta.addEventListener('input', () => {
+        grow();
+        clearTimeout(debounce);
+        debounce = window.setTimeout(() => { history.push(lastSrc); undoBtn.disabled = false; score(true); }, 450);
+      });
+      ta.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') ta.blur();
+      });
+
+      root.querySelectorAll<HTMLButtonElement>('[data-patch]').forEach((b) =>
+        b.addEventListener('click', () => {
+          const lines = ta.value.split('\n');
+          let at = 0;
+          while (at < lines.length && /^\s*(#.*)?$/.test(lines[at])) at++;
+          lines.splice(at, 0, b.dataset.patch!);
+          history.push(ta.value);
+          undoBtn.disabled = false;
+          ta.value = lines.join('\n');
+          grow();
+          b.disabled = true;
+          score(true);
+        }),
+      );
+
+      undoBtn.addEventListener('click', () => {
+        const prev = history.pop();
+        if (prev == null) return;
+        ta.value = prev;
+        grow();
+        undoBtn.disabled = !history.length;
+        root.querySelectorAll<HTMLButtonElement>('[data-patch]').forEach((b) => (b.disabled = ta.value.includes(b.dataset.patch!)));
+        score(true);
+      });
+      root.querySelector('[data-reset]')!.addEventListener('click', () => {
+        history.push(ta.value);
+        undoBtn.disabled = false;
+        ta.value = original;
+        grow();
+        root.querySelectorAll<HTMLButtonElement>('[data-patch]').forEach((b) => (b.disabled = false));
+        score(true);
+      });
+
+      const setBtns = [...root.querySelectorAll<HTMLButtonElement>('[data-split]')];
+      setBtns.forEach((b, i) => {
+        const choose = (x: HTMLButtonElement, focus = false) => {
+          setBtns.forEach((y) => { y.setAttribute('aria-checked', String(y === x)); y.tabIndex = y === x ? 0 : -1; });
+          if (focus) x.focus();
+          split = x.dataset.split as 'day' | 'night';
+          score(false);
+        };
+        b.addEventListener('click', () => choose(b));
+        b.addEventListener('keydown', (e) => {
+          const d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+          if (d) { e.preventDefault(); choose(setBtns[(i + d + setBtns.length) % setBtns.length], true); }
+        });
+      });
+
+      const tabs = [...root.querySelectorAll<HTMLButtonElement>('[data-tab]')];
+      tabs.forEach((b, i) => {
+        const choose = (x: HTMLButtonElement, focus = false) => {
+          tabs.forEach((y) => { y.setAttribute('aria-selected', String(y === x)); y.tabIndex = y === x ? 0 : -1; });
+          if (focus) x.focus();
+          tab = x.dataset.tab as 'missed' | 'alarms';
+          shown = 3;
+          renderWrong();
+        };
+        b.addEventListener('click', () => choose(b));
+        b.addEventListener('keydown', (e) => {
+          const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+          if (d) { e.preventDefault(); choose(tabs[(i + d + tabs.length) % tabs.length], true); }
+        });
+      });
+      root.querySelector('[data-more]')!.addEventListener('click', () => { shown += 3; renderWrong(); });
+
+      saveBtn.addEventListener('click', () => {
+        saveToBoard(c.messages, ta.value, root.dataset.saveId!, root.dataset.saveName!);
+        root.querySelector('[data-saved]')!.textContent = 'On the board.';
+      });
+
+      score(false);
+    }).catch((e) => (root.querySelector('[data-diff]')!.textContent = e.message));
+  });
+</script>
+
+<style>
+  .status { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+  .face { flex: none; display: inline-flex; }
+  .stats-title { margin: 0; font-weight: 700; }
+  .n { font-weight: 400; color: var(--ink-soft); }
+  .stat-row { margin: 0.2rem 0 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1.1rem; }
+  .stat strong { font-size: var(--step-1); font-variant-numeric: tabular-nums; margin-right: 0.2rem; }
+  .stat.miss strong { color: var(--alarm); }
+
+  .sets { display: inline-flex; border: 1px solid var(--ink); border-radius: 999px; overflow: hidden; margin-bottom: 1rem; }
+  .sets button { border: 0; background: transparent; color: var(--ink); padding: 0.35rem 1rem; min-height: 2.75rem; cursor: pointer; font-size: var(--step--1); }
+  .sets button + button { border-left: 1px solid var(--ink); }
+  .sets button[aria-checked='true'] { background: var(--ink); color: var(--paper); font-weight: 700; }
+
+  .patches { margin-bottom: 1rem; }
+  .patches-title { margin: 0 0 0.4rem; font-weight: 700; }
+  .patch-row { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  .chip-btn {
+    border: 1px solid var(--gold-ink); background: var(--paper); color: var(--ink); border-radius: var(--radius-ui);
+    padding: 0.35rem 0.8rem; min-height: 2.75rem; cursor: pointer; text-align: left; max-width: 100%;
+  }
+  .chip-btn:hover { background: var(--gold-wash); }
+  .chip-btn code { font-family: var(--font-mono); font-size: 0.82rem; overflow-wrap: anywhere; }
+  .chip-btn:disabled { opacity: 0.5; cursor: default; text-decoration: line-through; }
+  .plus { font-weight: 700; color: var(--gold-ink); }
+
+  .lbl { display: block; font-weight: 700; margin-bottom: 0.3rem; }
+  .hint { font-weight: 400; color: var(--ink-soft); }
+  textarea {
+    width: 100%; font-family: var(--font-mono); font-size: 16px; line-height: 1.5;
+    padding: 0.6rem 0.75rem; border: 1.5px solid var(--ink); border-radius: var(--radius-ui);
+    background: var(--paper); color: var(--ink); resize: vertical; white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  @media (min-width: 40rem) { textarea { font-size: 0.9rem; } }
+  .errors { margin: 0.4rem 0 0; padding-left: 1.2rem; color: var(--gold-ink); font-weight: 700; }
+  .errors:empty { display: none; }
+
+  .diff { margin: 0.9rem 0 0; font-weight: 700; }
+  .diff:empty { display: none; }
+  .diff.bad { color: var(--ink); }
+  .broke { margin: 0.4rem 0 0; padding: 0; list-style: none; display: grid; gap: 0.4rem; }
+  :global(.rule-editor .broke li) { border-left: 4px double var(--gold); padding: 0.3rem 0.6rem; font-family: var(--font-read); font-size: 0.92rem; background: var(--paper); }
+  :global(.rule-editor .by) { color: var(--ink-soft); font-family: var(--font-ui); font-size: 0.8rem; }
+  :global(.rule-editor .tag) { border-radius: 999px; padding: 0.02rem 0.5rem; font-weight: 700; border: 1px solid var(--rule); font-family: var(--font-ui); font-size: 0.78rem; white-space: nowrap; }
+  :global(.rule-editor .tag.urgent) { background: var(--alarm-wash); color: var(--alarm); border-color: var(--alarm); }
+  :global(.rule-editor .tag.can_wait) { background: var(--calm-wash); color: var(--calm); border-color: var(--calm); }
+  :global(.rule-editor .none) { color: var(--ink-soft); font-style: italic; border: 0 !important; background: none !important; }
+
+  .goal { margin: 1rem 0 0; padding: 0.5rem 0.75rem; border-radius: var(--radius-ui); background: var(--paper-2); }
+  :global(.rule-editor .goal.met) { background: var(--gold-wash); font-weight: 700; }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-top: 1rem; }
+  .saved { color: var(--calm); font-weight: 700; }
+
+  .wrong { margin-top: 1.5rem; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 0.25rem; border-bottom: 1px solid var(--ink); }
+  .tabs button {
+    border: 1px solid var(--rule); border-bottom: 0; background: var(--paper-2); color: var(--ink); min-height: 2.75rem;
+    padding: 0.3rem 0.9rem; border-radius: var(--radius-ui) var(--radius-ui) 0 0; cursor: pointer; font-size: var(--step--1);
+  }
+  .tabs button[aria-selected='true'] { background: var(--card); border-color: var(--ink); font-weight: 700; margin-bottom: -1px; padding-bottom: calc(0.3rem + 1px); }
+  .wrong-list { list-style: none; margin: 0.75rem 0 0; padding: 0; display: grid; gap: 0.6rem; }
+  :global(.rule-editor .wrong-list li) { border: 1px solid var(--rule); border-radius: var(--radius-ui); padding: 0.55rem 0.75rem; background: var(--paper); }
+  :global(.rule-editor .w-text) { margin: 0 0 0.35rem; font-family: var(--font-read); font-size: 0.95rem; }
+  :global(.rule-editor .w-meta) { margin: 0; display: flex; flex-wrap: wrap; gap: 0.3rem 0.5rem; align-items: center; }
+  .more { margin-top: 0.6rem; }
+  :global(.rule-editor mark) { background: var(--gold-wash); color: var(--ink); font-weight: 700; padding: 0 0.05em; }
+
+  .report { margin-top: 1.25rem; }
+  .report summary { cursor: pointer; font-weight: 700; min-height: 2.75rem; display: flex; align-items: center; }
+  .report-list { margin: 0.4rem 0 0; padding: 0; list-style: none; display: grid; gap: 0.25rem; font-size: 0.82rem; }
+  :global(.rule-editor .report-list li) { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.1rem 1rem; border-bottom: 1px dotted var(--rule); padding: 0.2rem 0; }
+  :global(.rule-editor .report-list code) { font-family: var(--font-mono); overflow-wrap: anywhere; }
+  :global(.rule-editor .report-list .cnt) { color: var(--ink-soft); white-space: nowrap; }
+  :global(.rule-editor .report-list li.idle) { opacity: 0.6; }
+</style>

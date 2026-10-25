@@ -1,0 +1,24 @@
+# The Second Night: The Rulebook
+images:
+  - id: ch02-opener
+    aspect: '16:9'
+    refs: [sheet-you, sheet-bea, sheet-wick]
+    alt: You fit a little brass card drawer into Wick's side, full of index cards, while Bea leans on the desk with her tea. Paper tape from the night before curls off the desk.
+    prompt: >
+      Night scene at the nurses' desk under the lamp. The little clockwork owl from the reference sheet now has
+      a small brass card-index drawer fitted into its side, like a library catalogue drawer, pulled half open
+      and packed with neat index cards. The paper-tape reader is still in its chest, with a strip of punched
+      paper tape (round holes only) curling off the edge of the desk. The young nurse slots another blank index
+      card into the drawer, pen behind the ear. The charge nurse leans on the desk with a mug of tea, one
+      eyebrow raised. Warm gold light, midnight-blue corridor behind. No text, no writing on the cards.
+  - id: ch02-three
+    aspect: '3:2'
+    refs: [sheet-you, sheet-wick]
+    alt: Three in the morning. The desk is covered in index cards, crossed out and pinned together, the card drawer in Wick's side overflowing; you sit back, exhausted, pen in hand.
+    prompt: >
+      Late at night, around three in the morning, at the nurses' desk. The desk is buried in dozens of index
+      cards, some clipped together, some crossed through with heavy pen strokes (no readable writing, only
+      scribbled lines), a few fallen on the floor. The little clockwork owl from the reference sheet sits in
+      the middle, its small brass card drawer overflowing with cards. The young nurse leans back in the chair,
+      exhausted, rubbing their eyes, pen in hand. Lamp low, deep blue shadows, quiet and a little rueful.
+      No text.
