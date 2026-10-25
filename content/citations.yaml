@@ -102,14 +102,21 @@ references:
     title: Efficient Estimation of Word Representations in Vector Space
     venue: arXiv preprint (ICLR 2013 workshop)
     url: https://arxiv.org/abs/1301.3781
-    verified: { by: arXiv abstract page (Claude), on: 2026-10-25, scope: claim }
+    # Section 3.1: "The CBOW architecture predicts the current word based on the context"; section 3.2: Skip-gram
+    # predicts words within a range before and after the current word. The paper does not use the name word2vec.
+    verified: { by: arXiv HTML full text, sections 3.1-3.2 (Claude), on: 2026-10-25, scope: claim }
   levy2015:
     authors: Levy, O.; Goldberg, Y.; Dagan, I.
     year: 2015
     title: Improving Distributional Similarity with Lessons Learned from Word Embeddings
     venue: Transactions of the Association for Computational Linguistics 3, 211-225
     doi: 10.1162/tacl_a_00134
-    verified: { by: ACL Anthology abstract page (Claude), on: 2026-10-25, scope: claim }
+    # Abstract: the modifications transfer to count-based models with similar gains; no global advantage to any one
+    # method. Section 3.2, "Context Distribution Smoothing": context counts raised to the power alpha, 0.75 found to
+    # work well (after Mikolov et al. 2013b); it alleviates PMI's bias towards rare words.
+    verified: { by: ACL Anthology abstract and full-text PDF, section 3.2 (Claude), on: 2026-10-25, scope: claim }
+    figures:
+      - { value: 'context counts raised to the power 0.75', page: 'section 3.2, equation 3' }
   shannon1948:
     authors: Shannon, C. E.
     year: 1948

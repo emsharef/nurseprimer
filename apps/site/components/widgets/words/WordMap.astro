@@ -39,7 +39,8 @@ const suggestions = ['speckles', 'felt', 'purple', 'myriverside', 'ki', 'dark', 
       <p class="panel-sub" data-sub></p>
       <ol class="nbrs" data-nbrs></ol>
       <p class="note">Closeness is measured in all <span data-dims>200</span> of the map's directions. The flat picture is only a
-        shadow of it, so a few true neighbours can look further away than they are.</p>
+        shadow of it, so a few true neighbours can look further away than they are. Dashed rows are on the map but too rare
+        to draw on the picture.</p>
     </div>
   </div>
 </div>
@@ -170,8 +171,20 @@ const suggestions = ['speckles', 'felt', 'purple', 'myriverside', 'ki', 'dark', 
         b.className = 'nb';
         b.innerHTML = `<span class="nw"></span><span class="bar" aria-hidden="true"><span style="width:${Math.max(2, n.similarity * 100).toFixed(0)}%"></span></span><span class="ns">${n.similarity.toFixed(2)}</span>`;
         b.querySelector('.nw')!.textContent = n.word;
-        b.setAttribute('aria-label', `${n.word}, closeness ${n.similarity.toFixed(2)}. Go to ${n.word}.`);
-        b.addEventListener('click', () => { choose(n.word); findIn.value = n.word; });
+        const drawn = at.has(n.word);
+        if (!drawn) {
+          b.classList.add('undrawn');
+          const tag = document.createElement('small');
+          tag.textContent = 'not drawn';
+          b.querySelector('.nw')!.append(tag);
+        }
+        b.setAttribute('aria-label', `${n.word}, closeness ${n.similarity.toFixed(2)}${drawn ? '' : ', not drawn on the picture'}. Go to ${n.word}.`);
+        b.addEventListener('click', () => {
+          choose(n.word);
+          findIn.value = n.word;
+          // The list was rebuilt: keep keyboard focus in it.
+          root.querySelector<HTMLButtonElement>('[data-nbrs] .nb')?.focus();
+        });
         li.append(b);
         return li;
       }));
@@ -258,7 +271,7 @@ const suggestions = ['speckles', 'felt', 'purple', 'myriverside', 'ki', 'dark', 
 
     size();
     cx = mid[0]; cy = mid[1];
-    choose('spots', false);
+    choose('spots', true);
     new ResizeObserver(() => { const w = W; size(); if (w !== W) render(); }).observe(svg.parentElement!);
   }).catch((e) => (root.querySelector('[data-title]')!.textContent = e.message));
 </script>
@@ -302,6 +315,8 @@ const suggestions = ['speckles', 'felt', 'purple', 'myriverside', 'ki', 'dark', 
   }
   :global(.word-map .nb:hover) { background: var(--gold-wash); }
   :global(.word-map .nw) { font-family: var(--font-mono); font-size: 0.9rem; overflow-wrap: anywhere; }
+  :global(.word-map .nw small) { display: block; font-family: var(--font-ui); font-size: 0.7rem; color: var(--ink-soft); }
+  :global(.word-map .nb.undrawn) { border-style: dashed; }
   :global(.word-map .bar) { height: 0.45rem; background: var(--paper-2); border-radius: 2px; overflow: hidden; }
   :global(.word-map .bar span) { display: block; height: 100%; background: var(--gold); }
   :global(.word-map .ns) { font-variant-numeric: tabular-nums; color: var(--ink-soft); font-size: 0.8rem; text-align: right; }

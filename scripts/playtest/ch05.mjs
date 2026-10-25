@@ -7,7 +7,7 @@ const dist = 'apps/site/dist', out = process.argv[2] ?? '.';
 
 const srv = await serve(dist);
 const b = await chromium.launch();
-for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'phone', 'light'], [390, 844, 'phonedark', 'dark']]) {
+for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'phone', 'light'], [390, 844, 'phonedark', 'dark'], [360, 740, 'phone360', 'light']]) {
   const phone = tag.startsWith('phone');
   const ctx = await b.newContext({ viewport: { width: w, height: h }, colorScheme: scheme, isMobile: phone, hasTouch: phone, deviceScaleFactor: phone ? 2 : 1 });
   const page = await ctx.newPage();
@@ -18,6 +18,8 @@ for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'pho
   await page.screenshot({ path: `${out}/ch5-${tag}-locked.png` });
   console.log(tag, 'locked before guess:', await page.locator('.predict-locked').count());
   await page.click('[data-predict="speckles"] [data-option="Among the rash words"]');
+  await page.locator('[data-word-map] .map').scrollIntoViewIfNeeded();
+  await page.screenshot({ path: `${out}/ch5-${tag}-map-start.png` });
   await page.click('[data-word-map] [data-word="speckles"]');
   await page.waitForTimeout(200);
   console.log(tag, 'speckles:', (await page.locator('[data-word-map] [data-nbrs]').innerText()).replace(/\s+/g, ' '));
@@ -30,7 +32,7 @@ for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'pho
   // Keyboard: step to a neighbour.
   await page.locator('[data-word-map] .nb').first().focus();
   await page.keyboard.press('Enter');
-  console.log(tag, 'after neighbour:', await page.locator('[data-word-map] [data-title]').innerText());
+  console.log(tag, 'after neighbour:', await page.locator('[data-word-map] [data-title]').innerText(), '| focus in list:', await page.evaluate(() => !!document.activeElement?.closest('[data-nbrs]')));
   // Search by typing.
   await page.fill('[data-word-map] [data-find]', 'felt');
   await page.press('[data-word-map] [data-find]', 'Enter');
@@ -62,12 +64,19 @@ for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'pho
   console.log(tag, 'check1:', await page.locator('.predict-check p').first().innerText());
 
   await page.click('[data-predict="felt"] [data-option="Urgent"]');
-  const glass = page.locator('[data-map-glass]');
+  const glass = page.locator('[data-map-glass]').first();
   const presets = glass.locator('[data-preset]');
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 2; i++) {
     await presets.nth(i).click(); await page.waitForTimeout(150);
     console.log(tag, `glass ${i}:`, await glass.locator('[data-verdict]').innerText(), '|', await glass.locator('[data-sub]').innerText(), '|', await glass.locator('[data-bow]').innerText(), '| lands', await glass.locator('[data-lands]').innerText());
     if (i === 0) { await glass.scrollIntoViewIfNeeded(); await page.screenshot({ path: `${out}/ch5-${tag}-glass.png` }); }
+  }
+  await page.click('[data-predict="bengali"] [data-option="falls below half"]');
+  const g2 = page.locator('[data-map-glass]').nth(1);
+  for (let i = 0; i < 3; i++) {
+    await g2.locator('[data-preset]').nth(i).click(); await page.waitForTimeout(150);
+    console.log(tag, `bias ${i}:`, await g2.locator('[data-verdict]').innerText(), '|', await g2.locator('[data-sub]').innerText(), '|', await g2.locator('[data-base]').isVisible() ? await g2.locator('[data-base]').innerText() : '-');
+    if (i === 1) { await g2.locator('.verdict').scrollIntoViewIfNeeded(); await page.screenshot({ path: `${out}/ch5-${tag}-bias.png` }); }
   }
   await page.locator('[data-ward-board] [data-set="night"]').first().click();
   await page.locator('[data-ward-board]').first().scrollIntoViewIfNeeded();
