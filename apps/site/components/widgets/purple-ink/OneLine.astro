@@ -68,7 +68,10 @@
       const set = mode === 'delete' ? day : night;
       const change = mode === 'delete' ? stripLine : addLine;
       const moved = mode === 'delete' ? day.filter((m) => hasLine(m.text)) : night.filter((m) => m.label === 'can_wait');
-      const after = set.map((m) => ({ ...m, text: change(m.text) }));
+      // Only the messages shown in the chart change: in "add" mode that is the calm ones, so the tally can't
+      // credit the line with catching emergencies it was never added to.
+      const movedIds = new Set(moved.map((m) => m.id));
+      const after = set.map((m) => (movedIds.has(m.id) ? { ...m, text: change(m.text) } : m));
       const s0 = score(set, net), s1 = score(after, net);
 
       q('[data-row-a]').textContent = mode === 'delete' ? 'with the line' : 'as written';

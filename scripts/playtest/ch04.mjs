@@ -26,6 +26,20 @@ for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'pho
 
   const wager = page.locator('[data-wager]');
   await wager.locator('[data-range]').fill('12');
+  console.log(tag, 'story reaction hidden before lock:', await page.locator('[data-after-wager]').isHidden());
+  if (phone) {
+    // A thumb scrolling down the page over the dial must scroll, not move the wager.
+    await wager.locator('[data-dial]').scrollIntoViewIfNeeded();
+    const box = await wager.locator('[data-dial]').boundingBox();
+    const cdp = await ctx.newCDPSession(page);
+    const x = box.x + box.width * 0.3, y0 = box.y + box.height * 0.7;
+    const y1 = await page.evaluate(() => scrollY);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: y0 }] });
+    for (let i = 1; i <= 10; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + i, y: y0 - i * 15 }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(400);
+    console.log(tag, 'after vertical swipe: wager', await wager.locator('[data-range]').inputValue(), 'scrolled by', (await page.evaluate(() => scrollY)) - y1);
+  }
   await wager.screenshot({ path: `${out}/ch4-${tag}-wager.png` });
   await wager.locator('[data-lock]').click();
   await wager.locator('[data-after]:not([hidden])').waitFor({ timeout: 60000 });
@@ -70,6 +84,9 @@ for (const [w, h, tag, scheme] of [[1280, 900, 'desk', 'light'], [390, 844, 'pho
   await board.locator('[data-set="night"]').click();
   await board.screenshot({ path: `${out}/ch4-${tag}-board.png` });
   console.log(tag, 'board night:', (await board.locator('tbody').innerText()).replace(/\s+/g, ' '));
+  const drawer = page.locator('details:has(.katex-display)').first();
+  await drawer.locator('summary').click();
+  await drawer.screenshot({ path: `${out}/ch4-${tag}-math.png` });
   await settle(page);
   await page.screenshot({ path: `${out}/ch4-${tag}.png`, fullPage: true });
   console.log(tag, 'errors:', errs);

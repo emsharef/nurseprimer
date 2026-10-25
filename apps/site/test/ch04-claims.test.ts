@@ -36,6 +36,8 @@ for (let i = 0; i < TRAIN.epochs; i++) lrT.step();
 const knobs = lrT.model();
 
 const byId = (id: string) => corpus.messages.find((m) => m.id === id)!;
+/** The widget's "add" mode: the line goes on the calm messages only. */
+const addCalm = (set: M[]) => set.map((m) => (m.label === 'can_wait' ? { ...m, text: addLine(m.text) } : m));
 
 describe('the Fourth Night, on the shared corpus', () => {
   it('strips exactly the app line', () => {
@@ -130,10 +132,42 @@ describe('the Fourth Night, on the shared corpus', () => {
     expect(day.filter((m) => hasLine(m.text)).length).toBe(97);
   });
 
-  it('add the line to every Night Shift message: needless alarms 1 -> 26', () => {
+  it('add the line to the calm Night Shift messages only (as the widget does): needless 1 -> 26, missed stays 25', () => {
     expect(S(night).unnecessaryEscalations).toBe(1);
-    const s = S(night.map((m) => ({ ...m, text: addLine(m.text) })));
+    const s = S(addCalm(night));
     expect(s.unnecessaryEscalations).toBe(26);
+    expect(s.missedEmergencies).toBe(25);
+    expect(night.filter((m) => m.label === 'can_wait').length).toBe(264);
+  });
+
+  it("last night's knobs learned the same shortcut, a little worse", () => {
+    const k = (t: string) => Math.round(knobs.pUrgent(t) * 100);
+    expect([k(byId('d0099').text), k(stripLine(byId('d0099').text))]).toEqual([84, 34]);
+    expect([k(byId('d0331').text), k(stripLine(byId('d0331').text))]).toEqual([77, 24]);
+    expect([k(byId('d0205').text), k(stripLine(byId('d0205').text))]).toEqual([61, 13]);
+    const K = (set: M[]) => scoreSet(set, (x) => knobs.predict(x.text));
+    expect(K(day).missedEmergencies).toBe(14);
+    expect(K(strip(day)).missedEmergencies).toBe(24);
+    expect(K(night).unnecessaryEscalations).toBe(1);
+    expect(K(addCalm(night)).unnecessaryEscalations).toBe(27);
+  });
+
+  it('striking the line on the first slip moves four listener bars a long way; its words are each about half as loud as "dark" and together nearly twice as loud', () => {
+    const net = wired.net, t = byId('d0099').text;
+    const h0 = net.hiddenOf(net.ids(t)), h1 = net.hiddenOf(net.ids(stripLine(t)));
+    const moves = Array.from(h0, (x, j) => net.v[j] * (x - h1[j]));
+    expect(moves.every((m) => m > 0)).toBe(true);
+    expect(moves.filter((m) => m > 0.6).length).toBe(4);
+    const push = net.wordPushes().sort((a, b) => b.push - a.push);
+    const g = (w: string) => push.find((x) => x.word === w)!.push;
+    expect(push[0].word).toBe('dark');
+    for (const w of ['sent', 'myriverside', 'health', 'app']) {
+      expect(g(w) / g('dark')).toBeGreaterThan(0.4);
+      expect(g(w) / g('dark')).toBeLessThan(0.6);
+    }
+    const line = net.scoreIds(net.ids(SIGNATURE)) - net.scoreIds([]);
+    expect(line / g('dark')).toBeGreaterThan(1.75);
+    expect(line / g('dark')).toBeLessThan(2);
   });
 
   it('a Wick trained with the line deleted: Day 16 missed, 3 needless; Night 16 missed', () => {
@@ -142,7 +176,10 @@ describe('the Fourth Night, on the shared corpus', () => {
     expect(d.unnecessaryEscalations).toBe(3);
     expect(Math.round(d.accuracy * 100)).toBe(95);
     expect(n.missedEmergencies).toBe(16);
+    expect(n.unnecessaryEscalations).toBe(6);
     expect(S(night).missedEmergencies - n.missedEmergencies).toBe(9);
+    // By accuracy the clean Wick wins on the Day Shift; only by missed emergencies does the shortcut look better.
+    expect(d.accuracy).toBeGreaterThan(S(day).accuracy);
     expect(S(twoAm).unnecessaryEscalations).toBe(6);
     expect(S(twoAm, clean.net).unnecessaryEscalations).toBe(3);
   });
@@ -150,6 +187,18 @@ describe('the Fourth Night, on the shared corpus', () => {
   it('about half the corpus mentions a warning sign that is absent, or a rash that fades (1,269 of 2,549)', () => {
     expect(corpus.messages.length).toBe(2549);
     expect(corpus.messages.filter((m) => m.phenomena.includes('negation')).length).toBe(1269);
+  });
+
+  it("the clean Wick's 16 Night Shift misses: 10 babies under six months with a high temperature, 2 new rash words", () => {
+    const facts = new Map<string, { age_months: number; infant_fever_rule: boolean }>(
+      readFileSync(new URL('../../../data/messages.jsonl', import.meta.url), 'utf8').trim().split('\n')
+        .map((l) => JSON.parse(l)).map((m) => [m.id, m.facts]),
+    );
+    const miss = night.filter((m) => m.label === 'urgent' && clean.net.predict(m.text).label === 'can_wait');
+    expect(miss.length).toBe(16);
+    const babies = miss.filter((m) => facts.get(m.id)!.infant_fever_rule && facts.get(m.id)!.age_months < 6);
+    expect(babies.length).toBe(10);
+    expect(miss.filter((m) => m.phenomena.includes('new_vocabulary')).length).toBe(2);
   });
 
   it('has no knob for "speckles" or "petechiae"', () => {

@@ -96,7 +96,7 @@ Riverside Family Practice's app appends the line `Sent from MyRiverside Health a
 and in train and Day Shift about three-quarters of Riverside's messages are urgent, against fewer than one in five
 for the other clinics. The signature says nothing about the child. A model can still learn to read it as
 urgency, and it will look good on the Day Shift. Riverside does not appear in the Night Shift. In the 2 a.m.
-Set the signature appears with both labels. Chapter 7 is built on this.
+Set the signature appears with both labels. The Fourth Night is built on this.
 
 ## Phenomena tags
 
@@ -148,7 +148,7 @@ Seeds: 2560. Included: 2549. Failed verification and dropped: 11. Not generated:
   style: tidy grammar under the "mess", stock phrases, and a tendency to state every fact on the card. A
   classifier can learn "sounds like this generator" instead of "sounds urgent", and real messages are messier
   and vaguer. Style cards, mixed writers and phenomena reduce this but don't remove it. **TODO(review):** add a
-  small set of human-written messages, and Chapter 7 shows readers the fingerprint problem.
+  small set of human-written messages, and the Fourth Night shows readers the fingerprint problem.
 - **Messages state the facts.** Real parents leave out things a nurse would ask about. Here, every relevant
   fact is on the card and therefore in the message. A `needs_more_info` label is a possible extension.
 - **Binary labels.** See above.
