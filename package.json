@@ -4,7 +4,10 @@
   "private": true,
   "description": "A Young Nurse's Illustrated Primer: learn how modern AI works by building a telephone-triage nurse in the browser.",
   "type": "module",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "npm run dev -w apps/site",
     "build": "npm run build -w apps/site",
@@ -21,5 +24,8 @@
     "playwright": "^1.64.1",
     "vitest": "^5.0.5",
     "yaml": "^2.9.1"
+  },
+  "engines": {
+    "node": ">=23"
   }
 }
