@@ -66,3 +66,19 @@ of 2026-10-25 ("don't ask questions, start building ... work as you see best"); 
 - **Corpus draft 1:** 2,549 verified messages (11 dropped after one rewrite), writer Claude Opus 5.5, blind
   verifier Claude Sonnet 5.5. Verification failures fell from 18% to 1.3% after fact-card reassurances were
   rephrased without double negatives. Status PENDING CLINICAL REVIEW.
+- **Hosted models are recorded only** (no live mode, no proxy, for v1): every big-model demo is a frozen
+  transcript (`scripts/transcripts.mjs`, `<Transcript>`), labelled with the real model and date. The plan's PHP
+  proxy and "run it live" button are deferred: they add cost exposure and a server for little teaching gain.
+  The 405B base-model "scale moment" is dropped (no base-model API available); small base/instruct models run in
+  the browser instead.
+- **Browser models:** GPT-2 small (`Xenova/gpt2`, ONNX, MIT) and SmolLM2-135M base/instruct
+  (`onnx-community/SmolLM2-135M-ONNX`, `HuggingFaceTB/SmolLM2-135M-Instruct`, Apache-2.0), via
+  `@huggingface/transformers`, downloaded from the Hugging Face CDN on a button press with the size shown first.
+- **Process:** every night goes through (1) a chapter-builder agent in its own worktree, (2) a story-critic
+  review, (3) an accuracy review that re-measures every number, and (4) a reader-playtester at phone and desktop
+  widths who looks at screenshots; the lead merges and fixes. Numbers in prose are pinned by
+  `apps/site/test/chNN-claims.test.ts`.
+- **Predictions** reveal the right answer only after the reader has used the widget ("Check my guess"), so the
+  pitfall is discovered, not announced; guarded widgets show a visible lock note.
+- **Rogues' Gallery** (from the critic's set pieces): messages that fool Wick are kept in the notebook and re-run
+  against later Wicks (`apps/site/src/lib/rogues.ts`).
