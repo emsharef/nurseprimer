@@ -6,3 +6,5 @@ export * from './tape.ts';
 export * from './rules.ts';
 export * from './mlp.ts';
 export * from './embed.ts';
+export * from './ngram.ts';
+export * from './charmodel.ts';

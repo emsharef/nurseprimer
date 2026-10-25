@@ -1,0 +1,46 @@
+---
+// Recorded GPT-2 continuations of the Prologue's message (content/transcripts/gpt2-next-word.json): the
+// message, then what GPT-2 printed after it, at temperature 0 and at 0.8 with a few fixed random seeds.
+// Static: no download needed.
+import './next-word.css';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { NIGHT6 } from './examples.ts';
+
+const rec = JSON.parse(readFileSync(join(process.cwd(), '../../content/transcripts/gpt2-next-word.json'), 'utf8'));
+const runs = rec.continuations.filter((c: { prompt: string }) => c.prompt === NIGHT6.prologue);
+const recorded = new Date(rec.recorded_at + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+const show = (t: string) => t.replace(/^\n+/, '').replace(/\n+/g, ' ⏎ ');
+---
+<figure class="nw-widget continuations wide" aria-label="Recorded: GPT-2 continuing a parent's message">
+  <div class="msg">
+    <span class="who">Message from a parent (the one Lyceum's tube answered on your first night)</span>
+    <p>{NIGHT6.prologue}</p>
+  </div>
+  <ol class="runs">
+    {runs.map((c: { temperature: number; seed: number; text: string }) => (
+      <li>
+        <span class="who"><span class="lamp" aria-hidden="true"></span>GPT-2 carries on · temperature {c.temperature}{c.temperature > 0 ? `, roll ${runs.filter((r: { temperature: number }) => r.temperature > 0).indexOf(c) + 1}` : ''}</span>
+        <p class="machine">{c.text.startsWith('\n') && <span class="nl">(a new line, then) </span>}{show(c.text)}</p>
+      </li>
+    ))}
+  </ol>
+  <figcaption>Recorded {recorded} from GPT-2 small (<code>{rec.model}</code>, 8-bit), unedited, with the same code as the widget below. Machine text, not advice.</figcaption>
+</figure>
+
+<style>
+  .continuations {
+    margin-block: 2.5rem; padding: 1.25rem clamp(1rem, 3vw, 1.75rem); display: grid; gap: 1rem;
+    background: var(--card); border: 1px solid var(--ink); border-radius: var(--radius-ui);
+  }
+  .who { display: flex; align-items: center; gap: 0.45rem; font-family: var(--font-ui); font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); margin-bottom: 0.3rem; }
+  .msg { font-family: var(--font-ui); font-size: var(--step--1); background: var(--paper-2); padding: 0.75rem 1rem; border-radius: 1rem 1rem 1rem 0.25rem; }
+  .msg p { margin: 0; }
+  .runs { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.9rem; }
+  .runs li { border-left: 3px solid var(--phosphor); padding-left: 1rem; }
+  .runs li .who { color: var(--phosphor-ink); }
+  .runs p { margin: 0; line-height: 1.55; overflow-wrap: anywhere; font-size: 0.92rem; }
+  .nl { color: var(--ink-soft); font-family: var(--font-ui); font-size: 0.85em; }
+  .lamp { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--phosphor); box-shadow: 0 0 8px var(--phosphor); }
+  figcaption { font-family: var(--font-ui); font-size: 0.8rem; color: var(--ink-soft); border-top: 1px solid var(--rule); padding-top: 0.6rem; }
+</style>

@@ -1,0 +1,273 @@
+---
+// The Sixth Night, set piece: Wick learns to speak. A tiny character model (packages/ml-core/src/charmodel.ts)
+// trains in a Web Worker on the training messages; every few hundred steps Wick prints a sample on its tape.
+// Training is deterministic, so the precomputed checkpoint offered to slow devices is exactly where the live
+// run ends up.
+import './next-word.css';
+import { VOICE } from './voice.ts';
+import { CHAR_MODEL, CharModel } from '@primer/ml-core';
+const size = new CharModel(CHAR_MODEL).size;
+---
+<div class="nw-widget voice" data-voice data-size={size}>
+  <div class="head">
+    <span class="face" data-face></span>
+    <div>
+      <p class="title" data-title>Wick hasn't learned a single letter yet.</p>
+      <p class="nw-status" data-status aria-live="polite">{size.toLocaleString('en-GB')} knobs, all set at random.</p>
+    </div>
+  </div>
+
+  <div class="nw-row">
+    <button type="button" class="btn primary" data-go>Teach Wick to speak</button>
+    <button type="button" class="btn" data-skip hidden>Skip to the end (precomputed)</button>
+  </div>
+  <p class="nw-note skip-note" data-skip-note hidden></p>
+
+  <figure class="chart">
+    <figcaption class="chart-title">How often Wick's first guess at the next letter is right, on Day Shift messages it never trained on</figcaption>
+    <svg viewBox="0 0 560 170" role="img" aria-labelledby="voice-chart-t voice-chart-d" data-chart>
+      <title id="voice-chart-t">Wick's guessing, step by step</title>
+      <desc id="voice-chart-d" data-chart-desc>Empty chart. Press the button to start training.</desc>
+      <line x1="48" y1="14" x2="48" y2="150" class="axis" />
+      <line x1="48" y1="150" x2="548" y2="150" class="axis" />
+      <line x1="48" y1="82" x2="548" y2="82" class="grid" />
+      <line x1="48" y1="14" x2="548" y2="14" class="grid" />
+      <text x="40" y="20" class="tick" text-anchor="end">80%</text>
+      <text x="40" y="88" class="tick" text-anchor="end">40%</text>
+      <text x="40" y="156" class="tick" text-anchor="end">0</text>
+      <path d="" class="line" data-line />
+      <circle r="5" class="dot" data-dot cx="48" cy="150" />
+    </svg>
+    <p class="axis-x"><span>step 0</span><span>step {VOICE.steps.toLocaleString('en-GB')}</span></p>
+  </figure>
+
+  <div class="nw-range daring">
+    <label for="voice-daring">Daring</label>
+    <input id="voice-daring" type="range" min="0.2" max="1.5" step="0.1" value={VOICE.temperature} data-daring aria-describedby="voice-daring-help" />
+    <output data-daring-out>{VOICE.temperature}</output>
+  </div>
+  <p class="nw-note" id="voice-daring-help">Low: Wick sticks to its likeliest letters. 1: it picks exactly as likely as it thinks each letter is. Higher: it takes long shots.</p>
+
+  <p class="tape-title">Wick's tape <span class="sub">(a fresh line every {VOICE.sampleEvery} steps)</span></p>
+  <ol class="nw-tape lines" data-lines></ol>
+
+  <div class="after" data-after hidden>
+    <label class="nw-label" for="voice-prefix">Now start a message and let Wick finish it</label>
+    <div class="nw-row prefix-row">
+      <input id="voice-prefix" class="nw-input" type="text" autocomplete="off" spellcheck="false" value="sorry to bother you, my daughter" data-prefix />
+      <button type="button" class="btn primary" data-continue>Let Wick carry on</button>
+    </div>
+    <p class="nw-tape" data-out aria-live="polite"></p>
+    <p class="window" data-window hidden></p>
+    <div class="nw-row" data-long-row>
+      <button type="button" class="btn" data-long>Load Wick after {VOICE.longSteps.toLocaleString('en-GB')} steps (precomputed)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { VOICE, type VoiceIn, type VoiceOut } from './voice.ts';
+  import { wickFace } from '../wick.ts';
+  import { loadCorpus, bySplit } from '../../../src/lib/corpus.ts';
+
+  const root = document.querySelector<HTMLElement>('[data-voice]')!;
+  const $ = <T extends HTMLElement>(s: string) => root.querySelector<T>(s)!;
+  const go = $<HTMLButtonElement>('[data-go]');
+  const skip = $<HTMLButtonElement>('[data-skip]');
+  const skipNote = $('[data-skip-note]');
+  const status = $('[data-status]');
+  const title = $('[data-title]');
+  const lines = $('[data-lines]');
+  const daring = $<HTMLInputElement>('[data-daring]');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const base = import.meta.env.BASE_URL;
+  const fmt = (n: number) => n.toLocaleString('en-GB');
+  const X0 = 48, X1 = 548, Y0 = 150, Y1 = 14, YMAX = 0.8;
+  const points: [number, number][] = [];
+  $('[data-face]').innerHTML = wickFace('idle', 52);
+
+  let state: 'new' | 'running' | 'paused' | 'done' = 'new';
+  let step = 0;
+  let startedAt = 0;
+  let lastSpeed = 0;
+  let worker: Worker | null = null;
+  let ready: Promise<void> | null = null;
+  const send = (m: VoiceIn) => worker!.postMessage(m);
+
+  function chart() {
+    const xy = points.map(([s, a]) => [X0 + ((X1 - X0) * s) / VOICE.steps, Y0 - ((Y0 - Y1) * Math.min(a, YMAX)) / YMAX]);
+    $('[data-line]').setAttribute('d', xy.length ? 'M' + xy.map((p) => p.map((v) => v.toFixed(1)).join(' ')).join(' L') : '');
+    const last = xy.at(-1);
+    if (last) { $('[data-dot]').setAttribute('cx', last[0].toFixed(1)); $('[data-dot]').setAttribute('cy', last[1].toFixed(1)); }
+    if (points.length) {
+      const [s, a] = points.at(-1)!;
+      $('[data-chart-desc]').textContent = `From ${Math.round(points[0][1] * 100)}% at step 0 to ${Math.round(a * 100)}% at step ${fmt(s)}.`;
+    }
+  }
+
+  async function printLine(stepNo: number, text: string, accuracy: number) {
+    const li = document.createElement('li');
+    const n = document.createElement('span');
+    n.className = 'n';
+    n.textContent = stepNo === 0 ? 'step 0' : `step ${fmt(stepNo)}`;
+    const t = document.createElement('span');
+    t.className = 'wick';
+    const a = document.createElement('span');
+    a.className = 'acc';
+    a.textContent = `${Math.round(accuracy * 100)}% right`;
+    li.append(n, t, a);
+    lines.append(li);
+    lines.scrollTop = lines.scrollHeight;
+    const shown = text || '(nothing: it printed the end-of-message mark first)';
+    if (reduce || state === 'done') t.textContent = shown;
+    else for (let i = 0; i <= shown.length; i += 3) { t.textContent = shown.slice(0, i); await new Promise((r) => setTimeout(r, 12)); }
+    t.textContent = shown;
+  }
+
+  function onMessage(e: MessageEvent<VoiceOut>) {
+    const m = e.data;
+    if (m.type === 'progress') {
+      step = m.step;
+      lastSpeed = m.stepsPerSecond;
+      const left = (VOICE.steps - step) / Math.max(1, lastSpeed);
+      status.textContent = `Step ${fmt(step)} of ${fmt(VOICE.steps)} · ${fmt(Math.round(lastSpeed * 60))} steps a minute on this device${step < VOICE.steps ? ` · about ${left > 90 ? `${Math.round(left / 60)} minutes` : `${Math.max(1, Math.round(left))} seconds`} to go` : ''}`;
+      // Offer the precomputed end on devices where the live run would take much more than a couple of minutes.
+      if (state === 'running' && skip.hidden && performance.now() - startedAt > 8000 && left > 75) {
+        skip.hidden = false;
+        skipNote.hidden = false;
+        skipNote.textContent = `This device would need about ${Math.round(left / 60) || 1} more minute${Math.round(left / 60) > 1 ? 's' : ''}. Training is exactly the same on every device, so you can load the Wick this run ends with (computed in advance, ${Math.round((Number(root.dataset.size) * 8) / 1000)} KB) instead of waiting.`;
+      }
+    } else if (m.type === 'sample') {
+      if (m.step <= VOICE.steps) { points.push([m.step, m.accuracy]); chart(); }
+      printLine(m.step, m.text, m.accuracy);
+      const words = m.step === 0 ? 'Wick hasn’t learned a single letter yet.' : m.accuracy < 0.3 ? 'Wick is learning which letters are common.' : m.accuracy < 0.45 ? 'Wick is learning which letters go together.' : 'Wick is learning words.';
+      title.textContent = words;
+    } else if (m.type === 'done') {
+      state = 'done';
+      skip.hidden = true;
+      skipNote.hidden = true;
+      go.hidden = true;
+      $('[data-face]').innerHTML = wickFace('can_wait', 52);
+      title.textContent = m.precomputed ? `Wick after ${fmt(m.step)} steps (precomputed).` : `Wick has finished: ${fmt(m.step)} steps.`;
+      const p = points.filter(([s]) => s <= VOICE.steps).at(-1);
+      status.textContent = m.precomputed
+        ? `Loaded, not trained here: the same ${fmt(Number(root.dataset.size))} knobs your device would have reached${m.step > VOICE.steps ? ' after a much longer run' : ''}.`
+        : `Done in ${Math.round((performance.now() - startedAt) / 1000)} seconds on this device.${p ? ` First guesses right: ${Math.round(p[1] * 100)}%.` : ''}`;
+      $('[data-after]').hidden = false;
+      if (m.step >= VOICE.longSteps) $('[data-long-row]').hidden = true;
+    } else if (m.type === 'continued') {
+      const out = $('[data-out]');
+      out.replaceChildren();
+      const you = document.createElement('span');
+      you.className = 'you';
+      you.textContent = $<HTMLInputElement>('[data-prefix]').value.trim();
+      const w = document.createElement('span');
+      w.className = 'wick';
+      w.textContent = m.text;
+      out.append(you, w);
+      const win = $('[data-window]');
+      win.hidden = false;
+      win.replaceChildren(document.createTextNode('All Wick could see when it printed its last letter: '));
+      const box = document.createElement('span');
+      box.className = 'win';
+      box.textContent = m.window.replace(/ /g, '·');
+      win.append(box);
+    } else if (m.type === 'error') {
+      status.textContent = m.message;
+    }
+  }
+
+  function ensureWorker(): Promise<void> {
+    if (ready) return ready;
+    ready = (async () => {
+      if (typeof Worker === 'undefined') throw new Error('This browser cannot train Wick in the background. Use “Skip to the end” to load the precomputed Wick.');
+      worker = new Worker(new URL('./voice.worker.ts', import.meta.url), { type: 'module' });
+      worker.onmessage = onMessage;
+      worker.onerror = () => { status.textContent = 'Training stopped with an error. You can load the precomputed Wick instead.'; skip.hidden = false; };
+      const c = await loadCorpus();
+      send({ type: 'init', train: bySplit(c, 'train').map((m) => m.text), day: bySplit(c, 'day').map((m) => m.text) });
+      send({ type: 'temperature', value: Number(daring.value) });
+      if (location.hash === '#slow-device') send({ type: 'throttle', factor: 4 });
+    })();
+    return ready;
+  }
+
+  go.addEventListener('click', async () => {
+    try {
+      await ensureWorker();
+    } catch (e) {
+      status.textContent = (e as Error).message;
+      skip.hidden = false;
+      return;
+    }
+    if (state === 'running') {
+      send({ type: 'pause' });
+      state = 'paused';
+      go.textContent = 'Carry on teaching';
+      $('[data-face]').innerHTML = wickFace('idle', 52);
+      return;
+    }
+    if (state === 'new') startedAt = performance.now();
+    state = 'running';
+    go.textContent = 'Pause';
+    $('[data-face]').innerHTML = wickFace('thinking', 52);
+    send({ type: 'run' });
+  });
+
+  async function loadCheckpoint(steps: number) {
+    try { await ensureWorker(); } catch { /* no worker: nothing to load into */ status.textContent = 'This browser cannot run Wick in the background.'; return; }
+    state = 'done';
+    send({ type: 'load', url: `${base}data/wick-voice-${steps}.bin`, step: steps });
+  }
+  skip.addEventListener('click', () => loadCheckpoint(VOICE.steps));
+  $('[data-long]').addEventListener('click', () => loadCheckpoint(VOICE.longSteps));
+
+  daring.addEventListener('input', () => {
+    $('[data-daring-out]').textContent = daring.value;
+    if (worker) send({ type: 'temperature', value: Number(daring.value) });
+  });
+
+  let cont = 0;
+  const doContinue = () => {
+    const prefix = $<HTMLInputElement>('[data-prefix]').value;
+    cont++;
+    send({ type: 'continue', id: cont, prefix: prefix.trimEnd() + ' ', chars: 140, seed: cont });
+  };
+  $('[data-continue]').addEventListener('click', doContinue);
+  $('[data-prefix]').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doContinue(); } });
+</script>
+
+<style>
+  .head { display: flex; gap: 0.9rem; align-items: center; margin-bottom: 1rem; }
+  .face { flex: none; display: inline-flex; }
+  .title { margin: 0; font-weight: 700; font-size: var(--step-0); }
+  .skip-note { margin-top: 0.4rem; }
+  .chart { margin: 1.25rem 0 0.75rem; }
+  .chart-title { font-weight: 700; margin-bottom: 0.3rem; }
+  svg { width: 100%; max-width: 36rem; height: auto; overflow: visible; display: block; }
+  .axis { stroke: var(--ink); stroke-width: 1; }
+  .grid { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 3 4; }
+  .tick { font-family: var(--font-ui); font-size: 20px; fill: var(--ink-soft); }
+  .line { fill: none; stroke: var(--phosphor-ink); stroke-width: 2.5; stroke-linejoin: round; }
+  .dot { fill: var(--phosphor); stroke: var(--card); stroke-width: 2; }
+  .axis-x { display: flex; justify-content: space-between; max-width: 36rem; margin: 0.2rem 0 0; padding-left: 7%; color: var(--ink-soft); font-size: 0.8rem; }
+  .daring { margin-top: 1rem; }
+  .daring label { font-weight: 700; }
+  .tape-title { font-weight: 700; margin: 1.1rem 0 0.35rem; }
+  .tape-title .sub { font-weight: 400; color: var(--ink-soft); }
+  .lines { list-style: none; max-height: 22rem; overflow-y: auto; min-height: 4rem; overscroll-behavior: contain; }
+  .lines:empty::before { content: 'The tape is blank.'; color: var(--ink-soft); font-family: var(--font-ui); }
+  :global(.voice .lines li) { display: grid; grid-template-columns: 6.2rem 1fr auto; gap: 0.2rem 0.7rem; padding: 0.3rem 0; border-bottom: 1px dashed var(--rule); }
+  :global(.voice .lines li:last-child) { border-bottom: 0; }
+  :global(.voice .lines .n), :global(.voice .lines .acc) { font-family: var(--font-ui); font-size: 0.78rem; color: var(--ink-soft); padding-top: 0.2rem; white-space: nowrap; }
+  @media (max-width: 30rem) {
+    :global(.voice .lines li) { grid-template-columns: 1fr auto; }
+    :global(.voice .lines .wick) { grid-column: 1 / -1; grid-row: 2; }
+  }
+  .after { margin-top: 1.5rem; border-top: 1px solid var(--rule); padding-top: 1rem; }
+  .prefix-row { flex-wrap: nowrap; margin-bottom: 0.75rem; }
+  .prefix-row .nw-input { flex: 1; min-width: 0; }
+  @media (max-width: 30rem) { .prefix-row { flex-wrap: wrap; } }
+  .window { margin: 0.6rem 0 0.9rem; color: var(--ink-soft); }
+  :global(.voice .win) { font-family: var(--font-mono); color: var(--phosphor-ink); border: 1px solid var(--phosphor); padding: 0.1rem 0.4rem; border-radius: 3px; white-space: pre; background: var(--paper); }
+</style>

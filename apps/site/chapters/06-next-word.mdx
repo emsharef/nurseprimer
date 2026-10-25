@@ -1,0 +1,272 @@
+---
+number: 6
+title: Guess the Next Word
+lesson: Every chatbot is built on one trick, guessing what comes next
+summary: Wick has only ever printed two words, URGENT and CAN WAIT. Tonight it learns to talk, and you find out what the speaking tube is doing when it writes.
+plate: ch06-opener
+review:
+  prose: ai-draft
+  medical: unreviewed
+---
+
+import CountingMachine from '../components/widgets/next-word/CountingMachine.astro';
+import LearnToSpeak from '../components/widgets/next-word/LearnToSpeak.astro';
+import Gpt2Panel from '../components/widgets/next-word/Gpt2Panel.astro';
+import Gpt2Continuations from '../components/widgets/next-word/Gpt2Continuations.astro';
+
+Last night's map is still pinned above the desk, words scattered across it like towns: *spots* near *dots*,
+*speckles* in the same neighbourhood, *felt-tip* a little too close for comfort. Bea had circled *little purple*
+before she went home and written underneath, in pencil, *and then what?*
+
+She sees you looking at it when she comes in. "That's what a parent does," she says, hanging up her coat. "They
+write two words, and you already know the third. Half this job is knowing what comes next."
+
+In five nights Wick has printed exactly two things: URGENT and CAN WAIT. Across the desk, the speaking tube writes
+whole paragraphs, kind ones, in good order. Nobody has told you how. But it must put down one word, then another,
+then another. Tonight you find out how it chooses each one.
+
+## What came next in the pile
+
+"Start with the pile," says Bea. She drops the training messages on the desk, the same sixteen hundred Wick
+learned its knobs from. "Find *little purple*. Write down what comes after it. Do it every time."
+
+It takes you a while by hand, and the answer is almost funny: *dots*, nine times out of ten. Once, *red*.
+
+So if Wick wanted to continue *little purple*, it wouldn't need to understand anything. It could look up the last
+words it printed, count what followed them in the pile, and pick one, favouring the words that came up most. Then do it
+again with the new last words. Claude Shannon, the engineer who founded information theory, did exactly this in
+1948 with an ordinary book: open it at random, read until you meet the word you've just written, copy down the word
+after it, turn to another page and repeat.<Cite k="shannon1948" /> You have Wick, and Wick is faster at counting.
+
+<Predict
+  id="after-she-has-a"
+  question="In the pile, which word came next most often after “she has a”?"
+  options={['fever', 'rash', 'temp', 'cough']}
+  answer="temp"
+  lock
+>
+  The machine starts on “she has a”. Look at its bars, then let it print.
+</Predict>
+
+<Widget
+  title="Wick's counting machine"
+  summary="Type the start of a message. Wick finds the last two words (or one, or none) everywhere in the 1,597 training messages, counts every word that came next, and shows them as bars. It picks one in proportion to the counts, or you tap one; then it does it again."
+  realSystems="Counting machines like this (n-gram models, counted over billions of words, with clever ways of guessing for word pairs never seen) ran speech recognisers and phone keyboards for decades. They can only say what is in their pile."
+>
+  <CountingMachine />
+</Widget>
+
+Parents type *temp*, not *fever*. Wick didn't know that, and now it does, because it counted.
+
+Press *Print to the end of the message* a few times. The results sound uncannily like the night line: somebody's
+grandson, a temperature, a sorry to bother you, an app signature at the bottom. Then set *How far back Wick looks*
+to *no words at all*, and Wick picks every word by how common it is, with no idea what came before. That's word
+salad. Give it the last word, and it starts to make phrases. Give it two, and it makes something that could
+almost have been sent.
+
+Almost, because of where those sentences come from. Bea picks up one of your printouts and finds the message it
+started in. "It's reading me my own pile back," she says. With two words of memory Wick is mostly copying: more
+than half of all the word pairs in the pile turn up only once, and after those there is only ever one word to
+pick. Ask it about a pair that never turned up and it has nothing to say at all, and drops back to a single word.
+It can't make a sentence the pile hasn't half-made already.
+
+---
+
+## Wick learns to speak
+
+You've met this problem before. The rulebook only knew the words you'd written into it; the knobs, on the Third
+Night, learned from the pile instead. So give Wick knobs again, a great many, and a new job: not *urgent* or *can
+wait*, but *which letter comes next?*
+
+This Wick reads letters, not words. It looks at the last eight letters it has printed (spaces and full stops
+count). Each letter gets its own little set of learned numbers, its own spot on a little map, like last night's words, and those numbers
+feed a tangle of wires inside Wick that ends in one dial for each of the 42 characters Wick can print. The dials say
+how likely each one is to come next. To print, Wick picks a letter by the dials, adds it to the tape, slides its
+eight-letter window along, and goes again. All of that is decided by 44,490 knobs, and at the start they're all set
+at random.
+
+Training is the Third Night again: show Wick a stretch of a real message, ask for the next letter, measure how
+wrong it was, and turn every knob a hair in the direction that would have made it less wrong. Thirty-two
+stretches at a time, ten thousand times.<NoteRef id="adam" />
+
+<Predict
+  id="first-guess"
+  question="When Wick has finished learning, how often will its first guess at the next letter of a message it has never seen be right?"
+  options={['About 1 time in 42, like a blind guess', 'About 1 in 4', 'About 2 in 3', 'Nearly every time']}
+  answer="About 2 in 3"
+  lock
+/>
+
+<Widget
+  title="Wick learns to speak"
+  summary="Press the button and Wick trains, in the background, on the training messages. Every 500 steps it prints a line on its tape, and the chart shows how often its first guess at the next letter is right on Day Shift messages it never trained on. On a laptop it takes under a minute; a phone can take a few, and can skip ahead to the same result."
+  realSystems="Wick's network has 44,490 knobs and sees eight letters. GPT-2, below, has about 124 million and sees a thousand word pieces; the model in Lyceum's tube is far larger again. All of them are trained the same way: guess the next piece, measure the miss, turn the knobs."
+>
+  <LearnToSpeak />
+</Widget>
+
+Watch the tape. At step 0, with its knobs at random, Wick prints noise. A hundred steps in, it has learned that
+spaces come often and that *e* and *t* are popular. Soon it is making the shapes of words, *the*, *and*, *sorry*,
+then little runs of them that don't quite work. By the last few thousand steps the lines start to sound like
+someone. Not a sensible someone; a tired one, typing at three in the morning, who keeps losing the thread.
+
+"It's babbling," says Bea, and she sounds almost fond.
+
+Nobody told Wick what a word is. Nobody told it about spelling, or that *temp* is followed by a number, or that
+parents say sorry. It was only ever asked to guess the next letter, and guessing well turned out to need all of
+those. This machine, a guesser of what comes next, is what people call a *language model*, and this way of building
+one from small learned numbers goes back to a 2003 paper that did it with words.<Cite k="bengio2003" />
+
+The *Daring* knob deserves a turn. At the bottom of its range Wick plays safe: it nearly always prints its likeliest
+letter, and gets stuck saying the same few things. At 1 it picks each letter exactly as often as its dials say. Turn
+it higher and Wick takes long shots, and the words fall apart. The proper name for this knob is *temperature*; the
+lines on the tape were printed at 0.6.
+
+When it's done, start a message and let Wick finish it. Then try the button that loads a Wick trained for a hundred
+thousand steps instead of ten thousand (we trained that one in advance; it takes about six minutes). It is
+better, but only a little: its first guess is right 69 times in a hundred instead of 66. There isn't much more to
+squeeze out of eight letters.
+
+---
+
+## The big one
+
+<Plate id="ch06-two-ribbons" size="column" />
+
+Wick printing a parent's babble is lovely, and it is also a very long way from the tube. So you go looking for
+something in between, and find GPT-2.
+
+GPT-2 is a language model that the company OpenAI trained in 2019 and then published, knobs and all, so anyone can
+run it. Its makers took the pages behind links that people on the Reddit forums had shared and voted up, slightly
+over eight million documents, 40 gigabytes of text, and trained it to guess what comes next, across all of it, with
+about 124 million knobs.<Cite k="radford2019" /><NoteRef id="gpt2" /> That is small now: small enough to fit in this
+page, on your device.
+
+It doesn't read letters, like Wick, or whole words, like the counting machine. It reads *pieces*. Common words are
+one piece each, with the space in front of them included. Rare words get chopped: *petechiae* is three pieces,
+*Calpol* is two, and *MyRiverside* is four. The pieces are called *tokens*, and GPT-2 knows
+50,257 of them. Everything it reads or writes is a row of tokens.
+
+<Widget
+  title="GPT-2 in your browser"
+  summary="GPT-2 small, running on your device after a one-time download (the size is shown before you press anything). Until then the panel shows recorded results. The text is cut into GPT-2's word pieces; the bars show its ten likeliest next pieces and how much chance is left for all the others. A temperature slider reshapes the odds. Live, you can tap a bar or let it pick, and Wick prints GPT-2's choices on its tape."
+  realSystems="The model in a real chatbot has the same shape: tokens in, odds for the next token out, one token at a time. It is many times larger, trained on far more text, and then trained further to behave like an assistant."
+>
+  <Gpt2Panel />
+</Widget>
+
+Ask GPT-2 what follows *she has a fever and some little purple*, and it hedges across the whole internet: *things*,
+*eyes*, *pills*, *spots*, *hair*, *bruises*, two or three chances in a hundred each, and nearly four-fifths of its bet
+spread over pieces too unlikely to show. Wick's pile had no doubt at all. GPT-2 has read about everything, so for
+anything in particular it's less sure. Give it the start of the test card, up to *I pressed a glass on them and
+they*, and GPT-2 expects the spots *were*, *started*, *went*, *popped*. *Don't* isn't among its first ten guesses. It has read more than any nurse
+alive, and it has never sat at this desk.
+
+Move the temperature slider while you look at the bars. At 0 one piece takes everything. At 2 the long tail swells
+and the favourites shrink. It is the same knob as Wick's *Daring*, and every chatbot has one.
+
+---
+
+## It never answers
+
+Then you do the obvious thing. You give GPT-2 the message from your very first night, the one the tube answered so
+well: the four-year-old with a temperature and a rash that goes white under a glass.
+
+<Predict
+  id="answers"
+  question="What does GPT-2 print after the parent's message?"
+  options={['An answer, like the tube’s', 'A question back to the parent', 'More of the message, as if it were her']}
+  answer="More of the message, as if it were her"
+  lock
+/>
+
+<Gpt2Continuations />
+
+At temperature 0 it takes the likeliest piece every time and goes round in a circle: *i'm not sure. i'm not sure.*
+Turned up, it signs off politely, or offers nonsense in the voice of someone on a forum, or simply carries on being
+the worried parent. Not once does it answer her.
+
+"It isn't answering," says Bea. "It's being her."
+
+That is all GPT-2 has ever done. A question mark is just another piece. GPT-2 has seen questions followed by more
+questions, by signatures, by other people's posts, and nothing in the guessing knows that a person is waiting. If you downloaded it, try your own message, as plain a question as you like. You can make it more likely
+to look like an answer by starting the reply yourself (*Dear parent,*), but it is still only continuing the page.
+
+So what is in the tube? Very likely the same trick: a guesser of the next piece, vastly larger, trained on vastly
+more. Then, on top, more training, to make it play a particular part: someone who answers. What that training is,
+and what it does to the guesser, is a story for the Ninth Night.
+
+"Does it go on the board?" you ask.
+
+"It doesn't sort anything," says Bea. "It talks." She leaves the Ward Board alone.
+
+---
+
+## Eight letters
+
+Before the end of the shift you give your own Wick the test card, up to *and they*, and let it carry on. It prints:
+
+> she has a fever and some little purple spots on her legs. i pressed a glass on them like my mum said and they
+> **don't know if i nogh and it's had a temperature is 39.5 and its just the parking a couple straight**
+
+It starts well. *Don't* is the word that matters, the one the bag of knobs on the Third Night could never place.
+Then it prints *know*. When Wick chose that *k*, all it could see was *y don't* and a space: eight characters. The
+spots, the legs and the glass had slid out of its window long before, and after *don't*, parents in the pile
+mostly write *know*. From there it wanders off, with no idea who it was talking about.
+
+The counting machine had two words. Wick has eight letters. GPT-2 reads up to 1,024 pieces, a page or two, and
+somehow keeps hold of the thread. How, you don't yet know.
+
+<MathDrawer title="counting, Wick's voice, and temperature">
+  **The counting machine.** With $c(a\,b\,w)$ the number of times words $a, b$ were followed by $w$ in the
+  training messages, Wick picks the next word with probability
+
+  $$
+  P(w \mid a\,b) = \frac{c(a\,b\,w)}{\sum_{v} c(a\,b\,v)},
+  $$
+
+  and if the pair $a\,b$ never occurred it uses the last word alone, or, failing that, every word by its count
+  (a crude *back-off*). Messages start and end with a mark, so "end of message" is one of the words it can pick.
+
+  **Wick's voice.** The last eight characters $x_1 \dots x_8$ (from 42: a to z, digits, space, . , ' ? and a
+  message boundary) are looked up in a table of 16 learned numbers each, $e(x)$, and joined into one list of 128.
+  Then
+
+  $$
+  h = \tanh\!\big(W_1\,[e(x_1);\dots;e(x_8)] + b_1\big), \qquad z = W_2 h + b_2, \qquad
+  p_i = \frac{e^{z_i / T}}{\sum_j e^{z_j / T}},
+  $$
+
+  with 256 hidden units, so $W_1$ is $256 \times 128$ and $W_2$ is $42 \times 256$: 44,490 knobs in all. $T$ is
+  the temperature (training always uses $T = 1$). The wrongness for one example is $-\log p_y$ for the character
+  $y$ that really came next. Each step averages its slope over 32 random positions in the training messages and
+  updates every knob with Adam,<Cite k="kingma2014" /> using the paper's suggested $\beta_1 = 0.9$,
+  $\beta_2 = 0.999$, $\epsilon = 10^{-8}$ and a step size of $0.005/(1 + t/3000)$ at step $t$. The random numbers
+  come from a fixed seed, and the arithmetic is written so that it gives the same answer, to the last bit, on every
+  device: your Wick is exactly the Wick in the book.
+
+  **Temperature.** Dividing every score by $T$ before the softmax leaves the order of the guesses alone and
+  changes how far apart they are: as $T \to 0$ all the probability goes to the top score, $T = 1$ is the model's
+  own odds, and large $T$ flattens everything toward an even spread. GPT-2's bars use the same formula over its
+  50,257 tokens.
+</MathDrawer>
+
+<NightNote>
+  <Line who="young">It writes like them now. The parents.</Line>
+  <Line who="charge">It writes like the pile. Is that about a child, would you say, or about what people type at three in the morning?</Line>
+  <Line who="young">What people type.</Line>
+  <Line who="charge">Then it doesn't know any children. Not yet. *(She runs a finger along the tape, to where "don't" turns into "know if".)* And it lost the thread before the end of the sentence.</Line>
+  <Line who="young">It can only see eight letters back.</Line>
+  <Line who="charge">I keep a clipboard for that. Everything that matters about a call, written at the top where I can see it the whole time. Tomorrow you can give it one.</Line>
+</NightNote>
+
+<Notes>
+  <NoteDef id="adam">The training here uses *Adam*, a popular refinement of the Third Night's plain gradient descent
+  that keeps a running average of each knob's recent slopes and scales its step by how steady they have been. It
+  works well when, as here, every step sees only a small random handful of examples.</NoteDef>
+  <NoteDef id="gpt2">OpenAI's report lists the smallest GPT-2 as 117 million parameters; counting the published
+  weights gives about 124 million, the figure usually quoted now. The version in this page is an 8-bit copy
+  (each knob stored more coarsely, to make the download about a quarter of the size), converted by the
+  transformers.js project (<code>Xenova/gpt2</code>), and runs on ONNX Runtime Web. The model weights are released
+  under an MIT licence. The page blocks a short list of swear words and nothing else.</NoteDef>
+</Notes>
