@@ -2,7 +2,7 @@
 
 /** Where the reader starts: the First Night's one rule. */
 export const FIRST_RULE = `# Wick reads from the top. First match wins.
-if "purple" -> urgent
+if "purple*" -> urgent
 otherwise -> can wait`;
 
 /** The patches Bea suggests, in the order the chapter offers them. New patches go on top. */

@@ -27,6 +27,15 @@
       <button type="button" class="btn primary" data-save>Put Wick on the Ward Board</button>
       <span class="saved" data-saved aria-live="polite"></span>
     </div>
+
+    <form class="own" data-own>
+      <label for="own-word" class="own-label">Try your own word on the tray</label>
+      <div class="own-row">
+        <input id="own-word" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="16" placeholder="e.g. glass" data-own-word />
+        <button type="submit" class="btn">Punch it and feed the tray</button>
+      </div>
+      <p class="own-msg" data-own-msg aria-live="polite"></p>
+    </form>
   </div>
 </div>
 
@@ -34,7 +43,7 @@
   import { runTape, toTape } from '@primer/ml-core';
   import { scoreSet } from '@primer/ward-board';
   import { loadCorpus, bySplit } from '../../../src/lib/corpus.ts';
-  import { getWord, machine, saveToBoard, onWord } from './store.ts';
+  import { getWord, setWord, checkWord, machine, saveToBoard, onWord } from './store.ts';
 
   const root = document.querySelector<HTMLElement>('[data-tape-score]')!;
   const go = root.querySelector<HTMLButtonElement>('[data-go]')!;
@@ -61,9 +70,7 @@
   loadCorpus().then((c) => {
     const day = bySplit(c, 'day');
     let busy = false;
-    onWord(() => { root.querySelector<HTMLElement>('[data-after]')!.hidden = true; bar.style.width = '0'; progress.textContent = 'Wick has a new rule card. Feed the tray through again.'; });
-
-    go.addEventListener('click', async () => {
+    async function feed() {
       if (busy) return;
       busy = true;
       go.setAttribute('aria-disabled', 'true');
@@ -102,7 +109,21 @@
       go.removeAttribute('aria-disabled');
       go.textContent = 'Feed it through again';
       busy = false;
+    }
+    go.addEventListener('click', feed);
+
+    // After the tray: the reader's own word. Every tape machine on the page picks up the new card too.
+    const own = root.querySelector<HTMLFormElement>('[data-own]')!;
+    own.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const input = own.querySelector<HTMLInputElement>('[data-own-word]')!;
+      const err = checkWord(input.value);
+      own.querySelector('[data-own-msg]')!.textContent = err ?? '';
+      if (err) return;
+      setWord(input.value);
+      feed();
     });
+    onWord(() => root.querySelector('[data-saved]')!.textContent = '');
 
     root.querySelector('[data-save]')!.addEventListener('click', () => {
       saveToBoard(c.messages);
@@ -130,4 +151,13 @@
   :global(.tape-score mark) { background: var(--gold-wash); color: var(--ink); font-weight: 700; padding: 0 0.05em; }
   .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 1.25rem; }
   .saved { color: var(--calm); font-weight: 700; }
+  .own { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px dashed var(--rule); }
+  .own-label { display: block; font-weight: 700; margin-bottom: 0.4rem; }
+  .own-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+  .own-row input {
+    font-family: var(--font-mono); font-size: 16px; min-height: 2.75rem; width: 10rem; padding: 0.35rem 0.6rem;
+    border: 1.5px solid var(--gold-ink); border-radius: var(--radius-ui); background: var(--paper); color: var(--ink);
+  }
+  .own-msg { margin: 0.4rem 0 0; color: var(--gold-ink); font-weight: 700; }
+  .own-msg:empty { display: none; }
 </style>

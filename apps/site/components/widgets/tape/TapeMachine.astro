@@ -2,17 +2,20 @@
 // The First Night's tape machine. A message is punched on paper tape, one symbol per cell; Wick's read head
 // moves over it one cell per tick, and at every tick it looks up one row of its rule card, by the state it is
 // in and the symbol under the head. With `editable`, the reader writes the rule (the word to look for) and the
-// card is compiled from it; every machine on the page then runs that card.
-interface Props { editable?: boolean; presets?: { label: string; text: string }[]; turnOver?: boolean }
-const { editable = false, presets = [], turnOver = false } = Astro.props;
+// card is compiled from it; every machine on the page then runs that card. The first card is always Bea's word
+// (the chapter's numbers depend on it); the reader tries their own word later, on the whole tray (TapeScore).
+// `reveal` names [data-after-run] blocks in the chapter that stay hidden until this machine has stopped, so the
+// prose that reacts to a run doesn't give it away.
+interface Props { editable?: boolean; presets?: { label: string; text: string }[]; turnOver?: boolean; reveal?: string }
+const { editable = false, presets = [], turnOver = false, reveal } = Astro.props;
 const uid = `tape-${Math.random().toString(36).slice(2, 8)}`;
 ---
-<div class="tape-machine" data-tape-machine data-editable={editable ? '' : undefined}>
+<div class="tape-machine" data-tape-machine data-editable={editable ? '' : undefined} data-reveal={reveal}>
   {editable && (
     <form class="rule-form" data-rule-form>
-      <label for={`${uid}-word`} class="rule-label">Wick's first rule: if the tape says</label>
+      <label for={`${uid}-word`} class="rule-label">Wick's first rule: if the tape says Bea's word</label>
       <div class="rule-row">
-        <input id={`${uid}-word`} type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="purple" maxlength="16" data-word />
+        <input id={`${uid}-word`} type="text" value="purple" readonly aria-readonly="true" data-word />
         <span class="arrow" aria-hidden="true">→</span>
         <span class="tag urgent">print URGENT</span>
       </div>
@@ -69,8 +72,8 @@ const uid = `tape-${Math.random().toString(36).slice(2, 8)}`;
       <div class="turn-over">
         <button type="button" class="btn" data-turn aria-expanded="false">Turn the card over</button>
         <div data-turn-out hidden>
-          <p class="turn-note">The same rows, punched one after another as plain symbols, ready to feed in on tape:</p>
-          <p class="encoded machine" data-encoded></p>
+          <p class="turn-note">This is the card above, punched as tape: each row is its state, the letter it reads, and the state to go to next. <span class="machine">*</span> is any other letter, <span class="machine">□</span> the end of the tape, and <span class="machine">!U</span> or <span class="machine">!W</span> means print URGENT or CAN WAIT. A machine whose rules say “read a row off the tape and do what it says” could follow this tape and behave exactly like Wick.</p>
+          <div class="encoded" data-encoded aria-label="The rule card as tape symbols" role="img"></div>
         </div>
       </div>
     )}
@@ -78,8 +81,8 @@ const uid = `tape-${Math.random().toString(36).slice(2, 8)}`;
 </div>
 
 <script>
-  import { TapeRun, toTape, BLANK, ANY, encodeTable, type TapeMachine } from '@primer/ml-core';
-  import { getWord, setWord, onWord, checkWord, machine, isPunched, DEFAULT_WORD } from './store.ts';
+  import { TapeRun, toTape, BLANK, ANY, type TapeMachine } from '@primer/ml-core';
+  import { getWord, setWord, onWord, machine, isPunched, DEFAULT_WORD } from './store.ts';
   import { wickFace } from '../wick.ts';
 
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -114,8 +117,27 @@ const uid = `tape-${Math.random().toString(36).slice(2, 8)}`;
         if (r.print) tr.children[2].classList.add(r.print === 'URGENT' ? 'p-urgent' : 'p-wait');
         return tr;
       }));
-      const enc = root.querySelector('[data-encoded]');
-      if (enc) enc.textContent = encodeTable(m);
+      // The card as tape: one run of cells per row (state, letter, next state), rows separated by a gap.
+      const enc = root.querySelector<HTMLElement>('[data-encoded]');
+      if (enc) {
+        const sym = (s: string) => (s === BLANK ? '□' : s === ANY ? '*' : s === ' ' ? '·' : s);
+        enc.replaceChildren(...m.rules.map((r) => {
+          const seg = document.createElement('span');
+          seg.className = 'seg';
+          const parts = [r.state === ANY ? '*' : r.state, sym(r.read), r.print ? `!${r.print === 'URGENT' ? 'U' : 'W'}` : r.next];
+          parts.forEach((p, k) => {
+            if (k) { const sep = document.createElement('span'); sep.className = 'cell sep'; sep.textContent = '|'; seg.append(sep); }
+            for (const ch of Array.from(p)) {
+              const c = document.createElement('span');
+              c.className = `cell${ch === '!' ? ' bang' : ''}`;
+              c.textContent = ch;
+              seg.append(c);
+            }
+          });
+          return seg;
+        }));
+        enc.setAttribute('aria-label', `The ${m.rules.length} rows of the rule card written as ${enc.querySelectorAll('.cell').length} tape symbols.`);
+      }
     }
 
     function cellCount() {
@@ -162,6 +184,7 @@ const uid = `tape-${Math.random().toString(36).slice(2, 8)}`;
         printout.className = `printout ${run.output === 'URGENT' ? 'urgent' : 'can_wait'}`;
         printout.textContent = `Wick prints: ${run.output}`;
         sr.textContent = `Wick stopped after ${run.steps} steps and printed ${run.output}.`;
+        if (root.dataset.reveal) document.querySelectorAll<HTMLElement>(`[data-after-run="${root.dataset.reveal}"]`).forEach((el) => (el.hidden = false));
       } else {
         printout.hidden = true;
       }
@@ -229,11 +252,9 @@ const uid = `tape-${Math.random().toString(36).slice(2, 8)}`;
       const msg = form.querySelector<HTMLElement>('[data-form-msg]')!;
       form.addEventListener('submit', (e) => {
         e.preventDefault();
-        const w = input.value.trim() || input.placeholder || DEFAULT_WORD;
-        const err = checkWord(w);
-        msg.textContent = err ?? `Punched: ${toTape(w).length} letters became ${machine(w).rules.length} rows.`;
-        if (err) return;
-        input.value = w.toLowerCase();
+        const w = DEFAULT_WORD;
+        input.value = w;
+        msg.textContent = `Punched: ${toTape(w).length} letters became ${machine(w).rules.length} rows.`;
         setWord(w);
         root.querySelector<HTMLElement>('[data-reader]')!.hidden = false;
       });
@@ -241,6 +262,7 @@ const uid = `tape-${Math.random().toString(36).slice(2, 8)}`;
 
     onWord(() => { m = machine(); buildCard(); load(); });
     if (!editable || isPunched()) root.querySelector<HTMLElement>('[data-reader]')!.hidden = false;
+    if (root.dataset.reveal) document.querySelectorAll<HTMLElement>(`[data-after-run="${root.dataset.reveal}"]`).forEach((el) => (el.hidden = true));
     buildCard();
     load();
     let w0 = innerWidth;
@@ -253,9 +275,9 @@ const uid = `tape-${Math.random().toString(36).slice(2, 8)}`;
   .rule-label { display: block; font-weight: 700; margin-bottom: 0.4rem; }
   .rule-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
   .rule-row input {
-    font: inherit; font-family: var(--font-mono); font-size: 1.1rem; min-height: 2.75rem; width: 11rem;
-    padding: 0.35rem 0.6rem; border: 1.5px solid var(--gold-ink); border-radius: var(--radius-ui);
-    background: var(--paper); color: var(--ink);
+    font: inherit; font-family: var(--font-mono); font-size: 1.1rem; min-height: 2.75rem; width: 9rem;
+    padding: 0.35rem 0.6rem; border: 1.5px dashed var(--gold-ink); border-radius: var(--radius-ui);
+    background: var(--gold-wash); color: var(--ink); font-weight: 700;
   }
   .arrow { font-size: 1.2rem; }
   .tag { border-radius: 999px; padding: 0.15rem 0.7rem; font-weight: 700; border: 1px solid; font-family: var(--font-mono); font-size: 0.85rem; }
@@ -310,7 +332,10 @@ const uid = `tape-${Math.random().toString(36).slice(2, 8)}`;
   .printout.can_wait { color: var(--calm); border-color: var(--calm); background: var(--calm-wash); }
 
   .card { margin-top: 1.1rem; }
-  .card summary { cursor: pointer; font-weight: 700; min-height: 2.75rem; display: flex; align-items: center; }
+  .card summary { cursor: pointer; font-weight: 700; min-height: 2.75rem; display: flex; align-items: center; gap: 0.4rem; list-style: none; }
+  .card summary::-webkit-details-marker { display: none; }
+  .card summary::before { content: '▸'; color: var(--gold-ink); width: 1em; }
+  .card[open] summary::before { content: '▾'; }
   .card-scroll { max-height: 15rem; overflow-y: auto; border: 1px solid var(--rule); border-radius: var(--radius-ui); position: relative; }
   .card-scroll:focus-visible { outline: 2px solid var(--focus); }
   table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.85rem; }
@@ -322,5 +347,12 @@ const uid = `tape-${Math.random().toString(36).slice(2, 8)}`;
 
   .turn-over { margin-top: 1rem; }
   .turn-note { margin: 0.75rem 0 0.4rem; }
-  .encoded { margin: 0; padding: 0.6rem 0.75rem; background: var(--paper-2); border-radius: var(--radius-ui); font-size: 0.8rem; line-height: 1.6; overflow-wrap: anywhere; }
+  .encoded { display: flex; flex-wrap: wrap; gap: 0.45rem 0.6rem; padding: 0.6rem; background: var(--paper-2); border-radius: var(--radius-ui); }
+  :global(.tape-machine .encoded .seg) { display: inline-flex; gap: 1px; }
+  :global(.tape-machine .encoded .cell) {
+    width: 1.15rem; height: 1.6rem; display: grid; place-items: center; font-family: var(--font-mono); font-size: 0.85rem;
+    background: var(--paper); color: var(--phosphor-ink); border: 1px solid var(--rule); border-radius: 2px;
+  }
+  :global(.tape-machine .encoded .cell.sep) { color: var(--ink-soft); background: transparent; border-color: transparent; width: 0.6rem; }
+  :global(.tape-machine .encoded .cell.bang) { color: var(--alarm); font-weight: 700; }
 </style>

@@ -45,13 +45,25 @@ describe('the Second Night, on the shared corpus', () => {
   const s2 = addPatch(s1, PATCHES[1].line);
   const s3 = addPatch(s2, PATCHES[2].line);
 
-  it('the felt-tip patch fixes five and breaks none', () => {
-    expect(diff(s0, s1)).toMatchObject({ fixed: 5, broke: 0 });
+  it('the first card, "purple*", scores exactly like last night\'s tape card (102 missed, 9 alarms)', () => {
+    const s = score(s0, day);
+    expect(s.missedEmergencies).toBe(102);
+    expect(s.unnecessaryEscalations).toBe(9);
   });
 
-  it('the glass patch fixes 23 and breaks 10 ("Yes, a few"), including the grandmother who doesn\'t want to get it wrong', () => {
+  it('the felt-tip patch fixes five and breaks none, but not the boy with his cars (felt tips); "felt tip*" fixes him', () => {
+    expect(diff(s0, s1)).toMatchObject({ fixed: 5, broke: 0 });
+    const boy = day.find((x) => x.id === 'd0204')!;
+    expect(new Rulebook(s1).predict(boy.text).label).toBe('urgent');
+    expect(boy.text).toContain('felt tips');
+    const star = addPatch(s0, 'if "felt tip*" -> can wait');
+    expect(new Rulebook(star).predict(boy.text).label).toBe('can_wait');
+    expect(diff(s0, star)).toMatchObject({ fixed: 6, broke: 0 });
+  });
+
+  it('the glass patch fixes 22 and breaks 10 ("Yes, a few"), including the grandparent who doesn\'t want to get it wrong', () => {
     const d = diff(s1, s2);
-    expect(d).toMatchObject({ fixed: 23, broke: 10 });
+    expect(d).toMatchObject({ fixed: 22, broke: 10 });
     expect(d.broken.map((x) => x.id)).toContain('d0085');
   });
 
@@ -90,7 +102,11 @@ describe('the Second Night, on the shared corpus', () => {
     expect(msgs.find((x) => x.id === 'n0079')!.text).toMatch(/I mind a likkle girl/);
   });
 
-  it('prints CAN WAIT for the speckly message at ten past three, with no rule matching', () => {
+  it('the Night Shift paragraph names cards the rulebook really has', () => {
+    for (const p of ['"dont fade"', '"stiff neck"', '"cold hands"']) expect(THREE_OCLOCK).toContain(p);
+  });
+
+  it('prints CAN WAIT for the speckly message at ten past three, with no rule matching (the guess: "No")', () => {
     const v = new Rulebook(THREE_OCLOCK).classify(SPECKLY);
     expect(v).toEqual({ label: 'can_wait', rule: null });
     expect(SPECKLY).toContain('speckly');

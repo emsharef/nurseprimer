@@ -158,3 +158,8 @@ of 2026-10-25 ("don't ask questions, start building ... work as you see best"); 
   cited (unverified); the idea is paraphrased.
 - **Ward Board:** saving the map-reader also puts the Third Night's bag of words on the board (same id
   `ch3-trained`) if the reader has not, so the comparison is visible to readers who start at this chapter.
+- **Nights 1-2 after review (chapter-builder):** Night 1's first rule card is fixed to Bea's word (read-only);
+  the reader's own word comes after the tray, saved to the board under a separate id. Prose reacting to a tape
+  run stays hidden until that machine stops (`reveal` / `data-after-run`, visible without JS). Night 2's first
+  card is `"purple*"` (reproduces the tape's 102 missed / 9 alarms). Site-wide: `.btn` min-height 2.75rem,
+  `details.hint` summaries 44px, larger note/cite tap targets, and code blocks wrap instead of scrolling.
